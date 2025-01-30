@@ -1,4 +1,6 @@
 WOO README!
 
 Team Members
-Cameron Fanning
+
+- Cameron Fanning
+- D. William Campman
