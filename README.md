@@ -6,3 +6,4 @@ Team Members
 - D. William Campman
 - Greg Lynskey
 - Aayan Sayed
+- Roshan Nunna
