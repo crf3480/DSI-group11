@@ -1,3 +1,5 @@
+package src;
+
 /**
  * Stores pages in memory
  * Authors:
