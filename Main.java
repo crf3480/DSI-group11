@@ -2,7 +2,7 @@ public class Main {
     public static void main(String[] args) {
         // Validate CLI arguments
         if (args.length < 3) {
-            System.out.println("Usage: java -jar Parser.jar <file> <page size> <buffer size>");
+            System.out.println("Usage: java Main <file> <page size> <buffer size>");
             System.exit(1);
         }
         String dbLocation = args[0];
