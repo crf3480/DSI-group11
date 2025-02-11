@@ -44,12 +44,12 @@ public class Main {
         }
         Scanner scan = new Scanner(System.in);
         boolean stillGoing = true;
-        do{
+        do {
             System.out.print("Input ('quit' to quit): ");
             String uIn = scan.nextLine();
             if (uIn.equals("quit")){
                 stillGoing = false;
             }
-        }while(stillGoing);
+        } while(stillGoing);
     }
 }
