@@ -1,5 +1,3 @@
-package src;
-
 /**
  * Represents a page of a Table
  * Authors:
