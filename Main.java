@@ -1,3 +1,5 @@
+import java.io.File;
+
 public class Main {
     public static void main(String[] args) {
         // Validate CLI arguments
@@ -16,5 +18,8 @@ public class Main {
         } catch (NumberFormatException e) {
             throw new RuntimeException("Invalid buffer size: `" + args[2] + "`");
         }
+
+        File file = new File(dbLocation);
+        boolean exists = file.exists();
     }
 }
