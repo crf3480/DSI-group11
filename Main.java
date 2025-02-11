@@ -19,7 +19,17 @@ public class Main {
             throw new RuntimeException("Invalid buffer size: `" + args[2] + "`");
         }
 
+        // Check if file exists and either restart the file or 
         File file = new File(dbLocation);
         boolean exists = file.exists();
+        
+        if (exists) {
+            // Restart the DB and use the existing page size
+            // Set buffer to the new buffer size being readin
+        } else {
+            //create a new DB at the location with the pages and buffer size
+        }
+        
+
     }
 }
