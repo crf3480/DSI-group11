@@ -9,13 +9,15 @@ public class Main {
             System.exit(1);
         }
         String dbLocation = args[0];
+        int pageSize;
         try {
-            int pageSize = Integer.parseInt(args[1]);
+            pageSize = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
             throw new RuntimeException("Invalid page size: `" + args[1] + "`");
         }
+        Buffer buffer;
         try {
-            int bufferSize = Integer.parseInt(args[2]);
+            buffer = new Buffer(Integer.parseInt(args[2]));
         } catch (NumberFormatException e) {
             throw new RuntimeException("Invalid buffer size: `" + args[2] + "`");
         }
