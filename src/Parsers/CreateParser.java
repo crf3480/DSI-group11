@@ -10,13 +10,8 @@ public class CreateParser implements GeneralParser{
 
     // TODO: Add error handling, this assumes the input is correct
     @Override
-    public boolean parse(String rawInput) {
-        String[] tokens = rawInput.split("\\s+");
-
-        if (tokens[0].equals("create") && tokens[1].equals("table")){
-            tableName = tokens[3];
-        }
-
+    public boolean parse(String[] rawInput) {
+        tableName = rawInput[3];
         return false;
     }
 }
