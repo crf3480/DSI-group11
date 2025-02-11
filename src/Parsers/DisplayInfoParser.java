@@ -1,4 +1,8 @@
 package Parsers;
 
-public class DisplayInfoParser {
+public class DisplayInfoParser implements GeneralParser{
+    @Override
+    public boolean parse(String rawInput) {
+        return false;
+    }
 }
