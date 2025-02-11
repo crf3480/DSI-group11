@@ -22,12 +22,14 @@ public class Main {
         // Check if file exists and either restart the file or 
         File file = new File(dbLocation);
         boolean exists = file.exists();
-        
+        System.out.println(file.getName());
         if (exists) {
+            System.out.println("real");
             // Restart the DB and use the existing page size
             // Set buffer to the new buffer size being readin
         } else {
             //create a new DB at the location with the pages and buffer size
+            System.out.println("dne");
         }
         
 
