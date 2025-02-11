@@ -1,5 +1,10 @@
 public class Catalog {
-    
-    public Catalog(int pageSize):
-        pageSize = pageSize;
+    private int pageSize;
+    public Catalog(int pageSize){
+        this.pageSize = pageSize;
+    }
+
+    public Catalog(String path){
+        
+    }
 }
