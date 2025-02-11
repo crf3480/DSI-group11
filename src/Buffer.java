@@ -5,13 +5,21 @@ package src;
  * Authors:
  */
 public class Buffer {
-    int size;
+    Page[] pages;
 
     /**
      * Creates a buffer for storing pages
      * @param bufferSize The size of the buffer
      */
     public Buffer(int bufferSize) {
-        size = bufferSize;
+        pages = new Page[bufferSize];
+    }
+
+    /**
+     * Gets the size of the buffer
+     * @return The size of the buffer
+     */
+    public int size() {
+        return pages.length;
     }
 }
