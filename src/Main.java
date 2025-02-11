@@ -1,5 +1,6 @@
 import java.io.File;
 import java.io.IOException;
+import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) throws IOException {
@@ -39,5 +40,14 @@ public class Main {
             System.out.println(catalog.exists());
 
         }
+        Scanner scan = new Scanner(System.in);
+        boolean stillGoing = true;
+        do{
+            System.out.print("Input ('quit' to quit): ");
+            String uIn = scan.nextLine();
+            if (uIn.equals("quit")){
+                stillGoing = false;
+            }
+        }while(stillGoing);
     }
 }
