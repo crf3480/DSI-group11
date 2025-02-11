@@ -1,4 +1,4 @@
-package src.Parsers;
+package Parsers;
 
 public class InsertParser implements Parsers.GeneralParser {
     @Override
