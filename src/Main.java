@@ -1,5 +1,4 @@
 package src;
-
 import java.io.File;
 import java.io.IOException;
 
@@ -26,20 +25,20 @@ public class Main {
         File database = new File(dbLocation);
         boolean madeNewDB = database.mkdir();
         System.out.println(database.getName());
+
+        //create a new DB at the location with the pages and buffer size
         if (madeNewDB) {
             System.out.println("made new directory");
             File catalog = new File(dbLocation + "/catalog.txt");
             catalog.createNewFile();
-            // Restart the DB and use the existing page size
-            // Set buffer to the new buffer size being read in
+
+        // Restart the DB and use the existing page size
+        // Set buffer to the new buffer size being read in
         } else {
-            //create a new DB at the location with the pages and buffer size
             System.out.println("already exists");
             File catalog = new File(dbLocation + "/catalog.txt");
             System.out.println(catalog.exists());
 
         }
-        
-
     }
 }
