@@ -1,5 +1,8 @@
 package Parsers;
 
+/**
+ * The parsers take a modular approach to make collaborative editing easier
+ */
 public interface GeneralParser {
 
     /**
