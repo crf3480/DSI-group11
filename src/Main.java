@@ -1,8 +1,11 @@
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.util.Scanner;
+import java.io.InputStreamReader;
+import java.util.*;
 
 public class Main {
+
     public static void main(String[] args) throws IOException {
         // Validate CLI arguments
         if (args.length < 3) {
@@ -25,11 +28,10 @@ public class Main {
 
         // Check if database exists and either restart the database or
         File database = new File(dbLocation);
-        boolean madeNewDB = database.mkdir();
         System.out.println(database.getName());
 
-        //create a new DB at the location with the pages and buffer size
-        if (madeNewDB) {
+        // Create a new DB at the location with the pages and buffer size
+        if (database.mkdir()) {
             System.out.println("made new directory");
             File catalog = new File(dbLocation + "/catalog.txt");
             catalog.createNewFile();
@@ -42,14 +44,134 @@ public class Main {
             System.out.println(catalog.exists());
 
         }
-        Scanner scan = new Scanner(System.in);
-        boolean stillGoing = true;
-        do {
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        while (true) {
             System.out.print("Input ('quit' to quit): ");
-            String uIn = scan.nextLine();
-            if (uIn.equals("quit")){
-                stillGoing = false;
+            for (ArrayList<String> statement : getQuery(br)) {
+                System.out.println(statement);
+                switch (statement.getFirst()) {
+                    case "quit":
+                        //TODO: Write buffer to disk before exiting
+                        return;
+                    case "create":
+                    case "drop":
+                    case "alter":
+                        // DDL Parser
+                        break;
+                    case "insert":
+                    case "display":
+                    case "select":
+                        // DML Parser
+                        break;
+                    default:
+                        System.err.println("Invalid command: `" + statement.getFirst() + "`");
+                }
             }
-        } while(stillGoing);
+        }
+    }
+
+    /**
+     * Gathers input until a line is read that ends with a semicolon outside of quotes, ignoring
+     * trailing whitespace. The input is split on semicolons to form statements. Each statement
+     * is then converted into an ArrayList of substrings, all of which are returned in an ArrayList.
+     * <br>
+     * Statements are divided by the following rules:
+     * <ul>
+     *     <li>Except when in quotes, statements are splits on whitespace</li>
+     *     <li>Empty strings are ignored</li>
+     *     <li>Inside quotes, quotation marks and new lines can be escaped with '\'.
+     *     Escaping any other character has no effect.
+     *     </li>
+     *     <li>Non-quoted parentheses and commas are treated as individual tokens</li>
+     *     <li>Non-quoted strings are converted to lowercase</li>
+     * </ul>
+     *
+     * @param reader The BufferedReader to get input from
+     * @return The user's query, sanitized and split into a collection of statements made of substrings. If an
+     * IOException is encountered, prints an error and returns an empty list
+     */
+    private static ArrayList<ArrayList<String>> getQuery(BufferedReader reader) {
+        ArrayList<ArrayList<String>> statementList = new ArrayList<>();
+        ArrayList<String> statement = new ArrayList<>();
+        StringBuilder token = new StringBuilder();
+
+        // It's dumb that I have to do it this way, but you can't define
+        // a List inline and Array doesn't have a `.contains()` method
+        Character[] delArr = {' ', '\t', '\r', '\n'};
+        List<Character> delimiters = Arrays.asList(delArr);
+        Character[] isoArr = {'(', ')', ','};
+        List<Character> isolatedChars = Arrays.asList(isoArr);
+
+        String input = null;
+        boolean openQuote = false;
+        boolean escaped = false;
+        while (true) {
+            input = (input == null) ? "" : "\n";  // input is null for the first line
+            try {
+                input += reader.readLine();
+            } catch (IOException e) {
+                System.err.println("Encountered error while reading input: " + e.getMessage());
+                return new ArrayList<>();
+            }
+            // System.out.println(input);
+            for (int i = 0; i < input.length(); i++) {
+                char c = input.charAt(i);
+                if (openQuote) {  // Inside quotes, different rules apply
+                    if (escaped) {
+                        if (c != '\n') { token.append(c); }  // Escaping a new line ignores it
+                        escaped = false;
+                    } else if (c == '\\') {
+                        escaped = true;
+                    } else if (c == '"') {  // Close quote
+                        token.append('"');
+                        openQuote = false;
+                        statement.add(token.toString());
+                        token = new StringBuilder();
+                    } else {
+                        token.append(c);
+                    }
+                } else if (c == '"') {  // Open a quote
+                    if (!token.isEmpty()) {
+                        statement.add(token.toString());
+                        token = new StringBuilder();
+                    }
+                    token.append(c);
+                    openQuote = true;
+                } else if (c == ';') {
+                    // Add existing token to statement, then break and start new statement
+                    if (!token.isEmpty()) {
+                        statement.add(token.toString());
+                        token = new StringBuilder();
+                    }
+                    // Sequential semicolons will produce empty statements
+                    if (!statement.isEmpty()) {
+                        statementList.add(statement);
+                        statement = new ArrayList<>();
+                    }
+                    // If that was the last character of the input, return the query
+                    if (i == input.length() - 1) {
+                        return statementList;
+                    }
+                } else if (delimiters.contains(c)) {  // Token delimiters
+                    // Don't fold this into the parent if, because even when `token` is empty,
+                    // we still want to ignore delimiters
+                    if (!token.isEmpty()) {
+                        statement.add(token.toString());
+                        token = new StringBuilder();
+                    }
+                } else if (isolatedChars.contains(c)) {  // Chars which always become individual tokens
+                    // Add the current token to the statement
+                    if (!token.isEmpty()) {
+                        statement.add(token.toString());
+                    }
+                    // Add c as its own token and start a new one
+                    statement.add(String.valueOf(c));
+                    token = new StringBuilder();
+                } else {
+                    token.append(Character.toLowerCase(c));
+                }
+            }
+        }
     }
 }
