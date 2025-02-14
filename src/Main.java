@@ -1,7 +1,7 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import Parsers.DDL;
+import Parsers.DML;
+
+import java.io.*;
 import java.util.*;
 
 public class Main {
@@ -45,27 +45,45 @@ public class Main {
 
         }
 
+        DML dml = new DML();
+        DDL ddl = new DDL();
+
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String output;
         while (true) {
             System.out.print("Input ('quit' to quit): ");
             for (ArrayList<String> statement : getQuery(br)) {
-                System.out.println(statement);
+                System.out.println(statement);  // Check that `getQuery()` is parsing command correctly
+                output = null;
                 switch (statement.getFirst()) {
                     case "quit":
                         //TODO: Write buffer to disk before exiting
                         return;
-                    case "create":
-                    case "drop":
+                    // DDL commands
                     case "alter":
-                        // DDL Parser
+                        output = ddl.alter(statement);
+                        break;
+                    case "create":
+                        output = ddl.create(statement);
+                        break;
+                    case "drop":
+                        output = ddl.drop(statement);
+                        break;
+                    // DML commands
+                    case "display":
+                        output = dml.display(statement);
                         break;
                     case "insert":
-                    case "display":
+                        output = dml.insert(statement);
+                        break;
                     case "select":
-                        // DML Parser
+                        output = dml.select(statement);
                         break;
                     default:
                         System.err.println("Invalid command: `" + statement.getFirst() + "`");
+                }
+                if (output != null) {
+                    System.out.println(output);
                 }
             }
         }
@@ -96,17 +114,16 @@ public class Main {
         ArrayList<String> statement = new ArrayList<>();
         StringBuilder token = new StringBuilder();
 
-        // It's dumb that I have to do it this way, but you can't define
-        // a List inline and Array doesn't have a `.contains()` method
-        Character[] delArr = {' ', '\t', '\r', '\n'};
-        List<Character> delimiters = Arrays.asList(delArr);
-        Character[] isoArr = {'(', ')', ','};
-        List<Character> isolatedChars = Arrays.asList(isoArr);
+        // It's dumb that I have to do it this way, but Array doesn't have a `.contains()` method
+        List<Character> delimiters = Arrays.asList(' ', '\t', '\r', '\n');
+        List<Character> isolatedChars = Arrays.asList('(', ')', ',');
 
         String input = null;
         boolean openQuote = false;
         boolean escaped = false;
         while (true) {
+            // Keep grabbing input until a line is completed without an
+            // unfinished statement, then exit the loop by returning
             input = (input == null) ? "" : "\n";  // input is null for the first line
             try {
                 input += reader.readLine();
@@ -114,7 +131,7 @@ public class Main {
                 System.err.println("Encountered error while reading input: " + e.getMessage());
                 return new ArrayList<>();
             }
-            // System.out.println(input);
+
             for (int i = 0; i < input.length(); i++) {
                 char c = input.charAt(i);
                 if (openQuote) {  // Inside quotes, different rules apply
