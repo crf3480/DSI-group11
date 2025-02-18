@@ -27,6 +27,9 @@ public class DDL {
      * @return The output of the command. `null` if command produces no output
      */
     public String create(ArrayList<String> inputList) {
+
+
+
         return null;
     }
 
