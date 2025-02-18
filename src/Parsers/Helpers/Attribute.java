@@ -22,6 +22,12 @@ public class Attribute {
             case INT:
                 length = 32;
                 break;
+            case DOUBLE:
+                length = 64;
+                break;
+            case BOOLEAN:
+                length = 8;
+                break;
 
             default:
                 break;
