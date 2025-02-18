@@ -1,7 +1,12 @@
+import TableData.Record;
+import jdk.jshell.spi.ExecutionControl;
+
+import java.util.ArrayList;
+
 public class StorageManager {
 
-    public boolean getByPrimaryKey(int id){
-        return false;
+    public ArrayList<Record> getByPrimaryKey(int id){
+        return null;
     }
 
     // Unsure about this one...

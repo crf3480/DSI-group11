@@ -1,3 +1,5 @@
+import TableData.Page;
+
 /**
  * Stores pages in memory
  * Authors:
