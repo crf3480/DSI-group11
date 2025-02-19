@@ -3,7 +3,9 @@ package Parsers.Helpers;
 public class Attribute {
     public String name;
     public AttributeType type;
-    public ConstraintTypes constraint;
+    public boolean primaryKey;
+    public boolean notNull;
+    public boolean unique;
 
     public int length;
 
@@ -11,35 +13,33 @@ public class Attribute {
      * Creates a new attribute that defines an attribute with the following constraints
      * @param name Constraint Name
      * @param type Type of Value
-     * @param constraint Type of Constraint (PRIMARY_KEY, NOT_NULL, UNIQUE)
+     * @param primaryKey Whether this attribute is a primary key
+     * @param notNull Whether this attribute is allowed to be null
+     * @param unique Whether this attribute must be unique in its relation
+     * @param length The byte length of this attribute. For fixed length attributes, this value will be ignored
      */
-    public Attribute(String name, AttributeType type, ConstraintTypes constraint) {
+    public Attribute(String name, AttributeType type, boolean primaryKey, boolean notNull, boolean unique, int length) {
         this.name = name;
         this.type = type;
-        this.constraint = constraint;
+        this.primaryKey = primaryKey;
+        this.notNull = notNull;
+        this.unique = unique;
 
         switch(type){
-            case INT:
-                length = 32;
-                break;
             case DOUBLE:
-                length = 64;
+                this.length = 8;
+                break;
+            case INT:
+                this.length = 4;
                 break;
             case BOOLEAN:
-                length = 8;
+                this.length = 1;
                 break;
 
             default:
+                this.length = length;
                 break;
         }
-    }
-
-    // TODO: This roughly works for varchar max len (only asking when we have varchar, can be done better..
-    public Attribute(String name, AttributeType type, ConstraintTypes constraint, int maxlength) {
-        this.name = name;
-        this.type = type;
-        this.constraint = constraint;
-        this.length = length;
     }
 
 
