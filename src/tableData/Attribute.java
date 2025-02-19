@@ -1,4 +1,4 @@
-package Parsers.Helpers;
+package tableData;
 
 public class Attribute {
     public String name;

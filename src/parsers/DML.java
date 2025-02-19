@@ -1,4 +1,7 @@
-package Parsers;
+package parsers;
+
+import components.DatabaseEngine;
+import utils.TestData;
 
 import java.util.ArrayList;
 
@@ -7,8 +10,14 @@ import java.util.ArrayList;
  */
 public class DML extends GeneralParser {
 
-    public DML() {
+    DatabaseEngine engine;
 
+    /**
+     * Creates a DML parser
+     * @param engine A DatabaseEngine for performing the parsed commands
+     */
+    public DML(DatabaseEngine engine) {
+        this.engine = engine;
     }
 
     /**
@@ -17,16 +26,8 @@ public class DML extends GeneralParser {
      * @return The output of the command. `null` if command produces no output
      */
     public String display(ArrayList<String> inputList) {
-        // Garbage data for testing `tableToString()`
-        String[][] bogusData = {
-                {"asdf",   "a", "n;apnsr",             "10000000", "asgsg"},
-                {"g",      "h", "",                    "gsasgasg", "gsgsg"},
-                {"asgh",   "j", "sljsljsljsljslsjlsj", "jjjj",     "sgsgs"},
-                {"agawhe", "n", "ajgl",                "asg",      "sgsgs"},
-                {"any",    "o", "sg",                  "p",        "sgsgsg"},
-        };
-        String[] headers = {"pojpjspejg", "A", "100", "baojse", "Sample"};
-        return tableToString(bogusData, headers);
+        engine.displayTable("");
+        return null;
     }
 
     /**
@@ -44,6 +45,6 @@ public class DML extends GeneralParser {
      * @return The output of the command. `null` if command produces no output
      */
     public String select(ArrayList<String> inputList) {
-        return null;
+        return tableToString(TestData.testData(5,10), TestData.testHeaders(5));
     }
 }

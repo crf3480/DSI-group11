@@ -1,4 +1,4 @@
-package Parsers;
+package parsers;
 
 /**
  * A parent class for DDL and DML to provide common behavior

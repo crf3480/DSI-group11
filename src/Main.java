@@ -1,5 +1,7 @@
-import Parsers.DDL;
-import Parsers.DML;
+import components.DatabaseEngine;
+import components.StorageManager;
+import parsers.DDL;
+import parsers.DML;
 
 import java.io.*;
 import java.util.*;
@@ -19,34 +21,29 @@ public class Main {
         } catch (NumberFormatException e) {
             throw new RuntimeException("Invalid page size: `" + args[1] + "`");
         }
-        Buffer buffer;
+
+        int bufferSize;
         try {
-            buffer = new Buffer(Integer.parseInt(args[2]));
+            bufferSize = Integer.parseInt(args[2]);
         } catch (NumberFormatException e) {
             throw new RuntimeException("Invalid buffer size: `" + args[2] + "`");
         }
 
         // Check if database exists and either restart the database or
-        File database = new File(dbLocation);
-        System.out.println(database.getName());
+        File databaseDir = new File(dbLocation);
+        System.out.println(databaseDir.getName());
 
-        // Create a new DB at the location with the pages and buffer size
-        if (database.mkdir()) {
+        // Create a directory at the location of the database
+        if (databaseDir.mkdir()) {
             System.out.println("made new directory");
-            File catalog = new File(dbLocation + "/catalog.txt");
-            catalog.createNewFile();
-
-        // Restart the DB and use the existing page size
-        // Set buffer to the new buffer size being read in
         } else {
             System.out.println("already exists");
-            File catalog = new File(dbLocation + "/catalog.txt");
-            System.out.println(catalog.exists());
-
         }
+        StorageManager storageManager = new StorageManager(databaseDir, pageSize, bufferSize);
+        DatabaseEngine databaseEngine = new DatabaseEngine(storageManager);
 
-        DML dml = new DML();
-        DDL ddl = new DDL();
+        DML dml = new DML(databaseEngine);
+        DDL ddl = new DDL(databaseEngine);
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         String output;
@@ -57,7 +54,7 @@ public class Main {
                 output = null;
                 switch (statement.getFirst()) {
                     case "quit":
-                        //TODO: Write buffer to disk before exiting
+                        storageManager.save();
                         return;
                     // DDL commands
                     case "alter":

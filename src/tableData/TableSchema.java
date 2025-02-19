@@ -1,16 +1,14 @@
-package TableData;
-
-import Parsers.Helpers.Attribute;
+package tableData;
 
 import java.util.ArrayList;
 
 public class TableSchema {
 
     public String name;
-    public ArrayList<Attribute> attributeArrayList;
+    public ArrayList<Attribute> attributes;
 
     public TableSchema(String name, ArrayList<Attribute> attributeArrayList) {
         this.name = name;
-        this.attributeArrayList = attributeArrayList;
+        this.attributes = attributeArrayList;
     }
 }

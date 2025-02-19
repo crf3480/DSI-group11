@@ -1,4 +1,6 @@
-package Parsers;
+package parsers;
+
+import components.DatabaseEngine;
 
 import java.util.ArrayList;
 
@@ -7,8 +9,14 @@ import java.util.ArrayList;
  */
 public class DDL {
 
-    public DDL() {
+    DatabaseEngine engine;
 
+    /**
+     * Creates a DDL parser
+     * @param engine A DatabaseEngine for performing the parsed commands
+     */
+    public DDL(DatabaseEngine engine) {
+        this.engine = engine;
     }
 
     /**
@@ -27,9 +35,7 @@ public class DDL {
      * @return The output of the command. `null` if command produces no output
      */
     public String create(ArrayList<String> inputList) {
-
-
-
+        engine.createTable("");
         return null;
     }
 
