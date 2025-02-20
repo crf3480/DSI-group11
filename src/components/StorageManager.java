@@ -34,7 +34,7 @@ public class StorageManager {
         return false;
     }
 
-    public boolean insertRecord(){ // Param for record?
+    public boolean insertRecord(Record r){ // Param for record?
         return false;
     }
 
