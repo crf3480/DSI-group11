@@ -1,8 +1,6 @@
 package tableData;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
@@ -16,11 +14,16 @@ public class Record {
     ArrayList<Object> rowData;
 
     /**
-     * Holds the data of a given row
+     * Holds the data of a given row, assuming you know the values
      * @param rowData can be any type
      */
     public Record(ArrayList<Object> rowData) {
         this.rowData = rowData;
+    }
+
+    // Initializer for no row data, use the decode method to populate
+    public Record() {
+        this.rowData = new ArrayList<>();
     }
 
     /**
@@ -32,7 +35,7 @@ public class Record {
     public ByteArrayOutputStream encodeRecord(TableSchema ts) throws IOException {
         ByteArrayOutputStream bs = new ByteArrayOutputStream();
         DataOutputStream ds = new DataOutputStream(bs);
-        for (int i = 0; i < rowData.size(); i++) {
+        for (int i = 0; i < ts.attributes.size(); i++) {
             AttributeType type = ts.attributes.get(i).type;
             Object value = rowData.get(i);
             switch (type) {
@@ -59,8 +62,42 @@ public class Record {
         return bs;
     }
 
-    public void decodeRecord(){
+    /**
+     * Populates an empty record given a set of bytes the size of the record
+     * @param ts given table schema
+     * @param recordBytes record stored as binary
+     * @throws IOException if there is an issue decoding
+     */
+    public void decodeRecord(TableSchema ts, byte[] recordBytes) throws IOException {
+        ByteArrayInputStream bs = new ByteArrayInputStream(recordBytes);
+        DataInputStream ds = new DataInputStream(bs);
 
+        for (int i = 0; i < ts.attributes.size(); i++) {
+            AttributeType type = ts.attributes.get(i).type;
+            Object value;
+            switch (type) {
+                case INT:
+                    value = ds.readInt();
+                    break;
+                case DOUBLE:
+                    value = ds.readDouble();
+                    break;
+                case BOOLEAN:
+                    value = ds.readBoolean();
+                    break;
+                case CHAR:
+                case VARCHAR:
+                    StringBuilder sb = new StringBuilder();
+                    for(int j = 0; j < ts.attributes.get(i).length; j++){
+                        sb.append(ds.readChar());
+                    }
+                    value = sb.toString();
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported attribute type: " + type);
+            }
+            rowData.add(value);
+        }
     }
 
     @Override
