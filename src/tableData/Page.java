@@ -24,8 +24,6 @@ public class Page {
     /**
      * Encodes the given page to the end of the page file
      * Encodes to data to binary in the form P#, Records, EOP
-     * If the size of records exceeds the page size, a new page is created,
-     * and the data is split
      * ONLY WORKS IS P# between (0, 127)
      */
     public void encodePage(){
