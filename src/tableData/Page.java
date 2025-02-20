@@ -24,17 +24,28 @@ public class Page {
     /**
      * Encodes the given page to the end of the page file
      * Encodes to data to binary in the form P#, Records, EOP
-     * ONLY WORKS IS P# between (0, 127)
+     * ONLY WORKS IS P# between (0, 127) -> Increase page num to a long to fix
+     * @param ts the table schema, used to get size of attr/record
      */
-    public void encodePage(){
+    public void encodePage(TableSchema ts) {
+
         byte b_PageNum = (byte) pageNumber;
+
     }
 
     /**
      * Decodes the page given a chunk of binary in the format:
      * P#, Records, EOP
      */
-    public void decodePage(){
+    public void decodePage(TableSchema ts){
 
+    }
+
+    private int getRecordSize(TableSchema ts) {
+        int size = 0;
+        for (Attribute attr : ts.attributes) {
+            size += attr.length;
+        }
+        return size;
     }
 }

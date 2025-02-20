@@ -3,6 +3,8 @@ package tableData;
 import java.util.ArrayList;
 
 public class Record {
+
+    // pass the table class the record is from
     ArrayList<Object> rowData;
 
     /**
@@ -11,6 +13,14 @@ public class Record {
      */
     public Record(ArrayList<Object> rowData) {
         this.rowData = rowData;
+    }
+
+    public void encodeRecord(){
+
+    }
+
+    public void decodeRecord(){
+
     }
 
     @Override
