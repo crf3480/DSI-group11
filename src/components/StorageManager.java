@@ -34,7 +34,7 @@ public class StorageManager {
         return false;
     }
 
-    public boolean insertRecord(Record r){ // Param for record?
+    public boolean insertRecord(Record r, String tableName){ // Param for record?
         return false;
     }
 
@@ -48,6 +48,10 @@ public class StorageManager {
 
     public void createTable(String tableName) {
         catalog.addTableSchema(TestData.testTableSchema());
+    }
+
+    public void deleteTable(String tableName) {
+
     }
 
     public void displayTable(String tableName){
