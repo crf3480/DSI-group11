@@ -23,10 +23,8 @@ public class Page {
 
     /**
      * Creates a page object given page number, expecting the records to be populated in decode method
-     * @param pageNumber page num of given page
      */
-    public Page(int pageNumber) {
-        this.pageNumber = pageNumber;
+    public Page() {
         this.records = new ArrayList<>();
     }
 
@@ -50,29 +48,29 @@ public class Page {
 
         ByteArrayOutputStream bs = new ByteArrayOutputStream();
         bs.write(pageNumber); // Writes the page number first as an int
+        bs.write(records.size());
         for (Record record : records) {
             bs.write(record.encodeRecord(ts).toByteArray()); // Encoded record
         }
-
-        // TODO: Do something so signal all records have been encoded
 
         return bs;
     }
 
     /**
-     * Decodes the page given a chunk of binary in the format:
-     * P#, Records, EOP
+     * Decodes a page starting with P#, NumRecords, Content
+     * @param ts table schema for the page
+     * @param pageBytes bytes for given page
      */
     public void decodePage(TableSchema ts, byte[] pageBytes) throws IOException {
         ByteArrayInputStream bs = new ByteArrayInputStream(pageBytes);
         DataInputStream ds = new DataInputStream(bs);
 
-        pageNumber = ds.readInt();
+        this.pageNumber = ds.readInt();
 
+        int recordCount = ds.readInt();
         int recordSize = getRecordSize(ts);
 
-        // TODO: read until you hit the end condition
-        while (true){ // Reads infinitely, change this once we have a set end condition
+        for (int i = 0; i < recordCount; i++){
             byte[] singleRecord = ds.readNBytes(recordSize);
             Record record = new Record();
             record.decodeRecord(ts, singleRecord);
@@ -80,6 +78,11 @@ public class Page {
         }
     }
 
+    /**
+     * Gets the max size of a given record
+     * @param ts table schema for the attribute list
+     * @return size in bytes for the given record
+     */
     private int getRecordSize(TableSchema ts) {
         int size = 0;
         for (Attribute attr : ts.attributes) {
