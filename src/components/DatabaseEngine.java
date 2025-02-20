@@ -21,8 +21,10 @@ public class DatabaseEngine {
      * Creates a table
      * @param tableName The name of the table
      */
-    public void createTable(String tableName) {
-        storageManager.createTable(tableName);
+    public void createTable(ArrayList<String> tableName) {
+        String name = tableName.get(0);
+
+        storageManager.createTable(name);
     }
 
 
@@ -44,6 +46,22 @@ public class DatabaseEngine {
         storageManager.displayTable(tableName);
     }
 
+    /**
+     * Drops an entire attribute Row from the table
+     * @param tableName The table to display the schema of
+     */
+    //Storage manager
+    public void dropAttribute(String tableName, String attributeName) {
+        // Needs to figure out the primary key of the table and call
+        // storage manager function "updateByPrimaryKey" to drop the attribute
+    }
+
+    public void addAttribute(String tableName, String attributeName, String attributeType, String defaultValue) {
+        // Needs to figure out the primary key of the table and call
+        // storage manager function "updateByPrimaryKey" to drop the attribute
+        System.out.println("Adding attribute " + attributeName + " to table " + tableName);
+        System.out.println(attributeType + " " + defaultValue);
+    }
 
 
     public void insert(String tableName, ArrayList<String> values) {
