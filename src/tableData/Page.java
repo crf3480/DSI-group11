@@ -27,10 +27,16 @@ public class Page {
      * ONLY WORKS IS P# between (0, 127) -> Increase page num to a long to fix
      * @param ts the table schema, used to get size of attr/record
      */
-    public void encodePage(TableSchema ts) {
+    public ByteArrayOutputStream encodePage(TableSchema ts) throws IOException {
 
-        byte b_PageNum = (byte) pageNumber;
+        System.out.println("Encoding Page: " + pageNumber + " | Total Records: " + records.size());
 
+        ByteArrayOutputStream bs = new ByteArrayOutputStream();
+        bs.write(pageNumber); // Writes the page number first as an int
+        for (Record record : records) {
+            bs.write(record.encodeRecord(ts).toByteArray()); // Encoded record
+        }
+        return bs;
     }
 
     /**
