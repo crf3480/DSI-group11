@@ -58,6 +58,7 @@ public class Main {
                         return;
                     // DDL commands
                     case "alter":
+                        System.out.println("alter");
                         output = ddl.alter(statement);
                         break;
                     case "create":

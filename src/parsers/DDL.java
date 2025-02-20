@@ -25,8 +25,21 @@ public class DDL {
      * @return The output of the command. `null` if command produces no output
      */
     public String alter(ArrayList<String> inputList) {
-        System.out.println("DDL alter");
-        return null;
+        //Check if inital query is correct
+        String tableName = inputList.get(0);
+        if (inputList.get(0).equals("alter") && inputList.get(1).equals("table")){
+            if (inputList.get(4).equals("drop")){
+
+            } else if (inputList.get(4).equals("add")){}
+
+            engine.createTable(tableName); //This should b
+            return null;
+        } else {
+            System.err.println("Incorrect Alter Statement");
+            return null;
+        }
+
+
     }
 
     /**
