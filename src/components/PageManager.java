@@ -1,11 +1,14 @@
-package tableData;
+package components;
+
+import tableData.Page;
+import tableData.Record;
 
 import java.util.ArrayList;
 
 public class PageManager {
     public ArrayList<Page> pages;
     public String fileName;
-    public ArrayList<Record> allRecords;
+    public ArrayList<tableData.Record> allRecords;
     public int pageSize;
 
     /**
@@ -37,7 +40,7 @@ public class PageManager {
      * Inserts a single record to the records array
      * @param record single record to insert
      */
-    public void InsertRecord(Record record){
+    public void InsertRecord(tableData.Record record){
         allRecords.add(record);
     }
 
