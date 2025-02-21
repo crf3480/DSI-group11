@@ -25,8 +25,14 @@ public class StorageManager {
         catalog = new Catalog(catalogFile, pageSize);
         this.pageSize = pageSize;
     }
-    //Takes the tableName and the correct
-    public Record getByPrimaryKey(String tableName)  {
+
+    /**
+     * gets record from a particular table by primary key
+     * @param tableName name of table
+     * @param key string of key to search
+     * @return record with matching key (or null if no matches)
+     */
+    public Record getByPrimaryKey(String tableName, String key)  {
         PageFileManager pageManager = buffer.get(tableName);
         TableSchema tschema = catalog.getTableSchema(tableName);
         if (pageManager == null) {
@@ -43,11 +49,14 @@ public class StorageManager {
             primIndex++;
         }
         //looping through pages and records to find The One
-        Record r = null;
         for (Page p : pageManager.pages) {
-            r = p.getRecords().get(primIndex);
+            for (Record r : p.getRecords()) {
+                if (r.rowData.get(primIndex).equals(key)) {
+                    return r;
+                }
+            }
         }
-        return r; //stubbing
+        return null;
     }
 
     // Unsure about this one...

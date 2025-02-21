@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class Record {
 
     /// pass the table class the record is from
-    ArrayList<Object> rowData;
+    public ArrayList<Object> rowData;
 
     /**
      * Holds the data of a given row, assuming you know the values
