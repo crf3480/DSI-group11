@@ -108,7 +108,7 @@ public class DatabaseEngine {
     public void insert(String tableName, ArrayList<String> values) {
         TableSchema schema = storageManager.getTableSchema(tableName);
 
-        schema = TestData.testTableSchema(5);        //TODO: delete when method is complete
+        schema = TestData.permaTable();        //TODO: delete when method is complete
         if (schema == null){
             System.err.println("Table " + tableName + " does not exist");
         }
@@ -152,8 +152,8 @@ public class DatabaseEngine {
                     data.add(Integer.parseInt(row.get(i).toString()));
                 }
                 case CHAR, VARCHAR -> {
-                    if (row.get(i).toString().length() <= schema.attributes.get(i).length){
-                        data.add(row.get(i).toString());
+                    if (row.get(i).toString().substring(1, row.get(i).toString().length()-1).length() <= schema.attributes.get(i).length){
+                        data.add(row.get(i).toString().substring(1, row.get(i).toString().length()-1));
                     }
                     else{
                         System.err.println(schema.attributes.get(i).type+" '"+row.get(i).toString()+"' exceeds maximum length "+schema.attributes.get(i).length);
