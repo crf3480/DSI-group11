@@ -112,7 +112,6 @@ public class DatabaseEngine {
             System.err.println("Table " + tableName + " does not exist");
         }
         */
-
         ArrayList<ArrayList<Object>> data = new ArrayList<>();
         ArrayList<Object> currentRow = new ArrayList<>();
         for (int i = 0; i < values.size(); i++) {
