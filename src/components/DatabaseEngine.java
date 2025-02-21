@@ -20,7 +20,7 @@ public class DatabaseEngine {
      * Creates a table
      * @param tableName The name of the table
      */
-    public void createTable(String tableName) {
+    public void createTable(String tableName, ArrayList<String> constraints) {
 
         storageManager.createTable(tableName);
     }

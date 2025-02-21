@@ -49,7 +49,7 @@ public class DDL {
                 if (hasParenthesis == -1) {
                     attributeType = inputList.get(5);
                 } else {
-                    attributeType = inputList.get(5) + "(" + inputList.get(hasParenthesis + 1) + ")";
+                    attributeType = inputList.get(5) + " ( " + inputList.get(hasParenthesis + 1) + " )";
                 }
                 //Checking if there is a provided default value
                 int hasDefaultVal = inputList.indexOf("default");
@@ -89,26 +89,43 @@ public class DDL {
         if (queryType.equals("create table")) {
             int index = (inputList.indexOf("(")) + 1;
             ArrayList<String> constraints = new ArrayList<>();
-            String currentQuery = " ";
-            //Running from ( to ) and adding constraints
-            while (index != inputList.size() - 1){
-                String currVal = inputList.get(index);
-                if (!(currVal.equals(","))){
-                    currentQuery += currVal;
-                    System.out.println(currentQuery);
-                } else {
-                    System.out.println("");
-                    constraints.add(currentQuery);
-                    currentQuery = " ";
+            String currentQuery = "";
+
+            //Need to check if there is single or multiple constraints
+            int hasMultiRules = inputList.indexOf(",");
+            if (hasMultiRules == -1) {
+                //Only 1 constraint to add
+                String attributeName = inputList.get(4);
+                System.out.println(inputList.toString());
+            } else {
+                while (index != inputList.size() - 1){
+                    String currVal = inputList.get(index);
+
+                    if ((!(currVal.equals(",")))) {
+                        if (currentQuery.isEmpty()){
+                            currentQuery += currVal;
+                        } else {
+                            currentQuery += " " + currVal;
+                        }
+                    } else {
+                        System.out.println(currentQuery);
+                        constraints.add(currentQuery);
+                        currentQuery = "";
+                    }
+                    index++;
                 }
-                index++;
             }
-            System.out.println("here" + constraints.toString());
+
+            //Running from ( to ) and adding constraints
+            constraints.add(currentQuery);
+            System.out.println("here " + constraints.toString());
+            engine.createTable(tableName, constraints);
             return null;
         } else {
             System.err.println("Incorrect Create Statement");
             return null;
         }
+
     }
 
     /**
