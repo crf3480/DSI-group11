@@ -87,8 +87,31 @@ public class StorageManager {
         }
 
 
-    public boolean insertRecord(String tableName, ArrayList<ArrayList<Object>> values){
-        return false;
+    public void insertRecord(String tableName, ArrayList<ArrayList<Object>> values){
+        //Step 1: get the pages for that table
+        ArrayList<Page> pages = getPageFileManager(tableName);
+        //Step 2: loop through the table's pages, and try to insert at each one.
+        int valuesIndex = 0;
+        boolean ranThroughOnce = false;
+        Page prevPage = null;
+        while (valuesIndex != values.size()) {
+            //this top branch runs if all the pages are full but there are still records to be inserted
+            if (ranThroughOnce) {
+                //splitting shit
+                Page split = prevPage.split();
+                pages.add(split);
+            }
+            ranThroughOnce = true;
+            //loops through the table's pages and tries to insert at each one, one by one
+            for (Page p : pages) {
+                prevPage = p;
+                for (int i = valuesIndex; i < values.size(); ++i) {
+                    if (!p.insertRecord(new Record(values.get(i)))) {
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     public boolean deleteByPrimaryKey(int id){
