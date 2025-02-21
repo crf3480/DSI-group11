@@ -40,15 +40,12 @@ public class DML extends GeneralParser {
      * @return The output of the command. `null` if command produces no output
      */
     public String insert(ArrayList<String> inputList) {
-        if (inputList.size() < 7) {      // minimum input will have 7 items: insert into <table> values ( <value1> )
-            //                                                                  1     2      3      4    5    6     7
-            System.err.println("Incomplete insert statement: " + listString(inputList));
-            return null;
-        }
-        else if (!inputList.get(1).equals("into") ||        // insert requires three keywords (insert (found in Main)
-                !inputList.get(3).equals("values") ||       // into, values and both paretheses) to be a valid statement
-                !inputList.get(4).equals("(") ||
-                !inputList.getLast().equals(")")) {
+        if (inputList.size() < 7 ||                 // minimum input will have 7 items: insert into <table> values ( <value1> )
+            !inputList.get(1).equals("into") ||     // insert requires three keywords (insert (found in Main)
+            !inputList.get(3).equals("values") ||   // into, values and both paretheses) to be a valid statement
+            !inputList.get(4).equals("(") ||
+            !inputList.getLast().equals(")"))
+        {
             System.err.println("Invalid insert statement: " + listString(inputList));
             return null;
         }
