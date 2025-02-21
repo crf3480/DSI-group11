@@ -6,7 +6,7 @@ public enum AttributeType {
     public static AttributeType fromString(String typeName) throws IllegalArgumentException {
         typeName = typeName.toUpperCase();
         return switch (typeName) {
-            case "INT" -> INT;
+            case "INTEGER" -> INT;
             case "DOUBLE" -> DOUBLE;
             case "CHAR" -> CHAR;
             case "VARCHAR" -> VARCHAR;

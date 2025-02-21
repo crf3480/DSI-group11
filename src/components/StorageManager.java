@@ -1,5 +1,6 @@
 package components;
 
+import org.w3c.dom.Attr;
 import tableData.*;
 import tableData.Record;
 import utils.TestData;
@@ -46,12 +47,20 @@ public class StorageManager {
         return false;
     }
 
-    public void createTable(String tableName, ArrayList<String> values) {
+    public void createTable(String tableName, ArrayList<Attribute> values) {
         catalog.addTableSchema(TestData.testTableSchema());
     }
 
     public void deleteTable(String tableName) {
 
+    }
+
+    public boolean addAttribute(String tableName, Attribute newAttribute) {
+        return false;
+    }
+
+    public boolean deleteAttribute(String tableName, String attributeName) {
+        return false;
     }
 
     public void displayTable(String tableName){

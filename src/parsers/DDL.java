@@ -31,17 +31,18 @@ public class DDL {
      * @return The output of the command. `null` if command produces no output
      */
     public String alter(ArrayList<String> inputList) {
-        //Check if inital query is correct
+        //Check if inital query length is correct
         if (inputList.size() < 5){
             System.err.println("Incorrect Alter Statement");
             return null;
         }
+        //Splitting the string into qiery
         String queryType = inputList.get(0) + " " + inputList.get(1);
         String tableName = inputList.get(2);
         String addOrDrop = inputList.get(3);
         String attributeName = inputList.get(4);
-        System.out.println(inputList.toString());
 
+        //Routes between drop and add
         if (queryType.equals("alter table")) {
             if (addOrDrop.equals("drop")) {
                 //Drop an attribute
@@ -62,11 +63,10 @@ public class DDL {
                     // No default so setting it to NULL
                     engine.addAttribute(tableName, attributeName, attributeType, "null");
                 } else {
-                    //Need to account for strings as the default value
+                   //default value is set
                     String defaultVal = inputList.get(hasDefaultVal);
                     engine.addAttribute(tableName, attributeName, attributeType, defaultVal);
                 }
-                //This should b
                 return null;
             } else {
                 System.err.println("Incorrect Alter Statement");
@@ -87,10 +87,12 @@ public class DDL {
      * @return The output of the command. `null` if command produces no output
      */
     public String create(ArrayList<String> inputList) {
+        //Error handling
         if (inputList.size() < 7){
             System.err.println("Incorrect Create Statement");
             return null;
         }
+
         String queryType = inputList.get(0) + " " + inputList.get(1);
         String tableName = inputList.get(2);
 
@@ -99,14 +101,13 @@ public class DDL {
             int index = (inputList.indexOf("(")) + 1;
             ArrayList<String> constraints = new ArrayList<>();
             String currentQuery = "";
-
             //Need to check if there is single or multiple constraints
             int hasMultiRules = inputList.indexOf(",");
             if (hasMultiRules == -1) {
                 //Only 1 constraint to add
                 String attributeName = inputList.get(4);
-                System.out.println(inputList.toString());
             } else {
+                //Need to loop through all contraints and build them
                 while (index != inputList.size() - 1){
                     String currVal = inputList.get(index);
 
@@ -117,7 +118,6 @@ public class DDL {
                             currentQuery += " " + currVal;
                         }
                     } else {
-                        System.out.println(currentQuery);
                         constraints.add(currentQuery);
                         currentQuery = "";
                     }
@@ -127,7 +127,7 @@ public class DDL {
 
             //Running from ( to ) and adding constraints
             constraints.add(currentQuery);
-            System.out.println("here " + constraints.toString());
+            System.out.println("Constraints: " + constraints);
             engine.createTable(tableName, constraints);
             return null;
         } else {
@@ -144,13 +144,16 @@ public class DDL {
      * @return The output of the command. `null` if command produces no output
      */
     public String drop(ArrayList<String> inputList) {
+        //Error handling
         if (inputList.size() < 3){
             System.err.println("Incorrect Create Statement");
             return null;
         }
+        //Split string into query
         String queryType = inputList.get(0) + " " + inputList.get(1);
         String tableName = inputList.get(2);
         if (queryType.equals("drop table")) {
+            //delete the table
             engine.deleteTable(tableName);
             return null;
         } else {

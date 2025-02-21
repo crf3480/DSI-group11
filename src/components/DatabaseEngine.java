@@ -1,4 +1,6 @@
 package components;
+import tableData.Attribute;
+import tableData.AttributeType;
 import tableData.TableSchema;
 
 import java.util.ArrayList;
@@ -23,8 +25,38 @@ public class DatabaseEngine {
      * @param tableName The name of the table
      */
     public void createTable(String tableName, ArrayList<String> constraints) {
-        System.out.println("Creating table " + tableName + " with constraints: " + constraints.toString());
-        storageManager.createTable(tableName, constraints);
+        //Building out attribute objects using constraints
+        System.out.println("Creating table " + constraints.toString());
+        ArrayList<Attribute> allAttributes = new ArrayList<>();
+        for (String constraint : constraints) {
+            String[] parts = constraint.split(" ");
+            String attributeName = parts[0];
+            String attributeType = parts[1];
+            AttributeType type = AttributeType.fromString(parts[1]);
+            int attributeLength;
+            boolean primaryKey = false;
+            boolean unique = false;
+            boolean notNull = false;
+            String attributeConstraint = "";
+            if (attributeType.equals("char") || attributeType.equals("varchar")) {
+                 attributeLength = Integer.parseInt(parts[3]);
+                 primaryKey = constraint.contains("primarykey");
+                 unique = constraint.contains("unique");
+                 notNull = constraint.contains("notnull");
+                 Attribute currAttribute = new Attribute(attributeName, type, primaryKey, unique, notNull, attributeLength );
+                 allAttributes.add(currAttribute);
+            } else {
+                attributeLength = 0;
+                primaryKey = constraint.contains("primarykey");
+                unique = constraint.contains("unique");
+                notNull = constraint.contains("notnull");
+                Attribute currAttribute = new Attribute(attributeName, type, primaryKey, unique, notNull, attributeLength );
+                allAttributes.add(currAttribute);
+            }
+        }
+        //All constrains have been created as attributes and added to an arrayList
+
+        storageManager.createTable(tableName, allAttributes);
     }
 
 
@@ -53,15 +85,22 @@ public class DatabaseEngine {
      */
     //Storage manager
     public void dropAttribute(String tableName, String attributeName) {
-        // Needs to figure out the primary key of the table and call
-        // storage manager function "updateByPrimaryKey" to drop the attribute
+        storageManager.deleteAttribute(tableName, attributeName);
+
     }
 
     public void addAttribute(String tableName, String attributeName, String attributeType, String defaultValue) {
-        // Needs to figure out the primary key of the table and call
-        // storage manager function "updateByPrimaryKey" to drop the attribute
-        System.out.println("Adding attribute " + attributeName + " to table " + tableName);
-        System.out.println(attributeType + " " + defaultValue);
+        String[] parts = attributeType.split(" ");
+        AttributeType type = AttributeType.fromString(parts[0]);
+        int attributeLength;
+        if (parts.length < 3){
+            attributeLength = 0;
+        } else {
+            attributeLength = Integer.parseInt(parts[2]);
+        }
+        System.out.println(attributeLength);
+        Attribute attribute = new Attribute(tableName, type, false  , false , false ,attributeLength);
+        storageManager.addAttribute(tableName, attribute);
     }
 
 
