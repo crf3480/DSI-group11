@@ -1,6 +1,5 @@
 package components;
 
-import org.w3c.dom.Attr;
 import tableData.*;
 import tableData.Record;
 import utils.TestData;
@@ -8,12 +7,11 @@ import utils.TestData;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Hashtable;
 
 public class StorageManager {
 
     int bufferSize;
-    HashMap<String, PageFileManager> buffer;
+    HashMap<String, ArrayList<Page>> buffer;
     Catalog catalog;
 
     int pageSize;
@@ -26,25 +24,25 @@ public class StorageManager {
         this.pageSize = pageSize;
     }
 
+    public ArrayList<Page> getPageFileManager(String tableName) {
+        ArrayList<Page> pageManager = buffer.get(tableName);
+        TableSchema tschema = catalog.getTableSchema(tableName);
+        if (pageManager == null) {
+            //this happens when the table is not in the buffer
+            pageManager = ParseDataFile("./" + tableName + ".bin", tschema);
+            buffer.put(tableName, pageManager);
+        }
+        return pageManager;
+    }
+
     /**
      * gets record from a particular table by primary key
      * @param tableName name of table
      * @param key string of key to search
      * @return record with matching key (or null if no matches)
      */
-
-    public PageFileManager getPageFileManager(String tableName) {
-        PageFileManager pageManager = buffer.get(tableName);
-        TableSchema tschema = catalog.getTableSchema(tableName);
-        if (pageManager == null) {
-            //this happens when the table is not in the buffer
-            pageManager = new PageFileManager("./" + tableName + ".bin", pageSize, tschema);
-            buffer.put(tableName, pageManager);
-        }
-        return pageManager;
-    }
     public Record getByPrimaryKey(String tableName, String key)  {
-        PageFileManager pageManager = getPageFileManager(tableName);
+        ArrayList<Page> pageManager = getPageFileManager(tableName);
         TableSchema tschema = catalog.getTableSchema(tableName);
         //finding the attribute index with the primary key
         int primIndex = 0;
@@ -55,7 +53,7 @@ public class StorageManager {
             primIndex++;
         }
         //looping through pages and records to find The One
-        for (Page p : pageManager.pages) {
+        for (Page p : pageManager) {
             for (Record r : p.getRecords()) {
                 if (r.rowData.get(primIndex).equals(key)) {
                     return r;
@@ -67,14 +65,8 @@ public class StorageManager {
 
     // Unsure about this one...
     public Page pageByTableAndPageNum(String tableName, int pageNum){
-        PageFileManager pageManager = buffer.get(tableName);
-        TableSchema tschema = catalog.getTableSchema(tableName);
-        if (pageManager == null) {
-            //this happens when the table is not in the buffer
-            pageManager = new PageFileManager("./" + tableName + ".bin", pageSize, tschema);
-            buffer.put(tableName, pageManager);
-        }
-        for (Page p : pageManager.pages) {
+        ArrayList<Page> pageManager = getPageFileManager(tableName);
+        for (Page p : pageManager) {
             if (p.pageNumber == pageNum) {
                 return p;
             }
@@ -85,8 +77,8 @@ public class StorageManager {
 
     public ArrayList<Record> getAllInTable(String tableName) {
         ArrayList<Record> records = new ArrayList<>();
-        PageFileManager pageManager = getPageFileManager(tableName);
-        for (Page p : pageManager.pages) {
+        ArrayList<Page> pageManager = getPageFileManager(tableName);
+        for (Page p : pageManager) {
             for (Record r : p.getRecords()) {
                     records.add(r);
                 }
@@ -113,7 +105,8 @@ public class StorageManager {
 
     public void deleteTable(String tableName) {
         //TODO: DELETE TABLE FROM SCHEMA TOO
-        buffer.get(tableName).deletePageFile();
+        File dataFile = new File("./" + tableName + ".bin");
+        dataFile.delete();
     }
 
     public boolean addAttribute(String tableName, Attribute newAttribute) {
@@ -144,5 +137,24 @@ public class StorageManager {
             System.err.println("ERROR: Failed to save catalog to disk: " + e.getMessage());
         }
         return false;
+    }
+
+    private ArrayList<Page> ParseDataFile(String dataFile, TableSchema tableSchema){
+        ArrayList<Page> pages = new ArrayList<>();
+        try (FileInputStream fs = new FileInputStream(dataFile)) {
+            //first byte of file is the # of pages
+            int numPages = fs.read();
+
+            //reading each page into the pages arraylist
+            for (int i = 0; i < numPages; ++i) {
+                byte[] pageArr = fs.readNBytes(pageSize);
+                Page pageToAdd = new Page(pageArr, tableSchema);
+                pages.add(pageToAdd);
+            }
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return pages;
     }
 }
