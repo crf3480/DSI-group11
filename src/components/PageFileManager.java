@@ -27,8 +27,8 @@ public class PageFileManager {
      * @param dataFile Name of data file (TableName.bin)
      */
 
-    public PageFileManager(File dataFile, int pageSize, TableSchema tableSchema) {
-        this.dataFile = dataFile;
+    public PageFileManager(String dataFilePath, int pageSize, TableSchema tableSchema) {
+        this.dataFile = new File(dataFilePath);
         this.pageSize = pageSize;
         this.tableSchema = tableSchema;
         // Check if page file exists

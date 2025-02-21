@@ -7,17 +7,18 @@ import utils.TestData;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
 
 public class StorageManager {
 
     int bufferSize;
-    Hashtable<String, ArrayList<Page>> buffer;
+    HashMap<String, PageFileManager> buffer;
     Catalog catalog;
 
     public StorageManager(File databaseDir, int pageSize, int bufferSize) throws IOException {
         this.bufferSize = bufferSize;
-        buffer = new Hashtable<>();
+        buffer = new HashMap<>();
         File catalogFile = new File(databaseDir, "catalog.bin");
         catalog = new Catalog(catalogFile, pageSize);
     }
@@ -52,7 +53,7 @@ public class StorageManager {
     }
 
     public void deleteTable(String tableName) {
-
+        //TODO: DELETE TABLE FROM SCHEMA TOO
     }
 
     public boolean addAttribute(String tableName, Attribute newAttribute) {
