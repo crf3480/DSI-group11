@@ -34,7 +34,7 @@ public class StorageManager {
         return false;
     }
 
-    public boolean insertRecord(Record r, String tableName){ // Param for record?
+    public boolean insertRecord(String tableName, ArrayList<String> values){
         return false;
     }
 
