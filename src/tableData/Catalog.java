@@ -81,7 +81,9 @@ public class Catalog {
      * @return `true` if the schema was inserted; `false` if a table with that name already exists in the catalog
      */
     public boolean addTableSchema(TableSchema newSchema){
-        if (tableSchemas.containsKey(newSchema.name)) { return false; }
+        if (tableSchemas.containsKey(newSchema.name)) {
+            return false;
+        }
         tableSchemas.put(newSchema.name, newSchema);
         return true;
     }
