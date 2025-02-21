@@ -106,6 +106,7 @@ public class StorageManager {
             for (Page p : pages) {
                 prevPage = p;
                 for (int i = valuesIndex; i < values.size(); ++i) {
+                    valuesIndex++;
                     if (!p.insertRecord(new Record(values.get(i)))) {
                         break;
                     }
