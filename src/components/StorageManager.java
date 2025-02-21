@@ -54,6 +54,7 @@ public class StorageManager {
 
     public void deleteTable(String tableName) {
         //TODO: DELETE TABLE FROM SCHEMA TOO
+        buffer.get(tableName).deletePageFile();
     }
 
     public boolean addAttribute(String tableName, Attribute newAttribute) {
