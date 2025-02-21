@@ -78,6 +78,15 @@ public class DML extends GeneralParser {
         return tableToString(TestData.testData(5,10), TestData.testHeaders(5));
     }
 
+    /**
+     * Command to allow for simple testing of database
+     * @param inputList The list of tokens representing the user's input
+     * @return The output of the command. `null` if command produces no output
+     */
+    public String test(ArrayList<String> inputList) {
+        return "";
+    }
+
     private String listString(ArrayList<String> inputList) {
         String output = "";
         for (String s : inputList) {

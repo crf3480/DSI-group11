@@ -77,6 +77,9 @@ public class Main {
                     case "select":
                         output = dml.select(statement);
                         break;
+                    case "test":
+                        output = dml.test(statement);
+                        break;
                     default:
                         System.err.println("Invalid command: `" + statement.getFirst() + "`");
                 }
