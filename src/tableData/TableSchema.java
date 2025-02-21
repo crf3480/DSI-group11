@@ -27,4 +27,17 @@ public class TableSchema {
         }
         return length;
     }
+
+    @Override
+    public String toString() {
+        String out = this.name+": [";
+        for (Attribute attribute : attributes) {
+            out+=attribute.type;
+            if (attribute.type == AttributeType.VARCHAR || attribute.type == AttributeType.CHAR) {
+                out+="("+attribute.length+")";
+            }
+            out+=", ";
+        }
+        return out.substring(0, out.length()-2)+"]";
+    }
 }

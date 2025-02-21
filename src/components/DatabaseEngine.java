@@ -145,6 +145,7 @@ public class DatabaseEngine {
         ArrayList<Object> data = new ArrayList<>();
 
         System.out.println(row);
+        System.out.println(schema.toString());
         for (int i = 0; i < schema.attributes.size(); i++) {
             switch (schema.attributes.get(i).type){
                 case INT -> {
