@@ -29,7 +29,7 @@ public class StorageManager {
         TableSchema tschema = catalog.getTableSchema(tableName);
         if (pageManager == null) {
             //this happens when the table is not in the buffer
-            pageManager = ParseDataFile("./" + tableName + ".bin", tschema);
+            pageManager = ParseDataFile(catalog.getFilePath() + "/" + tableName + ".bin", tschema);
             buffer.put(tableName, pageManager);
         }
         return pageManager;
@@ -103,6 +103,9 @@ public class StorageManager {
             }
             ranThroughOnce = true;
             //loops through the table's pages and tries to insert at each one, one by one
+            if (pages.size() == 0) {
+                pages.add(new Page(1, catalog.getTableSchema(tableName), this.pageSize));
+            }
             for (Page p : pages) {
                 prevPage = p;
                 for (int i = valuesIndex; i < values.size(); ++i) {
@@ -125,6 +128,7 @@ public class StorageManager {
 
     public void createTable(String tableName, ArrayList<Attribute> values) {
         catalog.addTableSchema(new TableSchema(tableName, values));
+        buffer.put(tableName, new ArrayList<Page>());
     }
 
     public void deleteTable(String tableName) {

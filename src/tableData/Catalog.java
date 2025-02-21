@@ -127,6 +127,10 @@ public class Catalog {
         outputStream.close();
     }
 
+    public String getFilePath() {
+        return this.catalogFile.getAbsolutePath();
+    }
+
     public String toString() {
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("Page size: ");

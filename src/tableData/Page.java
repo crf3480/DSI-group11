@@ -62,6 +62,7 @@ public class Page {
         this.pageNumber = pageNumber;
         this.tableSchema = tableSchema;
         this.pageSize = pageSize;
+        this.records = new ArrayList<>();
     }
 
     /**
