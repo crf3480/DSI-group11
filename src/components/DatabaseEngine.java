@@ -2,6 +2,7 @@ package components;
 import tableData.Attribute;
 import tableData.AttributeType;
 import tableData.TableSchema;
+import utils.TestData;
 
 import java.util.ArrayList;
 
@@ -105,21 +106,38 @@ public class DatabaseEngine {
 
 
     public void insert(String tableName, ArrayList<String> values) {
-        TableSchema schema = storageManager.catalog.getTableSchema(tableName);
-        System.out.println(values);
-        /*
+        TableSchema schema = storageManager.getTableSchema(tableName);
+
+        schema = TestData.testTableSchema();        //TODO: delete when method is complete
         if (schema == null){
             System.err.println("Table " + tableName + " does not exist");
         }
-        */
 
         ArrayList<ArrayList<Object>> data = new ArrayList<>();
         ArrayList<Object> currentRow = new ArrayList<>();
-        for (int i = 0; i < values.size(); i++) {
-            if (values.get(i).equals(",")) {
-                data.add(parseData(schema, currentRow));
-                currentRow = new ArrayList<>();
+        for (int i = 0; i <= values.size(); i++) {
+            if (i == values.size() || values.get(i).equals(",")) { // every comma denotes a new record, insert record after comma or end of input
+                currentRow = parseData(schema, currentRow);
+                System.out.println(currentRow);
+                if(currentRow.size()==schema.attributes.size()){
+                    System.out.println("Adding to table");
+                    data.add(currentRow);
+                    currentRow.clear();
+                    System.out.println(data);
+                }
+                else{
+                    System.err.println("Record "+currentRow+" is invalid");
+                    break;
+                }
             }
+            else{
+                currentRow.add(values.get(i));
+            }
+        }
+
+        System.out.println("Inserting "+ data.size() +" records into " + tableName+":");
+        for (ArrayList<Object> row : data) {
+            System.out.println(row);
         }
     }
 
@@ -128,12 +146,14 @@ public class DatabaseEngine {
         for (int i = 0; i < schema.attributes.size(); i++) {
             switch (schema.attributes.get(i).type){
                 case INT -> data.add(Integer.parseInt(row.get(i).toString()));
-                case CHAR -> data.add(row.get(i).toString());
-                case VARCHAR -> data.add(row.get(i).toString());
+                case CHAR, VARCHAR -> {
+                    data.add(row.get(i).toString());
+                }
                 case DOUBLE -> data.add(Double.parseDouble(row.get(i).toString()));
                 case BOOLEAN -> data.add(Boolean.parseBoolean(row.get(i).toString()));
             }
         }
+        System.out.println(data);
         return data;
     }
 }

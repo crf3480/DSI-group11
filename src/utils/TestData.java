@@ -59,11 +59,11 @@ public class TestData {
                 false,
                 4));
         attrList.add(new Attribute("NAME",
-                AttributeType.VARCHAR,
+                AttributeType.CHAR,
                 false,
                 true,
                 false,
-                62));
+                3));
         attrList.add(new Attribute("NUM_FRIENDS",
                 AttributeType.DOUBLE,
                 false,
@@ -77,7 +77,7 @@ public class TestData {
                 false,
                 10000));
         attrList.add(new Attribute("DISCORD_TAG",
-                AttributeType.CHAR,
+                AttributeType.VARCHAR,
                 false,
                 false,
                 true,

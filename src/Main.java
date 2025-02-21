@@ -50,7 +50,7 @@ public class Main {
         while (true) {
             System.out.print("Input ('<quit>' to quit): ");
             for (ArrayList<String> statement : getQuery(br)) {
-                System.out.println(statement);  // Check that `getQuery()` is parsing command correctly
+                //System.out.println(statement);  // Check that `getQuery()` is parsing command correctly
                 output = null;
                 switch (statement.getFirst()) {
                     case "<quit>":

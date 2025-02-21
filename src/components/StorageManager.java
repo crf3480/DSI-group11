@@ -67,6 +67,10 @@ public class StorageManager {
         System.out.println(catalog);
     }
 
+    public TableSchema getTableSchema(String tableName){
+        return catalog.getTableSchema(tableName);
+    }
+
     /**
      * Writes the buffer and catalog to disk
      * @return `true` if this operation succeeded; `false` if there was an error
