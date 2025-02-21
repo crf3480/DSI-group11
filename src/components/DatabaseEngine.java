@@ -1,4 +1,6 @@
 package components;
+import tableData.TableSchema;
+
 import java.util.ArrayList;
 
 /**
@@ -64,6 +66,35 @@ public class DatabaseEngine {
 
 
     public void insert(String tableName, ArrayList<String> values) {
+        TableSchema schema = storageManager.catalog.getTableSchema(tableName);
+        System.out.println(values);
+        /*
+        if (schema == null){
+            System.err.println("Table " + tableName + " does not exist");
+        }
+        */
 
+        ArrayList<ArrayList<Object>> data = new ArrayList<>();
+        ArrayList<Object> currentRow = new ArrayList<>();
+        for (int i = 0; i < values.size(); i++) {
+            if (values.get(i).equals(",")) {
+                data.add(parseData(schema, currentRow));
+                currentRow = new ArrayList<>();
+            }
+        }
+    }
+
+    private ArrayList<Object> parseData(TableSchema schema, ArrayList<Object> row) {
+        ArrayList<Object> data = new ArrayList<>();
+        for (int i = 0; i < schema.attributes.size(); i++) {
+            switch (schema.attributes.get(i).type){
+                case INT -> data.add(Integer.parseInt(row.get(i).toString()));
+                case CHAR -> data.add(row.get(i).toString());
+                case VARCHAR -> data.add(row.get(i).toString());
+                case DOUBLE -> data.add(Double.parseDouble(row.get(i).toString()));
+                case BOOLEAN -> data.add(Boolean.parseBoolean(row.get(i).toString()));
+            }
+        }
+        return data;
     }
 }
