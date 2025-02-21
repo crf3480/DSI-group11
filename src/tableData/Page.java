@@ -53,6 +53,18 @@ public class Page {
     }
 
     /**
+     * Creates an empty page with a given page number
+     * @param pageNumber The number of the page
+     * @param tableSchema The schema of the records stored in this page
+     * @param pageSize The page size in bytes
+     */
+    public Page(int pageNumber, TableSchema tableSchema, int pageSize) {
+        this.pageNumber = pageNumber;
+        this.tableSchema = tableSchema;
+        this.pageSize = pageSize;
+    }
+
+    /**
      * Gets the number of records contained in the Page
      * @return The number of records stored in this Page
      */
@@ -65,12 +77,7 @@ public class Page {
      * @return The number of bytes
      */
     public int pageDataSize() {
-        // If the schema contains no variable length attributes, just multiply the schema length by record count
-        Integer schemaSize = tableSchema.length();
-        if (schemaSize != null) {
-            return schemaSize * records.size();
-        }
-        // If schema is variable length,
+        // Calculate the total size of every record in the page
         int totalSize = 0;
         for (Record record : records) {
             totalSize += recordSize(record);
@@ -83,9 +90,11 @@ public class Page {
      * @return The number of bytes
      */
     public int recordSize(Record record) {
-        int size = 0;
+        int size = (tableSchema.nullableAttributes() + 7) / 8;  // Bytes to store the null flags
         for (int i = 0; i < tableSchema.attributes.size(); i++) {
             Attribute attr = tableSchema.attributes.get(i);
+            // Null values are not recorded and thus take up no space
+            if (record.rowData.get(i) == null) { continue; }
             // VARCHARs need their length read directly for each value
             if (attr.type == AttributeType.VARCHAR) {
                 size += ((String) record.rowData.get(i)).length();
@@ -94,18 +103,6 @@ public class Page {
             }
         }
         return size;
-    }
-
-    /**
-     * Creates an empty page with a given page number
-     * @param pageNumber The number of the page
-     * @param tableSchema The schema of the records stored in this page
-     * @param pageSize The page size in bytes
-     */
-    public Page(int pageNumber, TableSchema tableSchema, int pageSize) {
-        this.pageNumber = pageNumber;
-        this.tableSchema = tableSchema;
-        this.pageSize = pageSize;
     }
 
     /**
@@ -148,9 +145,23 @@ public class Page {
         ArrayList<Record> records = new ArrayList<>(numRecords);
         ByteArrayInputStream inStream = new ByteArrayInputStream(recordData);
         DataInputStream in = new DataInputStream(inStream);
+        byte[] nullableFlags = new byte[(tableSchema.nullableAttributes() + 7) / 8];
+        int nullableFlagBit = -1;
         for (int i = 0; i < numRecords; i++) {
             ArrayList<Object> recordAttr = new ArrayList<>();
+            in.readFully(nullableFlags);  // This has no effect if nullable attributes is 0
             for (Attribute attr : tableSchema.attributes) {
+                // For nullable fields, check if null flag is set
+                if (!attr.notNull && !attr.primaryKey) {
+                    nullableFlagBit += 1;
+                    int nullableMask = 1 << (nullableFlagBit % 8);
+                    // If null bit is true, value is null and should be skipped
+                    if ((nullableFlags[nullableFlagBit / 8] & nullableMask) != 0) {
+                        recordAttr.add(null);
+                        continue;
+                    }
+                }
+                // For non-null values, read their values into the row data
                 switch (attr.type) {
                     case INT:
                         recordAttr.add(in.readInt());
@@ -179,7 +190,7 @@ public class Page {
      * @return The new page containing half the records that were in this Page
      */
     public Page split() {
-        ArrayList<Record> splitRecords = getRecords();
+        ArrayList<Record> splitRecords = new ArrayList<>();
         int currSize = pageDataSize();
         while (currSize > pageSize / 2) {
             // Check if moving the new record over will get the page below half size, ending the split
@@ -222,9 +233,28 @@ public class Page {
     private byte[] encodeRecord(Record record) throws IOException {
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(outStream);
-        for (int i = 0; i < tableSchema.attributes.size(); i++) {
-            Attribute attr = tableSchema.attributes.get(i);
+        ArrayList<Attribute> attributes = tableSchema.attributes;
+        // Start with the null flags for all nullable attributes
+        int nullable = tableSchema.nullableAttributes();
+        if (nullable > 0) {
+            byte[] nullableBytes = new byte[(nullable + 7) / 8];
+            int nullFlagBit = 0;
+            // For every attribute which can be null, set that bit to `1` if the value is `null`
+            for (int i = 0; i < attributes.size(); i++) {
+                if (!attributes.get(i).notNull) {
+                    if (record.rowData.get(i) == null) {
+                        nullableBytes[nullFlagBit / 8] += (byte) (1 << nullFlagBit % 8);
+                    }
+                    nullFlagBit += 1;
+                }
+            }
+            out.write(nullableBytes);
+        }
+        // Write out attributes
+        for (int i = 0; i < attributes.size(); i++) {
+            Attribute attr = attributes.get(i);
             Object value = record.rowData.get(i);
+            if (value == null) { continue; }  // Null values are not written to file
             switch (attr.type) {
                 case INT:
                     out.writeInt((Integer) value);

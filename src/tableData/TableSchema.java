@@ -13,19 +13,17 @@ public class TableSchema {
     }
 
     /**
-     * Returns the number of bytes stored by a record of this schema. If the length is variable (i.e. schema
-     * contains a VARCHAR) returns `null`.
-     * @return The byte count for a record of this schema. If variable size, returns `null`
+     * Returns the number of attributes in this table that are can be null
+     * @return The number of nullable attributes
      */
-    public Integer length() {
-        int length = 0;
+    public int nullableAttributes() {
+        int count = 0;
         for (Attribute attribute : attributes) {
-            if (attribute.type == AttributeType.VARCHAR) {
-                return null;
+            if (!attribute.notNull && !attribute.primaryKey) {
+                count += 1;
             }
-            length += attribute.length;
         }
-        return length;
+        return count;
     }
 
     @Override

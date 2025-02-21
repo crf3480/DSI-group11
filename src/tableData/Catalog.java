@@ -107,7 +107,7 @@ public class Catalog {
         for (TableSchema tableSchema : tableSchemas.values()){
             outputStream.writeUTF(tableSchema.name);
             ArrayList<Attribute> attributes = tableSchema.attributes;
-            outputStream.writeInt(attributes.size());
+            outputStream.writeInt(attributes.size()); // Number of attributes
             for (Attribute attribute : attributes){
                 // Type + constraint flags
                 byte flagByte = (byte) attributeTypes.indexOf(attribute.type);

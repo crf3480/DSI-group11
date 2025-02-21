@@ -87,11 +87,8 @@ public class DML extends GeneralParser {
     public String test(ArrayList<String> inputList) {
         ArrayList<Record> records = new ArrayList<>();
         TableSchema ts = TestData.testTableSchema(5);
-        System.out.println(ts);
-        for (int i = 0; i < 10; i++) {
-            records.add(TestData.testRecord(ts));
-        }
-        Page page = new Page(0, records, 100000, ts);
+        Page page = new Page(0, records, 500, ts);
+        while (page.insertRecord(TestData.testRecord(ts))) { } // Do nothing until the page gets full
         System.out.println(page);
         System.out.println("Splitting page...");
         Page splitPage = page.split();
