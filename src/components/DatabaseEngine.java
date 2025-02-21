@@ -118,12 +118,9 @@ public class DatabaseEngine {
         for (int i = 0; i <= values.size(); i++) {
             if (i == values.size() || values.get(i).equals(",")) { // every comma denotes a new record, insert record after comma or end of input
                 currentRow = parseData(schema, currentRow);
-                System.out.println(currentRow);
                 if(currentRow.size()==schema.attributes.size()){
-                    System.out.println("Adding to table");
                     data.add(currentRow);
-                    currentRow.clear();
-                    System.out.println(data);
+                    currentRow = new ArrayList<>();
                 }
                 else{
                     System.err.println("Record "+currentRow+" is invalid");
@@ -133,6 +130,7 @@ public class DatabaseEngine {
             else{
                 currentRow.add(values.get(i));
             }
+
         }
 
         System.out.println("Inserting "+ data.size() +" records into " + tableName+":");
@@ -153,7 +151,6 @@ public class DatabaseEngine {
                 case BOOLEAN -> data.add(Boolean.parseBoolean(row.get(i).toString()));
             }
         }
-        System.out.println(data);
         return data;
     }
 }
