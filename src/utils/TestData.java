@@ -2,9 +2,12 @@ package utils;
 
 import tableData.Attribute;
 import tableData.AttributeType;
-import tableData.*;
+import tableData.Record;
+import tableData.TableSchema;
 
 import java.util.ArrayList;
+
+import java.util.Random;
 
 /**
  * A collection of dummy values to test different subsystems
@@ -12,10 +15,16 @@ import java.util.ArrayList;
 public class TestData {
 
     private static final String[] GARBAGE_DATA = {
-            "ID", "Name", "Postal Code", "ID", "Sample", "Register", "Foo", "Bar",
+            "Name", "Postal Code", "Sample", "Register", "Foo", "Bar", "Test", "Address",
             "Lorem", "Ipsum", "Dolor", "Sit", "Amet", "Consectetur", "Adipiscing",
-            "Elit", "Sed", "Do", "Eiusmod", "Tempor", "Incididunt", "Ut", "Labore"
+            "Elit", "Sed", "Do", "Eiusmod", "Tempor", "Incididunt", "Ut", "Labore",
+            "NUM_FRIENDS", "IS_GAMER", "DISCORD_TAG",
     };
+    private static final char[] CHARACTERS = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l',
+            'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E',
+            'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
+            'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '!', '@', '#', '$', '%', '&', '*',
+            '(', ')', '-', '+', '=', '_', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '};
 
     /**
      * Generates a 2D array of fake data tuples
@@ -47,10 +56,49 @@ public class TestData {
     }
 
     /**
+     * Creates a random record matching a provided schema. However, there can be no guarantee a `unique`
+     * constraint will hold true on all other data
+     * @param tableSchema The schema to generate a valid record for
+     * @return A valid Record matching the given schema
+     */
+    public static Record testRecord(TableSchema tableSchema) {
+        ArrayList<Object> recordData = new ArrayList<>();
+        Random random = new Random();
+        for (Attribute attr : tableSchema.attributes) {
+            // 10% chance a nullable is null
+            if (!(attr.notNull || attr.primaryKey) && random.nextInt(10) == 0) {
+                recordData.add(null);
+                continue;
+            }
+            switch (attr.type) {
+                case INT:
+                    recordData.add(random.nextInt());
+                    break;
+                case BOOLEAN:
+                    recordData.add(random.nextBoolean());
+                    break;
+                case DOUBLE:
+                    recordData.add(random.nextDouble());
+                    break;
+                case CHAR:
+                case VARCHAR:
+                    recordData.add(randomString(attr.length));
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unsupported type: " + attr.type);
+            }
+        }
+        return new Record(recordData);
+    }
+
+    /**
      * Generates an artificial TableSchema for testing
+     * @param attributes The number of attributes in the schema. The first one will always be the primary key.
+     *                   Subsequent attributes will have random constraints, types, and lengths, but none will
+     *                   be a primary key
      * @return A bogus table schema
      */
-    public static TableSchema testTableSchema() {
+    public static TableSchema testTableSchema(int attributes) {
         ArrayList<Attribute> attrList = new ArrayList<>();
         attrList.add(new Attribute("ID",
                 AttributeType.INT,
@@ -58,30 +106,29 @@ public class TestData {
                 false,
                 false,
                 4));
-        attrList.add(new Attribute("NAME",
-                AttributeType.CHAR,
-                false,
-                true,
-                false,
-                3));
-        attrList.add(new Attribute("NUM_FRIENDS",
-                AttributeType.DOUBLE,
-                false,
-                true,
-                false,
-                8));
-        attrList.add(new Attribute("IS_GAMER",
-                AttributeType.BOOLEAN,
-                false,
-                false,
-                false,
-                10000));
-        attrList.add(new Attribute("DISCORD_TAG",
-                AttributeType.VARCHAR,
-                false,
-                false,
-                true,
-                100));
+        Random random = new Random();
+        for (int i = 1; i < attributes; i++) {
+            attrList.add(new Attribute(GARBAGE_DATA[random.nextInt(GARBAGE_DATA.length)],
+                    AttributeType.values()[random.nextInt(AttributeType.values().length)],
+                    false,
+                    random.nextBoolean(),
+                    random.nextBoolean(),
+                    random.nextInt(24) + 1));
+        }
         return new TableSchema("Test Table", attrList);
+    }
+
+    /**
+     * Generates a random alphanumeric string of a given length
+     * @param length The length of the string to return. Negatives return an empty string
+     * @return The requested string
+     */
+    private static String randomString(int length) {
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < length; i++) {
+            sb.append(CHARACTERS[random.nextInt(CHARACTERS.length)]);
+        }
+        return sb.toString();
     }
 }

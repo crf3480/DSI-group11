@@ -1,8 +1,12 @@
 package parsers;
 
 import components.DatabaseEngine;
+import tableData.Page;
+import tableData.Record;
+import tableData.TableSchema;
 import utils.TestData;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 /**
@@ -84,7 +88,19 @@ public class DML extends GeneralParser {
      * @return The output of the command. `null` if command produces no output
      */
     public String test(ArrayList<String> inputList) {
-        return "";
+        ArrayList<Record> records = new ArrayList<>();
+        TableSchema ts = TestData.testTableSchema(5);
+        System.out.println(ts);
+        for (int i = 0; i < 10; i++) {
+            records.add(TestData.testRecord(ts));
+        }
+        Page page = new Page(0, records, 100000, ts);
+        System.out.println(page);
+        System.out.println("Splitting page...");
+        Page splitPage = page.split();
+        System.out.println(page);
+        System.out.println(splitPage);
+        return null;
     }
 
     private String listString(ArrayList<String> inputList) {

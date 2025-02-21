@@ -40,11 +40,13 @@ public class Page {
 
     /**
      * Creates a Page from a pre-existing list of Records
+     * @param pageNumber The number of the Page
      * @param records The list of records in the Page
      * @param pageSize The size of the Page
      * @param tableSchema The table schema for records in the page
      */
-    public Page(ArrayList<Record> records, int pageSize, TableSchema tableSchema) {
+    public Page(int pageNumber, ArrayList<Record> records, int pageSize, TableSchema tableSchema) {
+        this.pageNumber = pageNumber;
         this.tableSchema = tableSchema;
         this.pageSize = pageSize;
         this.records = records;
@@ -64,9 +66,9 @@ public class Page {
      */
     public int pageDataSize() {
         // If the schema contains no variable length attributes, just multiply the schema length by record count
-        int recordSize = tableSchema.length();
-        if (tableSchema != null) {
-            return recordSize * records.size();
+        Integer schemaSize = tableSchema.length();
+        if (schemaSize != null) {
+            return schemaSize * records.size();
         }
         // If schema is variable length,
         int totalSize = 0;
@@ -192,7 +194,7 @@ public class Page {
             splitRecords.add(records.removeLast());
             currSize -= splitRecordSize;
         }
-        return new Page(splitRecords, pageSize, tableSchema);
+        return new Page(-1, splitRecords, pageSize, tableSchema);
     }
 
     /**
@@ -271,6 +273,7 @@ public class Page {
         sb.append("\n------------\n");
         for (Record record : records) {
             sb.append(record.toString());
+            sb.append("\n");
         }
         return sb.toString();
     }
