@@ -66,7 +66,7 @@ public class PageFileManager {
      * Inserts a single record to the records array
      * @param record single record to insert
      */
-    public void InsertRecord(tableData.Record record){
+    public void InsertRecord(Record record){
         allRecords.add(record);
     }
 
