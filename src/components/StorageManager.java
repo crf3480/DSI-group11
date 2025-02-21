@@ -87,7 +87,7 @@ public class StorageManager {
         }
 
 
-    public boolean insertRecord(String tableName, ArrayList<Object> values){
+    public boolean insertRecord(String tableName, ArrayList<ArrayList<Object>> values){
         return false;
     }
 
