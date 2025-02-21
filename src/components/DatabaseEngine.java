@@ -108,7 +108,7 @@ public class DatabaseEngine {
     public void insert(String tableName, ArrayList<String> values) {
         TableSchema schema = storageManager.getTableSchema(tableName);
 
-        schema = TestData.permaTable();        //TODO: delete when method is complete
+        //schema = TestData.permaTable();        //TODO: testing set. delete when complete
         if (schema == null){
             System.err.println("Table " + tableName + " does not exist");
             return;
