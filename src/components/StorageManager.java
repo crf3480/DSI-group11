@@ -46,7 +46,7 @@ public class StorageManager {
         return false;
     }
 
-    public void createTable(String tableName) {
+    public void createTable(String tableName, ArrayList<String> values) {
         catalog.addTableSchema(TestData.testTableSchema());
     }
 

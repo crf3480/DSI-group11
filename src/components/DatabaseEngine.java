@@ -24,7 +24,7 @@ public class DatabaseEngine {
      */
     public void createTable(String tableName, ArrayList<String> constraints) {
         System.out.println("Creating table " + tableName + " with constraints: " + constraints.toString());
-        storageManager.createTable(tableName);
+        storageManager.createTable(tableName, constraints);
     }
 
 
