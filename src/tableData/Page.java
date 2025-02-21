@@ -177,8 +177,22 @@ public class Page {
      * @return The new page containing half the records that were in this Page
      */
     public Page split() {
-        // TODO
-        return null;
+        ArrayList<Record> splitRecords = getRecords();
+        int currSize = pageDataSize();
+        while (currSize > pageSize / 2) {
+            // Check if moving the new record over will get the page below half size, ending the split
+            int splitRecordSize = recordSize(records.getLast());
+            if (currSize - splitRecordSize < pageSize / 2) {
+                // If keeping the Record is closer (or equal) to an even split than moving it over, keep it
+                if (currSize - (pageSize / 2) <= (pageSize / 2) - (currSize - splitRecordSize)) {
+                    break;
+                }
+            }
+            // If not, move it over and update the new size of the current page
+            splitRecords.add(records.removeLast());
+            currSize -= splitRecordSize;
+        }
+        return new Page(splitRecords, pageSize, tableSchema);
     }
 
     /**
@@ -249,4 +263,15 @@ public class Page {
         return bs.toByteArray();
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Page #");
+        sb.append(pageNumber);
+        sb.append("\n------------\n");
+        for (Record record : records) {
+            sb.append(record.toString());
+        }
+        return sb.toString();
+    }
 }
