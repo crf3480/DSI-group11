@@ -48,7 +48,7 @@ public class Main {
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         String output;
         while (true) {
-            System.out.print("Input ('<quit>;' to quit): ");
+            System.out.print("Input ('<quit>' to quit): ");
             for (ArrayList<String> statement : getQuery(br)) {
                 System.out.println(statement);  // Check that `getQuery()` is parsing command correctly
                 output = null;
