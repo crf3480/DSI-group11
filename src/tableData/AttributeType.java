@@ -3,7 +3,7 @@ package tableData;
 public enum AttributeType {
     INT, DOUBLE, CHAR, VARCHAR, BOOLEAN;
 
-    public AttributeType fromString(String typeName) throws IllegalArgumentException {
+    public static AttributeType fromString(String typeName) throws IllegalArgumentException {
         typeName = typeName.toUpperCase();
         return switch (typeName) {
             case "INT" -> INT;
