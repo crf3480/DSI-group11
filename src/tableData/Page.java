@@ -146,15 +146,16 @@ public class Page {
         ByteArrayInputStream inStream = new ByteArrayInputStream(recordData);
         DataInputStream in = new DataInputStream(inStream);
         byte[] nullableFlags = new byte[(tableSchema.nullableAttributes() + 7) / 8];
-        int nullableFlagBit = -1;
+        int nullableFlagBit;
         for (int i = 0; i < numRecords; i++) {
             ArrayList<Object> recordAttr = new ArrayList<>();
             in.readFully(nullableFlags);  // This has no effect if nullable attributes is 0
+            nullableFlagBit = 0;
             for (Attribute attr : tableSchema.attributes) {
                 // For nullable fields, check if null flag is set
                 if (!attr.notNull && !attr.primaryKey) {
-                    nullableFlagBit += 1;
                     int nullableMask = 1 << (nullableFlagBit % 8);
+                    nullableFlagBit += 1;
                     // If null bit is true, value is null and should be skipped
                     if ((nullableFlags[nullableFlagBit / 8] & nullableMask) != 0) {
                         recordAttr.add(null);
@@ -171,6 +172,7 @@ public class Page {
                         break;
                     case BOOLEAN:
                         recordAttr.add(in.readBoolean());
+                        break;
                     case CHAR:
                     case VARCHAR:
                         recordAttr.add(in.readUTF());
@@ -179,7 +181,7 @@ public class Page {
                         throw new IOException("Invalid attribute type: " + attr.type);
                 }
             }
-            records.add(new Record(recordAttr));
+            records.add( new Record(recordAttr));
         }
         return records;
     }
@@ -241,7 +243,7 @@ public class Page {
             int nullFlagBit = 0;
             // For every attribute which can be null, set that bit to `1` if the value is `null`
             for (int i = 0; i < attributes.size(); i++) {
-                if (!attributes.get(i).notNull) {
+                if (!attributes.get(i).notNull && !attributes.get(i).primaryKey) {
                     if (record.rowData.get(i) == null) {
                         nullableBytes[nullFlagBit / 8] += (byte) (1 << nullFlagBit % 8);
                     }

@@ -1,6 +1,7 @@
 package parsers;
 
 import components.DatabaseEngine;
+import components.PageFileManager;
 import tableData.Page;
 import tableData.Record;
 import tableData.TableSchema;
@@ -86,14 +87,18 @@ public class DML extends GeneralParser {
      */
     public String test(ArrayList<String> inputList) {
         ArrayList<Record> records = new ArrayList<>();
-        TableSchema ts = TestData.testTableSchema(5);
-        Page page = new Page(0, records, 500, ts);
+        int pageSize = 2000;
+        TableSchema ts = TestData.permaTable();
+        Page page = new Page(0, records, pageSize, ts);
         while (page.insertRecord(TestData.testRecord(ts))) { } // Do nothing until the page gets full
         System.out.println(page);
-        System.out.println("Splitting page...");
-        Page splitPage = page.split();
-        System.out.println(page);
-        System.out.println(splitPage);
+        try {
+            byte[] encoded = page.encodePage();
+            Page decoded = new Page(encoded, ts);
+            System.out.println(decoded);
+        } catch (Exception e) {
+            System.out.println("Test: " + e);
+        }
         return null;
     }
 

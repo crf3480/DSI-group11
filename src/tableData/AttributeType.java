@@ -14,4 +14,15 @@ public enum AttributeType {
             default -> throw new IllegalArgumentException("Invalid attribute type: " + typeName);
         };
     }
+
+    @Override
+    public String toString() {
+        return switch (this) {
+            case INT -> "INT";
+            case DOUBLE -> "DOUBLE";
+            case CHAR -> "CHAR";
+            case VARCHAR -> "VARCHAR";
+            case BOOLEAN -> "BOOLEAN";
+        };
+    }
 }
