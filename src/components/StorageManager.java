@@ -132,8 +132,8 @@ public class StorageManager {
     }
 
     public void deleteTable(String tableName) {
-        //TODO: DELETE TABLE FROM SCHEMA TOO
-        File dataFile = new File("./" + tableName + ".bin");
+        this.catalog.removeTableSchema(tableName);
+        File dataFile = new File(this.catalog.getFilePath()+"/" + tableName + ".bin");
         dataFile.delete();
     }
 

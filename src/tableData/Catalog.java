@@ -88,6 +88,14 @@ public class Catalog {
         return true;
     }
 
+    public boolean removeTableSchema(String tableName){
+        if (!tableSchemas.containsKey(tableName)) {
+            tableSchemas.remove(tableName);
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Fetches the schema of a table by name
      * @param tableName The name of the table
