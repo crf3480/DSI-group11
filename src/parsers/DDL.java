@@ -2,8 +2,11 @@ package parsers;
 
 import components.DatabaseEngine;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 /**
  * Parser for commands which modify relational schemas
@@ -79,7 +82,33 @@ public class DDL {
      * @return The output of the command. `null` if command produces no output
      */
     public String create(ArrayList<String> inputList) {
-        return null;
+        String queryType = inputList.get(0) + " " + inputList.get(1);
+        String tableName = inputList.get(2);
+
+        //System.out.println("here" + inputList.toString());
+        if (queryType.equals("create table")) {
+            int index = (inputList.indexOf("(")) + 1;
+            ArrayList<String> constraints = new ArrayList<>();
+            String currentQuery = " ";
+            //Running from ( to ) and adding constraints
+            while (index != inputList.size() - 1){
+                String currVal = inputList.get(index);
+                if (!(currVal.equals(","))){
+                    currentQuery += currVal;
+                    System.out.println(currentQuery);
+                } else {
+                    System.out.println("");
+                    constraints.add(currentQuery);
+                    currentQuery = " ";
+                }
+                index++;
+            }
+            System.out.println("here" + constraints.toString());
+            return null;
+        } else {
+            System.err.println("Incorrect Create Statement");
+            return null;
+        }
     }
 
     /**

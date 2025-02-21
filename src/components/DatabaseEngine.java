@@ -21,10 +21,9 @@ public class DatabaseEngine {
      * Creates a table
      * @param tableName The name of the table
      */
-    public void createTable(ArrayList<String> tableName) {
-        String name = tableName.get(0);
+    public void createTable(String tableName) {
 
-        storageManager.createTable(name);
+        storageManager.createTable(tableName);
     }
 
 
