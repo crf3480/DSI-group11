@@ -123,7 +123,9 @@ public class DatabaseEngine {
                     currentRow = new ArrayList<>();
                 }
                 else{
-                    System.err.println("Record "+currentRow+" is invalid");
+                    if (!(currentRow == null)) {
+                        System.err.println("Record "+currentRow+" is invalid");
+                    }
                     break;
                 }
             }
@@ -141,16 +143,28 @@ public class DatabaseEngine {
 
     private ArrayList<Object> parseData(TableSchema schema, ArrayList<Object> row) {
         ArrayList<Object> data = new ArrayList<>();
+
+        System.out.println(row);
         for (int i = 0; i < schema.attributes.size(); i++) {
             switch (schema.attributes.get(i).type){
                 case INT -> {
                     data.add(Integer.parseInt(row.get(i).toString()));
                 }
                 case CHAR, VARCHAR -> {
-                    data.add(row.get(i).toString());
+                    if (row.get(i).toString().length() <= schema.attributes.get(i).length){
+                        data.add(row.get(i).toString());
+                    }
+                    else{
+                        System.err.println(schema.attributes.get(i).type+" '"+row.get(i).toString()+"' exceeds maximum length "+schema.attributes.get(i).length);
+                        return null;
+                    }
                 }
-                case DOUBLE -> data.add(Double.parseDouble(row.get(i).toString()));
-                case BOOLEAN -> data.add(Boolean.parseBoolean(row.get(i).toString()));
+                case DOUBLE -> {
+                    data.add(Double.parseDouble(row.get(i).toString()));
+                }
+                case BOOLEAN -> {
+                    data.add(Boolean.parseBoolean(row.get(i).toString()));
+                }
             }
         }
         return data;
