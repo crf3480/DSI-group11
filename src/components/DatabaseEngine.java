@@ -21,7 +21,7 @@ public class DatabaseEngine {
      * @param tableName The name of the table
      */
     public void createTable(String tableName, ArrayList<String> constraints) {
-
+        System.out.println("Creating table " + tableName + " with constraints: " + constraints.toString());
         storageManager.createTable(tableName);
     }
 
@@ -31,6 +31,7 @@ public class DatabaseEngine {
      * @param tableName The name of the table
      */
     public void deleteTable(String tableName) {
+        System.out.println("Deleting table " + tableName);
         storageManager.deleteTable(tableName);
     }
 
