@@ -1,7 +1,9 @@
 package components;
 
+import tableData.Catalog;
 import tableData.Page;
 import tableData.Record;
+import tableData.TableSchema;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -12,6 +14,7 @@ import java.util.ArrayList;
 // TBH Ive got some idea how this is going to look but don't have a complete idea due to how records are added.
 
 public class PageFileManager {
+    public TableSchema tableSchema;
     public ArrayList<Page> pages;
     public File dataFile;
     public ArrayList<tableData.Record> allRecords;
@@ -24,9 +27,10 @@ public class PageFileManager {
      * @param dataFile Name of data file (TableName.bin)
      */
 
-    public PageFileManager(File dataFile, int pageSize) {
+    public PageFileManager(File dataFile, int pageSize, TableSchema tableSchema) {
         this.dataFile = dataFile;
         this.pageSize = pageSize;
+        this.tableSchema = tableSchema;
 
         // Check if page file exists
         if (dataFile.isFile()) {
@@ -47,7 +51,12 @@ public class PageFileManager {
             //first byte of file is the # of pages
             int numPages = fs.read();
 
-            //
+            //reading each page into the pages arraylist
+            for (int i = 0; i < numPages; ++i) {
+                byte[] pageArr = fs.readNBytes(pageSize);
+                Page pageToAdd = new Page(pageArr, this.tableSchema);
+                this.pages.add(pageToAdd);
+            }
         }
         catch (Exception e) {
             throw new RuntimeException(e);
