@@ -1,6 +1,5 @@
 package tableData;
 
-import java.io.*;
 import java.util.ArrayList;
 
 public class Record {

@@ -11,10 +11,13 @@ import java.util.Collection;
  */
 public class Page {
 
+    // The discrepancy between pageSize and recordData size because of additional data
+    private final int SIZE_OFFSET = Integer.BYTES * 2;
+
     private TableSchema tableSchema;
+    private int pageSize;
     public int pageNumber;
-    public byte[] recordData;
-    private int numRecords;
+    public ArrayList<Record> records;
 
     /**
      * Creates a page object from a Page data byte array
@@ -23,13 +26,72 @@ public class Page {
      */
     public Page(byte[] pageData, TableSchema tableSchema) throws IOException {
         this.tableSchema = tableSchema;
+        pageSize = pageData.length;
 
         ByteArrayInputStream inStream = new ByteArrayInputStream(pageData);
         DataInputStream in = new DataInputStream(inStream);
         pageNumber = in.readInt();
-        numRecords = in.readInt();
-        recordData = new byte[pageData.length - (Integer.SIZE * 2)];
-        in.readFully(recordData);  // Read page data into the recordData array
+        int numRecords = in.readInt();
+        // Read in records
+        byte[] recordData = new byte[pageData.length - SIZE_OFFSET];
+        in.readFully(recordData);
+        records = decodeRecords(numRecords, recordData);
+    }
+
+    /**
+     * Creates a Page from a pre-existing list of Records
+     * @param records The list of records in the Page
+     * @param pageSize The size of the Page
+     * @param tableSchema The table schema for records in the page
+     */
+    public Page(ArrayList<Record> records, int pageSize, TableSchema tableSchema) {
+        this.tableSchema = tableSchema;
+        this.pageSize = pageSize;
+        this.records = records;
+    }
+
+    /**
+     * Gets the number of records contained in the Page
+     * @return The number of records stored in this Page
+     */
+    public int recordCount() {
+        return records.size();
+    }
+
+    /**
+     * Returns the number of bytes taken up by all records in this Page
+     * @return The number of bytes
+     */
+    public int pageDataSize() {
+        // If the schema contains no variable length attributes, just multiply the schema length by record count
+        int recordSize = tableSchema.length();
+        if (tableSchema != null) {
+            return recordSize * records.size();
+        }
+        // If schema is variable length,
+        int totalSize = 0;
+        for (Record record : records) {
+            totalSize += recordSize(record);
+        }
+        return totalSize;
+    }
+
+    /**
+     * Gets the number of bytes taken up by a given record
+     * @return The number of bytes
+     */
+    public int recordSize(Record record) {
+        int size = 0;
+        for (int i = 0; i < tableSchema.attributes.size(); i++) {
+            Attribute attr = tableSchema.attributes.get(i);
+            // VARCHARs need their length read directly for each value
+            if (attr.type == AttributeType.VARCHAR) {
+                size += ((String) record.rowData.get(i)).length();
+            } else {
+                size += attr.length;
+            }
+        }
+        return size;
     }
 
     /**
@@ -41,27 +103,28 @@ public class Page {
     public Page(int pageNumber, TableSchema tableSchema, int pageSize) {
         this.pageNumber = pageNumber;
         this.tableSchema = tableSchema;
-        recordData = new byte[pageSize - (Integer.BYTES * 2)];  // Leave room for the page # and record count
-        numRecords = 0;
+        this.pageSize = pageSize;
+    }
+
+    /**
+     * Gets the list of records in this Page
+     * @return The list of records
+     */
+    public ArrayList<Record> getRecords() {
+        return records;
     }
 
     /**
      * Inserts a record into the page
      * @param record The record being inserted into the page
      * @return `true` if the record was inserted. `false` if the record could not be inserted because it is full
-     * @throws IOException Encountered a problem when converting records to or from binary
      */
-    public boolean insertRecord(Record record) throws IOException {
-        ArrayList<Record> records = getRecords();
-        records.add(record);
-        numRecords += 1;
-        byte[] encoded = encodeRecords(records);
-        if (encoded.length > recordData.length) {
+    public boolean insertRecord(Record record) {
+        int recordSize = recordSize(record);
+        if (recordSize + pageDataSize() > pageSize) {
             return false;
-        } else if (encoded.length < recordData.length) {
-            throw new IOException("Invalid page size found when encoding records");
         }
-        recordData = encoded;
+        records.add(record);
         return true;
     }
 
@@ -74,10 +137,12 @@ public class Page {
     }
 
     /**
-     * Gets the list of records in the page
-     * @return The list of records stored in the page
+     * Converts a binary array of data into a list of records
+     * @param numRecords The number of records contained within the byte array
+     * @param recordData The byte array containing the encoded record data
+     * @return The list of records that was stored in the data array
      */
-    public ArrayList<Record> getRecords() throws IOException {
+    private ArrayList<Record> decodeRecords(int numRecords, byte[] recordData) throws IOException {
         ArrayList<Record> records = new ArrayList<>(numRecords);
         ByteArrayInputStream inStream = new ByteArrayInputStream(recordData);
         DataInputStream in = new DataInputStream(inStream);
@@ -107,6 +172,16 @@ public class Page {
     }
 
     /**
+     * Splits the data of this page in half, transferring half to a new Page which is then returned. This new
+     * Page will be given a default page number of -1. `Half` is determined by data size, not record count.
+     * @return The new page containing half the records that were in this Page
+     */
+    public Page split() {
+        // TODO
+        return null;
+    }
+
+    /**
      * Converts a collection of records into an array of bytes. This array will be at minimum the size of the page,
      * but may be longer if the list of records cannot fit in the page.
      * @param records The records being encoded
@@ -114,29 +189,42 @@ public class Page {
      * @throws IOException If there is an error encoding the data
      */
     private byte[] encodeRecords(Collection<Record> records) throws IOException {
-        ByteArrayOutputStream outStream = new ByteArrayOutputStream(recordData.length);
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream(pageSize);
         DataOutputStream out = new DataOutputStream(outStream);
         for (Record record : records) {
-            for (int i = 0; i < tableSchema.attributes.size(); i++) {
-                Attribute attr = tableSchema.attributes.get(i);
-                Object value = record.rowData.get(i);
-                switch (attr.type) {
-                    case INT:
-                        out.writeInt((Integer) value);
-                        break;
-                    case DOUBLE:
-                        out.writeDouble((Double) value);
-                        break;
-                    case BOOLEAN:
-                        out.writeBoolean((Boolean) value);
-                        break;
-                    case CHAR:
-                    case VARCHAR:
-                        out.writeUTF((String) value);
-                        break;
-                    default:
-                        throw new IOException("Invalid attribute type: " + attr.type);
-                }
+            out.write(encodeRecord(record));
+        }
+        return outStream.toByteArray();
+    }
+
+    /**
+     * Encodes a single record to a binary array
+     * @param record The record to encode
+     * @return The record's data stored as a byte array
+     * @throws IOException If there is an error while encoding the record
+     */
+    private byte[] encodeRecord(Record record) throws IOException {
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(outStream);
+        for (int i = 0; i < tableSchema.attributes.size(); i++) {
+            Attribute attr = tableSchema.attributes.get(i);
+            Object value = record.rowData.get(i);
+            switch (attr.type) {
+                case INT:
+                    out.writeInt((Integer) value);
+                    break;
+                case DOUBLE:
+                    out.writeDouble((Double) value);
+                    break;
+                case BOOLEAN:
+                    out.writeBoolean((Boolean) value);
+                    break;
+                case CHAR:
+                case VARCHAR:
+                    out.writeUTF((String) value);
+                    break;
+                default:
+                    throw new IOException("Invalid attribute type: " + attr.type);
             }
         }
         return outStream.toByteArray();
@@ -150,13 +238,13 @@ public class Page {
      */
     public byte[] encodePage() throws IOException {
 
-        System.out.println("Encoding Page: " + pageNumber + " | Total Records: " + numRecords);
+        System.out.println("Encoding Page: " + pageNumber + " | Total Records: " + records.size());
 
         ByteArrayOutputStream bs = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(bs);
         out.writeInt(pageNumber); // Writes the page number first
-        out.writeInt(numRecords); // Writes the number of records
-        out.write(recordData);    // Writes the record data
+        out.writeInt(records.size()); // Writes the number of records
+        out.write(encodeRecords(records));    // Writes the record data
 
         return bs.toByteArray();
     }
