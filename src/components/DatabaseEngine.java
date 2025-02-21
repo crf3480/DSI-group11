@@ -143,7 +143,9 @@ public class DatabaseEngine {
         ArrayList<Object> data = new ArrayList<>();
         for (int i = 0; i < schema.attributes.size(); i++) {
             switch (schema.attributes.get(i).type){
-                case INT -> data.add(Integer.parseInt(row.get(i).toString()));
+                case INT -> {
+                    data.add(Integer.parseInt(row.get(i).toString()));
+                }
                 case CHAR, VARCHAR -> {
                     data.add(row.get(i).toString());
                 }
