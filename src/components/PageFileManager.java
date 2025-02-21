@@ -31,14 +31,8 @@ public class PageFileManager {
         // Check if page file exists
         if (dataFile.isFile()) {
             // If so: Read the content into pagefile manager (This functionality will be altered once
-            // buffersize is not unlimited)
-            try (FileInputStream fs = new FileInputStream(dataFile)) {
-                //first byte of file is the # of pages
-                int numPages = fs.read();
-            }
-            catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            // buffersize is not unlimited
+            ParseDataFile();
         }
         else {
             // If not: Create blank datafile
@@ -49,7 +43,15 @@ public class PageFileManager {
      * Reads the .bin file where all the pages are
      */
     private void ParseDataFile(){
+        try (FileInputStream fs = new FileInputStream(dataFile)) {
+            //first byte of file is the # of pages
+            int numPages = fs.read();
 
+            //
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
