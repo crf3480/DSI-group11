@@ -24,7 +24,7 @@ public class PageFileManager {
      * Reads in a data file and initializes all the pages.
      * If there is no file it creates one
      * Populates all records
-     * @param dataFile Name of data file (TableName.bin)
+     * @param dataFilePath Name of data file (TableName.bin)
      */
 
     public PageFileManager(String dataFilePath, int pageSize, TableSchema tableSchema) {
