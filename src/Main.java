@@ -53,7 +53,7 @@ public class Main {
                 System.out.println(statement);  // Check that `getQuery()` is parsing command correctly
                 output = null;
                 switch (statement.getFirst()) {
-                    case "quit":
+                    case "<quit>":
                         storageManager.save();
                         return;
                     // DDL commands
