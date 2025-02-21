@@ -37,7 +37,7 @@ public class DML extends GeneralParser {
      */
     public String insert(ArrayList<String> inputList) {
         if (inputList.size() < 7) {      // minimum input will have 7 items: insert into <table> values ( <value1> )
-            //                                    1     2      3      4    5    6     7
+            //                                                                  1     2      3      4    5    6     7
             System.err.println("Incomplete insert statement: " + listString(inputList));
             return null;
         }
@@ -48,11 +48,21 @@ public class DML extends GeneralParser {
             System.err.println("Invalid insert statement: " + listString(inputList));
             return null;
         }
+        else {  // input is also invalid if there aren't commas between multiple records
+            for (int i = 0; i < inputList.size(); i++) {
+                if (inputList.get(i).equals(")") && (i!=inputList.size()-1 && !inputList.get(i+1).equals(","))) {
+                    System.err.println("Invalid insert statement: " + listString(inputList));
+                    return null;
+                }
+            }
+        }
 
         String tableName = inputList.get(2);
         ArrayList<String> values = new ArrayList<>();
         for (String s : inputList.subList(5, inputList.size()-1)) {
-            values.add(s);
+            if (!s.equals(")") && !s.equals("(")) {
+                values.add(s);
+            }
         }
 
         engine.insert(tableName, values);

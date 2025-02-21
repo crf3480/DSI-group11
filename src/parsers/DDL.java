@@ -32,11 +32,16 @@ public class DDL {
      */
     public String alter(ArrayList<String> inputList) {
         //Check if inital query is correct
+        if (inputList.size() < 5){
+            System.err.println("Incorrect Alter Statement");
+            return null;
+        }
         String queryType = inputList.get(0) + " " + inputList.get(1);
         String tableName = inputList.get(2);
         String addOrDrop = inputList.get(3);
         String attributeName = inputList.get(4);
         System.out.println(inputList.toString());
+
         if (queryType.equals("alter table")) {
             if (addOrDrop.equals("drop")) {
                 //Drop an attribute
@@ -82,6 +87,10 @@ public class DDL {
      * @return The output of the command. `null` if command produces no output
      */
     public String create(ArrayList<String> inputList) {
+        if (inputList.size() < 7){
+            System.err.println("Incorrect Create Statement");
+            return null;
+        }
         String queryType = inputList.get(0) + " " + inputList.get(1);
         String tableName = inputList.get(2);
 
@@ -135,6 +144,10 @@ public class DDL {
      * @return The output of the command. `null` if command produces no output
      */
     public String drop(ArrayList<String> inputList) {
+        if (inputList.size() < 3){
+            System.err.println("Incorrect Create Statement");
+            return null;
+        }
         String queryType = inputList.get(0) + " " + inputList.get(1);
         String tableName = inputList.get(2);
         if (queryType.equals("drop table")) {
