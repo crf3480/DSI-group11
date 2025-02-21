@@ -178,9 +178,26 @@ public class StorageManager {
     public boolean save() {
         try {
             catalog.save();
-            return true;
         } catch (IOException e) {
             System.err.println("ERROR: Failed to save catalog to disk: " + e.getMessage());
+        }
+        for (ArrayList<Page> table : buffer.values()) {
+            File tableFile = new File(catalog.getFilePath() + "/" + table + ".bin");
+            try (FileOutputStream fs = new FileOutputStream(tableFile)) {
+                try (DataOutputStream dis = new DataOutputStream(fs)) {
+                    // First value of file is the # of pages
+                    dis.writeInt(table.size());
+                    // Write each page
+                    for (Page page : table) {
+                        dis.write(page.encodePage());
+                    }
+                } catch (Exception e) {
+                    System.out.println("Error while reading in pages: " + e.getMessage());
+                }
+            }
+            catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
         return false;
     }
