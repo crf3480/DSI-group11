@@ -22,8 +22,8 @@ public class StorageManager {
         File catalogFile = new File(databaseDir, "catalog.bin");
         catalog = new Catalog(catalogFile, pageSize);
     }
-
-    public ArrayList<Record> getByPrimaryKey(int id){
+    //Takes the tableName and the correct
+    public ArrayList<Record> getByPrimaryKey(String tableName, PageFileManager pageFileManager)  {
         return null;
     }
 
