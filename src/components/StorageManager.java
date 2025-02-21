@@ -118,7 +118,25 @@ public class StorageManager {
         }
     }
 
-    public boolean deleteByPrimaryKey(int id){
+    public boolean deleteByPrimaryKey(String tableName, String key){
+        ArrayList<Page> pageManager = getPageFileManager(tableName);
+        TableSchema tschema = catalog.getTableSchema(tableName);
+        //finding the attribute index with the primary key
+        int primIndex = 0;
+        for (Attribute a : tschema.attributes) {
+            if (a.primaryKey) {
+                break;
+            }
+            primIndex++;
+        }
+        for (Page p : pageManager) {
+            for (Record r : p.getRecords()) {
+                if (r.rowData.get(primIndex).equals(key)) {
+                    //Need to actually delete the record
+                }
+            }
+        }
+
         return false;
     }
 
