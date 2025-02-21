@@ -38,7 +38,9 @@ public class StorageManager {
         if (pageManager == null) {
             //this happens when the table is not in the buffer
             pageManager = new PageFileManager("./" + tableName + ".bin", pageSize, tschema);
+            buffer.put(tableName, pageManager);
         }
+
 
         //finding the attribute index with the primary key
         int primIndex = 0;
@@ -60,8 +62,21 @@ public class StorageManager {
     }
 
     // Unsure about this one...
-    public boolean pageByTableAndPageNum(int tableNum, int pageNum){
-        return false;
+    public Page pageByTableAndPageNum(String tableName, int pageNum){
+        PageFileManager pageManager = buffer.get(tableName);
+        TableSchema tschema = catalog.getTableSchema(tableName);
+        if (pageManager == null) {
+            //this happens when the table is not in the buffer
+            pageManager = new PageFileManager("./" + tableName + ".bin", pageSize, tschema);
+            buffer.put(tableName, pageManager);
+        }
+        for (Page p : pageManager.pages) {
+            if (p.pageNumber == pageNum) {
+                return p;
+            }
+        }
+
+        return null;
     }
 
     public boolean getAllInTable(int tableNum){
