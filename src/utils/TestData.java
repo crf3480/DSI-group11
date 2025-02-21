@@ -118,6 +118,15 @@ public class TestData {
         return new TableSchema("Test Table", attrList);
     }
 
+    public static TableSchema permaTable() {
+        TableSchema out = new TableSchema("The PermaTable", new ArrayList<>());
+        out.attributes.add(new Attribute("id", AttributeType.INT, true, false, false, 4));
+        out.attributes.add(new Attribute("motto", AttributeType.VARCHAR, false, false, false, 4));
+        out.attributes.add(new Attribute("friends", AttributeType.DOUBLE, false, true, false, 4));
+        out.attributes.add(new Attribute("isGamer", AttributeType.BOOLEAN, false, true, false, 4));
+        out.attributes.add(new Attribute("name", AttributeType.CHAR, false, true, true, 13));
+        return out;
+    }
     /**
      * Generates a random alphanumeric string of a given length
      * @param length The length of the string to return. Negatives return an empty string
