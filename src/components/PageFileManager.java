@@ -4,6 +4,9 @@ import tableData.Page;
 import tableData.Record;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 
 // TBH Ive got some idea how this is going to look but don't have a complete idea due to how records are added.
@@ -18,7 +21,7 @@ public class PageFileManager {
      * Reads in a data file and initializes all the pages.
      * If there is no file it creates one
      * Populates all records
-     * @param datafile Name of data file (TableName.bin)
+     * @param dataFile Name of data file (TableName.bin)
      */
 
     public PageFileManager(File dataFile, int pageSize) {
@@ -26,13 +29,20 @@ public class PageFileManager {
         this.pageSize = pageSize;
 
         // Check if page file exists
-
-        // If so: Read the content into pagefile manager (This functionality will be altered once
-        // buffersize is not unlimited)
-
-
-        // If not: Create blank datafile
-
+        if (dataFile.isFile()) {
+            // If so: Read the content into pagefile manager (This functionality will be altered once
+            // buffersize is not unlimited)
+            try (FileInputStream fs = new FileInputStream(dataFile)) {
+                //first byte of file is the # of pages
+                int numPages = fs.read();
+            }
+            catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+        else {
+            // If not: Create blank datafile
+        }
     }
 
     /**
