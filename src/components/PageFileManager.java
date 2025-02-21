@@ -31,7 +31,6 @@ public class PageFileManager {
         this.dataFile = dataFile;
         this.pageSize = pageSize;
         this.tableSchema = tableSchema;
-
         // Check if page file exists
         if (dataFile.isFile()) {
             // If so: Read the content into pagefile manager (This functionality will be altered once
@@ -86,5 +85,18 @@ public class PageFileManager {
      */
     public void saveRecords(){
         // Figure out max records per page given
+    }
+
+    /**
+     * Used to delete the table's file containing all the pages
+     */
+    public void deletePageFile() {
+        try {
+            //deleting the data file
+            this.dataFile.delete();
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
