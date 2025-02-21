@@ -16,15 +16,38 @@ public class StorageManager {
     HashMap<String, PageFileManager> buffer;
     Catalog catalog;
 
+    int pageSize;
+
     public StorageManager(File databaseDir, int pageSize, int bufferSize) throws IOException {
         this.bufferSize = bufferSize;
         buffer = new HashMap<>();
         File catalogFile = new File(databaseDir, "catalog.bin");
         catalog = new Catalog(catalogFile, pageSize);
+        this.pageSize = pageSize;
     }
     //Takes the tableName and the correct
-    public ArrayList<Record> getByPrimaryKey(String tableName, PageFileManager pageFileManager)  {
-        return null;
+    public Record getByPrimaryKey(String tableName)  {
+        PageFileManager pageManager = buffer.get(tableName);
+        TableSchema tschema = catalog.getTableSchema(tableName);
+        if (pageManager == null) {
+            //this happens when the table is not in the buffer
+            pageManager = new PageFileManager("./" + tableName + ".bin", pageSize, tschema);
+        }
+
+        //finding the attribute index with the primary key
+        int primIndex = 0;
+        for (Attribute a : tschema.attributes) {
+            if (a.primaryKey) {
+                break;
+            }
+            primIndex++;
+        }
+        //looping through pages and records to find The One
+        Record r = null;
+        for (Page p : pageManager.pages) {
+            r = p.getRecords().get(primIndex);
+        }
+        return r; //stubbing
     }
 
     // Unsure about this one...
