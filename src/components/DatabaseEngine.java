@@ -111,6 +111,7 @@ public class DatabaseEngine {
         schema = TestData.permaTable();        //TODO: delete when method is complete
         if (schema == null){
             System.err.println("Table " + tableName + " does not exist");
+            return;
         }
 
         ArrayList<ArrayList<Object>> data = new ArrayList<>();
@@ -118,53 +119,81 @@ public class DatabaseEngine {
         for (int i = 0; i <= values.size(); i++) {
             if (i == values.size() || values.get(i).equals(",")) { // every comma denotes a new record, insert record after comma or end of input
                 currentRow = parseData(schema, currentRow);
-                if(currentRow.size()==schema.attributes.size()){
-                    data.add(currentRow);
+                if(currentRow.size()==schema.attributes.size()){    // row size is only equal to attributes schema if valid
+                    //System.out.println("Inserting row " + currentRow.toString());
+                    data.add(currentRow);                           // append to new data and reset currentRow
                     currentRow = new ArrayList<>();
                 }
                 else{
-                    if (!(currentRow == null)) {
-                        System.err.println("Record "+currentRow+" is invalid");
-                    }
                     break;
                 }
             }
             else{
-                currentRow.add(values.get(i));
+                currentRow.add(values.get(i));  // not a comma, so we keep adding to the current record
             }
-
         }
-
-        System.out.println("Inserting "+ data.size() +" records into " + tableName+":");
-        for (ArrayList<Object> row : data) {
-            System.out.println(row);
+        if(data.size()>0){
+            //System.out.println(data.size()+" valid record(s) parsed. Sending to Storage Manager for insertion into " + tableName);
+            storageManager.insertRecord(tableName, data);
+            /*
+            for (ArrayList<Object> row : data) {
+                System.out.println("\t-\t"+row);
+            }
+            */
         }
     }
 
     private ArrayList<Object> parseData(TableSchema schema, ArrayList<Object> row) {
         ArrayList<Object> data = new ArrayList<>();
 
-        System.out.println(row);
-        System.out.println(schema.toString());
+        //System.out.println(row);
+        //System.out.println(schema.toString());
         for (int i = 0; i < schema.attributes.size(); i++) {
             switch (schema.attributes.get(i).type){
                 case INT -> {
-                    data.add(Integer.parseInt(row.get(i).toString()));
+                    String value = row.get(i).toString();
+                    try {
+                        if (value.charAt(0)=='\"' || value.charAt(value.length()-1)=='\"') {    // avoid parseInt from incorrectly accepting "4759"
+                            throw new NumberFormatException();
+                        }
+                        data.add(Integer.parseInt(value));
+                    } catch (NumberFormatException e) {
+                        System.err.println("Invalid INT: "+value+" not an integer");
+                        return new ArrayList<>();
+                    }
                 }
                 case CHAR, VARCHAR -> {
-                    if (row.get(i).toString().substring(1, row.get(i).toString().length()-1).length() <= schema.attributes.get(i).length){
-                        data.add(row.get(i).toString().substring(1, row.get(i).toString().length()-1));
+                    String value = row.get(i).toString();
+                    if (value.charAt(0)!='\"' || value.charAt(value.length()-1)!='\"') {
+                        System.err.println("Invalid "+schema.attributes.get(i).type+": "+value+" missing encapsulating double quotes");
+                        return new ArrayList<>();
                     }
-                    else{
-                        System.err.println(schema.attributes.get(i).type+" '"+row.get(i).toString()+"' exceeds maximum length "+schema.attributes.get(i).length);
-                        return null;
+                    value = value.substring(1, value.length()-1);       // string has quotes, so it's valid. remove quotes to get the inner string
+                    if (value.length()>schema.attributes.get(i).length){
+                        System.err.println(schema.attributes.get(i).type+" \""+value+"\" exceeds maximum length "+schema.attributes.get(i).length);
+                        return new ArrayList<>();
                     }
+                    data.add(value);
                 }
                 case DOUBLE -> {
-                    data.add(Double.parseDouble(row.get(i).toString()));
+                    String value = row.get(i).toString();
+                    try {
+                        if (value.charAt(0)=='\"' || value.charAt(value.length()-1)=='\"') {    // avoid parseDouble from incorrectly accepting "47.59"
+                            throw new NumberFormatException();
+                        }
+                        data.add(Double.parseDouble(value));
+                    } catch (NumberFormatException e) {
+                        System.err.println("Invalid DOUBLE: "+value+" not a double");
+                        return new ArrayList<>();
+                    }
                 }
                 case BOOLEAN -> {
-                    data.add(Boolean.parseBoolean(row.get(i).toString()));
+                    String value = row.get(i).toString();
+                    if (value.charAt(0)=='\"' || value.charAt(value.length()-1)=='\"') {        // avoid parseBoolean from incorrectly accepting "true"
+                        System.err.println("Invalid BOOLEAN: "+value+" is not a boolean");
+                        return new ArrayList<>();
+                    }
+                    data.add(Boolean.parseBoolean(value));
                 }
             }
         }
