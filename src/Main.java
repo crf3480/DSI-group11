@@ -129,7 +129,13 @@ public class Main {
                 System.err.println("Encountered error while reading input: " + e.getMessage());
                 return new ArrayList<>();
             }
-
+            // Quit command
+            if (statement.isEmpty() && (input.toLowerCase().equals("<quit>") || input.toLowerCase().startsWith("<quit> "))) {
+                    statement.add("<quit>");
+                    statementList.add(statement);
+                    return statementList;
+            }
+            // Parse line of input
             for (int i = 0; i < input.length(); i++) {
                 char c = input.charAt(i);
                 if (openQuote) {  // Inside quotes, different rules apply
