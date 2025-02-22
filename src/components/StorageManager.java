@@ -45,7 +45,7 @@ public class StorageManager {
         TableSchema tschema = catalog.getTableSchema(tableName);
         if (pageManager == null) {
             //this happens when the table is not in the buffer
-            pageManager = ParseDataFile(catalog.getFilePath().getParent()+ "/" + tableName + ".bin", tschema);
+            pageManager = ParseDataFile(catalog.getFilePath().getParent()+ "\\" + tableName + ".bin", tschema);
             buffer.put(tableName, pageManager);
         }
         return pageManager;
@@ -189,7 +189,7 @@ public class StorageManager {
 
     public void deleteTable(String tableName) {
         this.catalog.removeTableSchema(tableName);
-        File dataFile = new File(this.catalog.getFilePath()+"/" + tableName + ".bin");
+        File dataFile = new File(this.catalog.getFilePath()+"\\" + tableName + ".bin");
         dataFile.delete();
     }
 
@@ -253,7 +253,7 @@ public class StorageManager {
         }
         for (String tableName : buffer.keySet()) {
             ArrayList<Page> pages = buffer.get(tableName);
-            File tableFile = new File(catalog.getFilePath().getParent() + "/" + tableName + ".bin");
+            File tableFile = new File(catalog.getFilePath().getParent() + "\\" + tableName + ".bin");
             try (FileOutputStream fs = new FileOutputStream(tableFile)) {
                 try (DataOutputStream dis = new DataOutputStream(fs)) {
                     // First value of file is the # of pages
