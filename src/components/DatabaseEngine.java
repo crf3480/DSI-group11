@@ -73,11 +73,18 @@ public class DatabaseEngine {
 
 
     /**
-     * Displays the schema of a table
-     * @param tableName The table to display the schema of
+     * Displays information about a table
+     * @param tableName The table to display the details of
      */
     public void displayTable(String tableName) {
         storageManager.displayTable(tableName);
+    }
+
+    /**
+     * Displays the schema of the database
+     */
+    public void displaySchema() {
+        storageManager.displaySchema();
     }
 
     /**

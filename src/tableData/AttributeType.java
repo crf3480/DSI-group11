@@ -18,11 +18,11 @@ public enum AttributeType {
     @Override
     public String toString() {
         return switch (this) {
-            case INT -> "INT";
-            case DOUBLE -> "DOUBLE";
-            case CHAR -> "CHAR";
-            case VARCHAR -> "VARCHAR";
-            case BOOLEAN -> "BOOLEAN";
+            case INT -> "int";
+            case DOUBLE -> "double";
+            case CHAR -> "char";
+            case VARCHAR -> "varchar";
+            case BOOLEAN -> "boolean";
         };
     }
 }

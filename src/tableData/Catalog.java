@@ -1,10 +1,7 @@
 package tableData;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class Catalog {
 
@@ -72,6 +69,14 @@ public class Catalog {
             }
             inputStream.close();
         }
+    }
+
+    /**
+     * Returns a set of all tables present in the catalog
+     * @return The set of all table names
+     */
+    public Set<String> getTableNames() {
+        return tableSchemas.keySet();
     }
 
     /**

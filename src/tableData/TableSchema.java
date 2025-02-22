@@ -42,14 +42,23 @@ public class TableSchema {
 
     @Override
     public String toString() {
-        String out = this.name+": [";
+        StringBuilder sb = new StringBuilder();
         for (Attribute attribute : attributes) {
-            out+=attribute.type;
-            if (attribute.type == AttributeType.VARCHAR || attribute.type == AttributeType.CHAR) {
-                out+="("+attribute.length+")";
+            sb.append('\t');
+            sb.append(attribute.name);
+            sb.append(':');
+            sb.append(attribute.type);
+            if (attribute.type == AttributeType.CHAR || attribute.type == AttributeType.VARCHAR) {
+                sb.append('(');
+                sb.append(attribute.length);
+                sb.append(')');
             }
-            out+=", ";
+            if (attribute.primaryKey) { sb.append(" primary key"); }
+            if (attribute.unique) { sb.append(" unique"); }
+            if (attribute.notNull) { sb.append(" notnull"); }
+            sb.append('\n');
         }
-        return out.substring(0, out.length()-2)+"]";
+
+        return sb.toString();
     }
 }

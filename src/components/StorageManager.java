@@ -250,6 +250,16 @@ public class StorageManager {
         return true;
     }
 
+    /**
+     * Prints the information of a table to the console
+     * <ul>
+     *     <li>Table name</li>
+     *     <li>Table schema</li>
+     *     <li># Pages</li>
+     *     <li># Records</li>
+     * </ul>
+     * @param tableName The name of the table to print the details of
+     */
     public void displayTable(String tableName){
         TableSchema schema = catalog.getTableSchema(tableName);
         if (schema == null) {
@@ -262,7 +272,8 @@ public class StorageManager {
             System.err.println("Failed to load table `" + tableName + "`");
             return;
         }
-        System.out.println("[" + tableName + "]");
+        System.out.println("Table name: " + tableName);
+        System.out.println("Table schema: ");
         System.out.println(schema);
         System.out.println("Pages: " + buffer.get(tableName).size());
         int totalPages = 0;
@@ -270,6 +281,31 @@ public class StorageManager {
             totalPages += p.getRecords().size();
         }
         System.out.println("Records: " + totalPages);
+    }
+
+    /**
+     * Displays the schema of the database to the console
+     * <ul>
+     *     <li>Database location</li>
+     *     <li>Page size</li>
+     *     <li>Buffer size</li>
+     *     <li>Table schema</li>
+     * </ul>
+     */
+    public void displaySchema() {
+        System.out.println("Database location: " + catalog.getFilePath().getAbsolutePath());
+        System.out.println("Page size: " + pageSize);
+        System.out.println("Buffer size: " + bufferSize);
+        System.out.println("\nTables:\n");
+        for(String table : catalog.getTableNames()) {
+            try {
+                loadTable(table);
+            } catch (IOException e) {
+                System.err.println("Failed to load table `" + table + "`");
+                return;
+            }
+            displayTable(table);
+        }
     }
 
     public TableSchema getTableSchema(String tableName){
