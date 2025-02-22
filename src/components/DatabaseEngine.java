@@ -22,42 +22,47 @@ public class DatabaseEngine {
     }
 
     /**
-     * Creates a table
+     * Creates a table from a sequence of strings
      * @param tableName The name of the table
+     * @param attributeList A list of token lists, with each sublist representing all the keywords of an attribute
+     * @throws IllegalArgumentException if there is a sequence of strings which does not represent a valid attribute
      */
-    public void createTable(String tableName, ArrayList<String> constraints) {
+    public void createTable(String tableName, ArrayList<ArrayList<String>> attributeList) {
         //Building out attribute objects using constraints
-        System.out.println("Creating table " + constraints.toString());
         ArrayList<Attribute> allAttributes = new ArrayList<>();
-        for (String constraint : constraints) {
-            String[] parts = constraint.split(" ");
-            String attributeName = parts[0];
-            String attributeType = parts[1];
-            AttributeType type = AttributeType.fromString(parts[1]);
-            int attributeLength;
-            boolean primaryKey = false;
-            boolean unique = false;
-            boolean notNull = false;
-            String attributeConstraint = "";
-            if (attributeType.equals("char") || attributeType.equals("varchar")) {
-                 attributeLength = Integer.parseInt(parts[3]);
-                 primaryKey = constraint.contains("primarykey");
-                 unique = constraint.contains("unique");
-                 notNull = constraint.contains("notnull");
-                 Attribute currAttribute = new Attribute(attributeName, type, primaryKey, unique, notNull, attributeLength );
-                 allAttributes.add(currAttribute);
-            } else {
-                attributeLength = 0;
-                primaryKey = constraint.contains("primarykey");
-                unique = constraint.contains("unique");
-                notNull = constraint.contains("notnull");
-                Attribute currAttribute = new Attribute(attributeName, type, primaryKey, unique, notNull, attributeLength );
-                allAttributes.add(currAttribute);
+        for (ArrayList<String> attributeTokens : attributeList) {
+            String errorMessage = "Invalid attribute declaration: `" + String.join(" ", attributeTokens) + "`. ";
+            if (attributeTokens.size() < 2) {
+                throw new IllegalArgumentException(errorMessage + "All attributes must have at least a name and type");
             }
+            String name = attributeTokens.getFirst();
+            boolean primaryKey = attributeTokens.contains("primarykey");
+            boolean unique = attributeTokens.contains("unique") || primaryKey;
+            boolean notNull = attributeTokens.contains("notnull") || primaryKey;
+            int length = 0;
+            AttributeType attrType;
+            try {
+                attrType = AttributeType.fromString(attributeTokens.get(1));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(errorMessage + "Second keyword must be a valid type.");
+            }
+            if (attrType == AttributeType.CHAR || attrType == AttributeType.VARCHAR) {
+                if (attributeTokens.size() < 5 || !attributeTokens.get(2).equals("(") || !attributeTokens.get(4).equals(")")) {
+                    throw new IllegalArgumentException(errorMessage + "CHAR and VARCHAR attributes must declare a length.");
+                }
+                try {
+                    length = Integer.parseInt(attributeTokens.get(3));
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException(errorMessage + "Invalid length parameter `" + attributeTokens.get(2) + "`.");
+                }
+            }
+            allAttributes.add(new Attribute(name, attrType, primaryKey, notNull, unique, length));
         }
-        //All constrains have been created as attributes and added to an arrayList
-
-        storageManager.createTable(tableName, allAttributes);
+        try {
+            storageManager.createTable(tableName, allAttributes);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
     }
 
 
