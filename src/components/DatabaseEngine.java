@@ -172,7 +172,17 @@ public class DatabaseEngine {
         }
         // Parse and insert record
         try {
-            storageManager.insertRecord(tableName, parseData(schema, tupleValues));
+            Record record = parseData(schema, tupleValues);
+            // Verify that record is unique
+            for (Record existingRec : storageManager.getAllInTable(tableName)) {
+                int matchAttr = record.duplicate(existingRec, schema);
+                if (matchAttr != -1) {
+                    System.err.println("Invalid tuple: a record with the value `" + record.get(matchAttr) +
+                            "` already exists for column `" + schema.attributes.get(matchAttr).name + "`.");
+                    return false;
+                }
+            }
+            storageManager.insertRecord(tableName, record);
         } catch (Exception e) {
             System.err.println(e.getMessage());
             return false;
