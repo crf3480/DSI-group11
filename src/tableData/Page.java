@@ -198,21 +198,11 @@ public class Page {
                 }
                 // For non-null values, read their values into the row data
                 switch (attr.type) {
-                    case INT:
-                        recordAttr.add(in.readInt());
-                        break;
-                    case DOUBLE:
-                        recordAttr.add(in.readDouble());
-                        break;
-                    case BOOLEAN:
-                        recordAttr.add(in.readBoolean());
-                        break;
-                    case CHAR:
-                    case VARCHAR:
-                        recordAttr.add(in.readUTF());
-                        break;
-                    default:
-                        throw new IOException("Invalid attribute type: " + attr.type);
+                    case INT -> recordAttr.add(in.readInt());
+                    case DOUBLE -> recordAttr.add(in.readDouble());
+                    case BOOLEAN -> recordAttr.add(in.readBoolean());
+                    case CHAR, VARCHAR -> recordAttr.add(in.readUTF());
+                    default -> throw new IOException("Invalid attribute type: " + attr.type);
                 }
             }
             records.add( new Record(recordAttr));
@@ -292,21 +282,11 @@ public class Page {
             Object value = record.rowData.get(i);
             if (value == null) { continue; }  // Null values are not written to file
             switch (attr.type) {
-                case INT:
-                    out.writeInt((Integer) value);
-                    break;
-                case DOUBLE:
-                    out.writeDouble((Double) value);
-                    break;
-                case BOOLEAN:
-                    out.writeBoolean((Boolean) value);
-                    break;
-                case CHAR:
-                case VARCHAR:
-                    out.writeUTF((String) value);
-                    break;
-                default:
-                    throw new IOException("Invalid attribute type: " + attr.type);
+                case INT -> out.writeInt((Integer) value);
+                case DOUBLE -> out.writeDouble((Double) value);
+                case BOOLEAN -> out.writeBoolean((Boolean) value);
+                case CHAR, VARCHAR -> out.writeUTF((String) value);
+                default -> throw new IOException("Invalid attribute type: " + attr.type);
             }
         }
         return outStream.toByteArray();
