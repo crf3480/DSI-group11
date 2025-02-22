@@ -242,10 +242,14 @@ public class DatabaseEngine {
                     }
                 }
                 case BOOLEAN -> {
-                    if (value.charAt(0)=='\"' || value.charAt(value.length()-1)=='\"') {        // avoid parseBoolean from incorrectly accepting "true"
+                    if (value.charAt(0)=='\"' || value.charAt(value.length()-1)=='\"' ||    // avoid parseBoolean from incorrectly accepting "true"
+                            (!value.toLowerCase().equals("true") && !value.toLowerCase().equals("false"))   // booleans can only be true or false
+                    ) {
                         throw new ClassCastException("Invalid BOOLEAN: `" + value + "` is not a boolean");
                     }
-                    data.add(Boolean.parseBoolean(value));
+                    else{
+                        data.add(Boolean.parseBoolean(value));
+                    }
                 }
             }
         }
