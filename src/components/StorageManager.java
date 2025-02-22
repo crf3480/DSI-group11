@@ -199,9 +199,23 @@ public class StorageManager {
         return false;
     }
 
-    public void createTable(String tableName, ArrayList<Attribute> values) {
+    public void createTable(String tableName, ArrayList<Attribute> values) throws IOException {
+        File tableFile = new File(catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
+        if (tableFile.exists()) {
+            throw new RuntimeException("File already exists for table `" + tableName + "` at `" + tableFile.getAbsolutePath() + "`");
+        }
+        tableFile.createNewFile();
+        try (FileOutputStream fs = new FileOutputStream(tableFile)) {
+            try (DataOutputStream out = new DataOutputStream(fs)) {
+                out.writeInt(0); // Initial page count is zero
+            } catch (Exception e) {
+                throw new IOException("Encountered an error while creating table file:" + e.getMessage());
+            }
+        } catch (Exception e) {
+            throw new IOException("Encountered an error while creating table file:" + e.getMessage());
+        }
         catalog.addTableSchema(new TableSchema(tableName, values));
-        buffer.put(tableName, new ArrayList<Page>());
+        buffer.put(tableName, new ArrayList<>());
     }
 
     public void deleteTable(String tableName) {

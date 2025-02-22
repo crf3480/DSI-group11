@@ -61,7 +61,11 @@ public class Catalog {
                         String typeName = inputStream.readUTF();
                         attributes.add(new Attribute(typeName, attrType, primaryKey, notNull, unique, length));
                     }
-                    tableSchemas.put(tableName, new TableSchema(tableName, attributes));
+                    try {
+                        tableSchemas.put(tableName, new TableSchema(tableName, attributes));
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Encountered error while creating table from catalog: " + e.getMessage());
+                    }
                 } catch (EOFException eof) {
                     // Break at end of file
                     break;

@@ -87,54 +87,31 @@ public class DDL {
      * @return The output of the command. `null` if command produces no output
      */
     public String create(ArrayList<String> inputList) {
-        //Error handling
-        if (inputList.size() < 7){
-            System.err.println("Incorrect Create Statement");
+        System.out.println(inputList);
+        // Soft validate input format
+        if (inputList.size() < 4){
+            System.err.println("Insufficient parameters for `create table` statement");
             return null;
         }
-
-        String queryType = inputList.get(0) + " " + inputList.get(1);
+        if (!inputList.get(1).equals("table") || !inputList.get(3).equals("(") || !inputList.getLast().equals(")")) {
+            System.err.println("Invalid `create table` statement: create table <name>(<attr name> <attr type>...);");
+            return null;
+        }
+        // Read basic table data
         String tableName = inputList.get(2);
-
-        //System.out.println("here" + inputList.toString());
-        if (queryType.equals("create table")) {
-            int index = (inputList.indexOf("(")) + 1;
-            ArrayList<String> constraints = new ArrayList<>();
-            String currentQuery = "";
-            //Need to check if there is single or multiple constraints
-            int hasMultiRules = inputList.indexOf(",");
-            if (hasMultiRules == -1) {
-                //Only 1 constraint to add
-                String attributeName = inputList.get(4);
+        ArrayList<ArrayList<String>> attributeList = new ArrayList<>();
+        ArrayList<String> attributeTokens = new ArrayList<>();
+        for (int i = 4; i < inputList.size() - 1; i++) {
+            if (inputList.get(i).equals(",")) {
+                attributeList.add(attributeTokens);
+                attributeTokens = new ArrayList<>();
             } else {
-                //Need to loop through all contraints and build them
-                while (index != inputList.size() - 1){
-                    String currVal = inputList.get(index);
-
-                    if ((!(currVal.equals(",")))) {
-                        if (currentQuery.isEmpty()){
-                            currentQuery += currVal;
-                        } else {
-                            currentQuery += " " + currVal;
-                        }
-                    } else {
-                        constraints.add(currentQuery);
-                        currentQuery = "";
-                    }
-                    index++;
-                }
+                attributeTokens.add(inputList.get(i));
             }
-
-            //Running from ( to ) and adding constraints
-            constraints.add(currentQuery);
-            System.out.println("Constraints: " + constraints);
-            engine.createTable(tableName, constraints);
-            return null;
-        } else {
-            System.err.println("Incorrect Create Statement");
-            return null;
         }
-
+        attributeList.add(attributeTokens);
+        engine.createTable(tableName, attributeList);
+        return null;
     }
 
     /**
