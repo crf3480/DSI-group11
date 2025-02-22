@@ -324,6 +324,9 @@ public class StorageManager {
             }
             displayTable(table);
         }
+        if (catalog.getTableNames().isEmpty()) {
+            System.out.println("<None>");
+        }
     }
 
     public TableSchema getTableSchema(String tableName){
