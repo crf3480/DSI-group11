@@ -276,15 +276,20 @@ public class StorageManager {
     private ArrayList<Page> ParseDataFile(String dataFile, TableSchema tableSchema){
         ArrayList<Page> pages = new ArrayList<>();
         try (FileInputStream fs = new FileInputStream(dataFile)) {
-            //first byte of file is the # of pages
-            int numPages = fs.read();
-
-            //reading each page into the pages arraylist
-            for (int i = 0; i < numPages; ++i) {
-                byte[] pageArr = fs.readNBytes(pageSize);
-                Page pageToAdd = new Page(pageArr, tableSchema);
-                pages.add(pageToAdd);
+            try (DataInputStream in = new DataInputStream(fs)) {
+                //first byte of file is the # of pages
+                int numPages = in.readInt();
+                //reading each page into the pages arraylist
+                byte[] pageBytes = new byte[pageSize];
+                for (int i = 0; i < numPages; ++i) {
+                    in.read(pageBytes);
+                    Page pageToAdd = new Page(pageBytes, tableSchema);
+                    pages.add(pageToAdd);
+                }
+            } catch (Exception e) {
+                System.err.println("Error while reading table data file: " + e.getMessage());
             }
+
         }
         catch (Exception e) {
             throw new RuntimeException(e);

@@ -30,13 +30,10 @@ public class Main {
 
         // Check if database exists and either restart the database or
         File databaseDir = new File(dbLocation);
-        System.out.println(databaseDir.getName());
 
         // Create a directory at the location of the database
         if (databaseDir.mkdir()) {
-            System.out.println("made new directory");
-        } else {
-            System.out.println("already exists");
+            System.out.println("Created new database directory at `" + dbLocation + "`");
         }
         StorageManager storageManager = new StorageManager(databaseDir, pageSize, bufferSize);
         DatabaseEngine databaseEngine = new DatabaseEngine(storageManager);

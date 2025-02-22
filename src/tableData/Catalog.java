@@ -41,7 +41,6 @@ public class Catalog {
             DataInputStream inputStream = new DataInputStream(new FileInputStream(catalogFile));
             // Page size
             this.pageSize = inputStream.readInt();
-            System.out.println("Page size: " + this.pageSize);
             AttributeType[] attributeTypes = AttributeType.values();
             // Begin reading tables
             while (true) {
