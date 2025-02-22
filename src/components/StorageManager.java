@@ -376,6 +376,9 @@ public class StorageManager {
             }
 
         }
+        catch (FileNotFoundException e) {
+            throw new RuntimeException("Table file `" + dataFile + "` not found.");
+        }
         catch (Exception e) {
             throw new RuntimeException(e);
         }
