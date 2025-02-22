@@ -244,12 +244,14 @@ public class Page {
      * @throws IOException If there is an error encoding the data
      */
     private byte[] encodeRecords(Collection<Record> records) throws IOException {
-        ByteArrayOutputStream outStream = new ByteArrayOutputStream(pageSize);
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(outStream);
         for (Record record : records) {
             out.write(encodeRecord(record));
         }
-        return outStream.toByteArray();
+        byte[] recordData = new byte[pageSize];
+        System.arraycopy(outStream.toByteArray(), 0, recordData, 0, outStream.size());
+        return recordData;
     }
 
     /**
