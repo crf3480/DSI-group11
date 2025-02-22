@@ -104,7 +104,21 @@ public class DatabaseEngine {
         storageManager.addAttribute(tableName, attribute);
     }
 
+<<<<<<< Updated upstream
+=======
+    public void selectRecords(ArrayList<String> columns, ArrayList<String> tables, ArrayList<String> where) {
+        ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));
+        
 
+
+    }
+>>>>>>> Stashed changes
+
+    /**
+     * Parses the insert logic for an arbitrary number of records. Input is valid, this checks for data correctness
+     * @param tableName The table to insert into
+     * @param values    All values between and including the parentheses
+     */
     public void insert(String tableName, ArrayList<String> values) {
         TableSchema schema = storageManager.getTableSchema(tableName);
 
