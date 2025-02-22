@@ -45,7 +45,9 @@ public class StorageManager {
     private void loadTable(String tableName) throws IOException {
         TableSchema tschema = catalog.getTableSchema(tableName);
         ArrayList<Page> pageList = ParseDataFile(catalog.tableFile(tableName), tschema);
-        buffer.put(tableName, pageList);
+        if (!buffer.containsKey(tableName)) {
+            buffer.put(tableName, pageList);
+        }
     }
 
     /**
@@ -343,12 +345,6 @@ public class StorageManager {
         TableSchema schema = catalog.getTableSchema(tableName);
         if (schema == null) {
             System.err.println("Table not found: `" + tableName + "`");
-            return;
-        }
-        try {
-            loadTable(tableName);  // Load table into memory
-        } catch (IOException e) {
-            System.err.println("Failed to load table `" + tableName + "`");
             return;
         }
         System.out.println("Table name: " + tableName);
