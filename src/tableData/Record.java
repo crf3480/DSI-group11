@@ -23,6 +23,14 @@ public class Record {
     }
 
     /**
+     * Returns the number of attributes in the record
+     * @return The number of attributes
+     */
+    public int size() {
+        return rowData.size();
+    }
+
+    /**
      * Returns the object stored in this record at a given row
      * @param index The index of the attribute to fetch
      * @return The object stored at that index

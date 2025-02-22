@@ -109,7 +109,7 @@ public class Catalog {
     /**
      * Fetches the schema of a table by name
      * @param tableName The name of the table
-     * @return The table's schema
+     * @return The table's schema, or `null` if that table name does not exist in the schema
      */
     public TableSchema getTableSchema(String tableName){
         return tableSchemas.get(tableName);
@@ -158,7 +158,7 @@ public class Catalog {
      * @param tableName The name of the table
      * @return The table's File object
      */
-    public File tableFile(String tableName){
+    public File getTableFile(String tableName){
         return new File(catalogFile.getParent() + File.separator + tableName + ".bin");
     }
 

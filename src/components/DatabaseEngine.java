@@ -150,101 +150,106 @@ public class DatabaseEngine {
     }
 
     /**
-     * Parses the insert logic for an arbitrary number of records. Input is valid, this checks for data correctness
-     * @param tableName The table to insert into
-     * @param values    All values between and including the parentheses
+     * Converts a list of strings into their appropriate data objects and inserts the record into a given table.
+     * Responsible for checking attribute counts match.
+     * @param tableName The table to insert the record into
+     * @param tupleValues Strings representing the values for every attribute of the record. Any value which
+     *                    was assigned default should be null (null values are just the string "null")
+     * @return `true` if the record was inserted. `false` if the insert failed for any reason
      */
-    public void insert(String tableName, ArrayList<String> values) {
+    public boolean insert(String tableName, ArrayList<String> tupleValues) {
         TableSchema schema = storageManager.getTableSchema(tableName);
-        //schema = TestData.permaTable();        //TODO: testing set. delete when complete
+        // Check table exists
         if (schema == null){
             System.err.println("Table " + tableName + " does not exist");
-            return;
+            return false;
         }
-
-        ArrayList<ArrayList<Object>> data = new ArrayList<>();
-        ArrayList<Object> currentRow = new ArrayList<>();
-        for (int i = 0; i <= values.size(); i++) {
-            if (i == values.size() || values.get(i).equals(",")) { // every comma denotes a new record, insert record after comma or end of input
-                if(currentRow.size()==schema.attributes.size()){    // row size is only equal to attributes schema if valid
-                    //System.out.println("Inserting row " + currentRow.toString());
-                    currentRow = parseData(schema, currentRow);
-                    data.add(currentRow);                           // append to new data and reset currentRow
-                    currentRow = new ArrayList<>();
-                }
-                else{
-                    System.err.println("Record "+currentRow.toString()+" of size "+ currentRow.size()+" is too "+(currentRow.size()>schema.attributes.size() ? "large" : "small")+" for schema "+tableName+" with "+schema.attributes.size()+" attributes");
-                    break;
-                }
-            }
-            else{
-                currentRow.add(values.get(i));  // not a comma, so we keep adding to the current record
-            }
+        // Check tuple count matches
+        if (tupleValues.size() != schema.attributes.size()) {
+            System.err.println("Invalid tuple (" + String.join(", ", tupleValues) + "): " +
+                    "Attribute count does not match table (Expected: " + schema.attributes.size() + ").");
+            return false;
         }
-        if(data.size()>0){
-            //System.out.println(data.size()+" valid record(s) parsed. Sending to Storage Manager for insertion into " + tableName);
-            storageManager.insertRecord(tableName, data);
-            /*
-            for (ArrayList<Object> row : data) {
-                System.out.println("\t-\t"+row);
-            }
-            */
+        // Parse and insert record
+        try {
+            storageManager.insertRecord(tableName, parseData(schema, tupleValues));
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            return false;
         }
+        return true;
     }
 
-    private ArrayList<Object> parseData(TableSchema schema, ArrayList<Object> row) {
+    /**
+     * Converts a sequence of strings into a Record with a given schema
+     * @param schema The schema to match
+     * @param row The strings representing the data. A null object indicates that attribute should take its
+     *            default value (a null value for the attribute is represented by the String "null")
+     * @return The record with the parsed data
+     * @throws ClassCastException if an attribute could not be successfully cast its appropriate value
+     */
+    private Record parseData(TableSchema schema, ArrayList<String> row) throws ClassCastException {
         ArrayList<Object> data = new ArrayList<>();
 
         for (int i = 0; i < schema.attributes.size(); i++) {
-            switch (schema.attributes.get(i).type){
+            Attribute attr = schema.attributes.get(i);
+            String value = row.get(i);
+            // If a String is null, use the default value
+            if (value == null) {
+                data.add(attr.defaultValue);
+                continue;
+            }
+            // If the string is the *word* "null", check if attribute can be null and set it
+            if (value.equals("null")) {
+                if (!attr.allowsNull()) {
+                    throw new ClassCastException("Invalid value for `" + attr.name +
+                            "`: attribute does not allow null values.");
+                }
+                data.add(null);
+                continue;
+            }
+            switch (attr.type){
                 case INT -> {
-                    String value = row.get(i).toString();
                     try {
                         if (value.charAt(0)=='\"' || value.charAt(value.length()-1)=='\"') {    // avoid parseInt from incorrectly accepting "4759"
                             throw new NumberFormatException();
                         }
                         data.add(Integer.parseInt(value));
                     } catch (NumberFormatException e) {
-                        System.err.println("Invalid INT: "+value+" not an integer");
-                        return new ArrayList<>();
+                        throw new ClassCastException("Invalid INT: `" + value + "` not an integer");
                     }
                 }
                 case CHAR, VARCHAR -> {
-                    String value = row.get(i).toString();
                     if (value.charAt(0)!='\"' || value.charAt(value.length()-1)!='\"') {
-                        System.err.println("Invalid "+schema.attributes.get(i).type+": "+value+" missing encapsulating double quotes");
-                        return new ArrayList<>();
+                        throw new ClassCastException("Invalid " + attr.type + ": `" + value +
+                                "` missing encapsulating double quotes");
                     }
                     value = value.substring(1, value.length()-1);       // string has quotes, so it's valid. remove quotes to get the inner string
-                    if (value.length()>schema.attributes.get(i).length){
-                        System.err.println(schema.attributes.get(i).type+" \""+value+"\" exceeds maximum length "+schema.attributes.get(i).length);
-                        return new ArrayList<>();
+                    if (value.length() > attr.length){
+                        throw new ClassCastException(attr.type + " `" + value +
+                                "` exceeds maximum length " + attr.length);
                     }
                     data.add(value);
                 }
                 case DOUBLE -> {
-                    String value = row.get(i).toString();
                     try {
                         if (value.charAt(0)=='\"' || value.charAt(value.length()-1)=='\"') {    // avoid parseDouble from incorrectly accepting "47.59"
-                            throw new NumberFormatException();
+                            throw new ClassCastException("Invalid DOUBLE `" + value + "`: value is a string.");
                         }
                         data.add(Double.parseDouble(value));
                     } catch (NumberFormatException e) {
-                        System.err.println("Invalid DOUBLE: "+value+" not a double");
-                        return new ArrayList<>();
+                        throw new ClassCastException("Invalid DOUBLE: " + value + " not a double");
                     }
                 }
                 case BOOLEAN -> {
-                    String value = row.get(i).toString();
                     if (value.charAt(0)=='\"' || value.charAt(value.length()-1)=='\"') {        // avoid parseBoolean from incorrectly accepting "true"
-                        System.err.println("Invalid BOOLEAN: "+value+" is not a boolean");
-                        return new ArrayList<>();
+                        throw new ClassCastException("Invalid BOOLEAN: `" + value + "` is not a boolean");
                     }
                     data.add(Boolean.parseBoolean(value));
                 }
             }
         }
-        return data;
+        return new Record(data);
     }
 
     /**
@@ -276,7 +281,7 @@ public class DatabaseEngine {
         for (int col = 0; col < numCols; col++) {
             for (int row = 0; row < rows.length; row++) {
                 if (col < rows[row].length) {
-                    String str = rows[row][col].toString();
+                    String str = (rows[row][col] == null) ? "null" : rows[row][col].toString();
                     dataStrings[row][col] = str;
                     colWidths[col] = Math.max(colWidths[col], str.length());
                 } else {

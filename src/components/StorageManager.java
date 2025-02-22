@@ -44,7 +44,7 @@ public class StorageManager {
      */
     private void loadTable(String tableName) throws IOException {
         TableSchema tschema = catalog.getTableSchema(tableName);
-        ArrayList<Page> pageList = ParseDataFile(catalog.tableFile(tableName), tschema);
+        ArrayList<Page> pageList = ParseDataFile(catalog.getTableFile(tableName), tschema);
         if (!buffer.containsKey(tableName)) {
             buffer.put(tableName, pageList);
         }
@@ -112,7 +112,7 @@ public class StorageManager {
     public ArrayList<Record> getAllInTable(String tableName) {
         getPageList(tableName);
         if (buffer.get(tableName) == null) {
-            System.err.println("Table `" + tableName + "` not found");
+            System.err.println("Table `" + tableName + "` does not exist.");
             return null;
         }
         ArrayList<Record> records = new ArrayList<>();
@@ -126,47 +126,31 @@ public class StorageManager {
         }
 
     /**
-     * Inserts a list of records into a given table
+     * Inserts a record into a given table
      * @param tableName The name of the table to insert the records into
-     * @param values The list of records to insert
+     * @param record The record to insert
      */
-    public void insertRecord(String tableName, ArrayList<ArrayList<Object>> values){
-        //Step 1: get the pages for that table
+    public void insertRecord(String tableName, Record record) {
+        // Get the pages for that table
         ArrayList<Page> pages = getPageList(tableName);
-
+        TableSchema tschema = catalog.getTableSchema(tableName);
+        if (tschema == null) {
+            throw new IllegalArgumentException("Table `" + tableName + "` does not exist.");
+        }
+        // If table is empty, insert a new page
         if (pages.isEmpty()) {
-            pages.add(new Page(1, catalog.getTableSchema(tableName), this.pageSize));
+            pages.add(new Page(1, tschema, this.pageSize));
         }
-
-        //Step 2: loop through the table's pages, and try to insert at each one.
-        int valuesIndex = 0;
-        boolean ranThroughOnce = false;
-        Page prevPage = null;
-        while (valuesIndex != values.size()) {
-            //this top branch runs if all the pages are full but there are still records to be inserted
-            if (ranThroughOnce) {
-                Page split = prevPage.split();
-                pages.add(split);
-            }
-            ranThroughOnce = true;
-            //loops through the table's pages and tries to insert at each one, one by one
-
-            for (Page p : pages) {
-                prevPage = p;
-                for (int i = valuesIndex; i < values.size(); ++i) {
-                    if (!p.insertRecord(new Record(values.get(i)))) {
-                        break;
-                    }
-                    ++valuesIndex;
-                }
+        // Attempt to insert the record into each page
+        for (Page p : pages) {
+            if (p.insertRecord(record)) {
+                return;
             }
         }
-        try {
-            save();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
+        // If that did not work, split the first page and try again
+        Page split = pages.getLast().split();
+        pages.add(split);
+        save();
     }
 
     public boolean deleteByPrimaryKey(String tableName, String key){
@@ -403,23 +387,39 @@ public class StorageManager {
             System.err.println("ERROR: Failed to save catalog to disk: " + e.getMessage());
         }
         for (String tableName : buffer.keySet()) {
-            ArrayList<Page> pages = buffer.get(tableName);
-            File tableFile = new File(catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
-            try (FileOutputStream fs = new FileOutputStream(tableFile)) {
-                try (DataOutputStream dis = new DataOutputStream(fs)) {
-                    // First value of file is the # of pages
-                    dis.writeInt(pages.size());
-                    // Write each page
-                    for (Page page : pages) {
-                        dis.write(page.encodePage());
-                    }
-                } catch (Exception e) {
-                    System.out.println("Error while reading in pages: " + e.getMessage());
+            if (!save(tableName)) {  // Try saving each table to file
+                return false;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Writes the buffer for a particular table to file
+     * @return `true` if this operation succeeded; `false` if there was an error
+     */
+    public boolean save(String tableName) {
+        ArrayList<Page> pages = buffer.get(tableName);
+        if (pages == null) {
+            System.err.println("Table " + tableName + " does not exist");
+            return false;
+        }
+        File tableFile = catalog.getTableFile(tableName);
+        try (FileOutputStream fs = new FileOutputStream(tableFile)) {
+            try (DataOutputStream dis = new DataOutputStream(fs)) {
+                // First value of file is the # of pages
+                dis.writeInt(pages.size());
+                // Write each page
+                for (Page page : pages) {
+                    dis.write(page.encodePage());
                 }
+            } catch (Exception e) {
+                System.out.println("Error while reading in pages: " + e.getMessage());
+                return false;
             }
-            catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+        }
+        catch (Exception e) {
+            throw new RuntimeException(e);
         }
         return false;
     }
