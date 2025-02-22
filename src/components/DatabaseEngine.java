@@ -115,6 +115,7 @@ public class DatabaseEngine {
         //TODO: (IN PHASE 2) this only implements select * from a single table
 
         ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));    // select * from table
+        if (records == null) { return; }  // If table does not exist, cancel
         TableSchema schema = storageManager.getTableSchema(tables.get(0));
         Object[][] objects = new Object[records.size()][schema.attributes.size()];
         for (int i = 0; i < records.size(); i++) {
