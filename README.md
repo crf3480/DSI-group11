@@ -10,6 +10,7 @@ Team Members
 
 To run:
 java src.Main \<database path> \<page size> \<buffer size>
+
 ex: java src.Main test_databases/test1 50 5
 
 Project Structure:
