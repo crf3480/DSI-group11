@@ -2,7 +2,6 @@ import components.DatabaseEngine;
 import components.StorageManager;
 import parsers.DDL;
 import parsers.DML;
-
 import java.io.*;
 import java.util.*;
 
@@ -51,40 +50,21 @@ public class Main {
             System.out.print("Input ('<quit>' to quit): ");
             for (ArrayList<String> statement : getQuery(br)) {
                 //System.out.println(statement);  // Check that `getQuery()` is parsing command correctly
-                output = null;
                 switch (statement.getFirst()) {
-                    case "<quit>":
+                    case "<quit>"-> {
                         storageManager.save();
                         return;
+                    }
                     // DDL commands
-                    case "alter":
-                        System.out.println("alter");
-                        output = ddl.alter(statement);
-                        break;
-                    case "create":
-                        output = ddl.create(statement);
-                        break;
-                    case "drop":
-                        output = ddl.drop(statement);
-                        break;
+                    case "alter" -> ddl.alter(statement);
+                    case "create" -> ddl.create(statement);
+                    case "drop" -> ddl.drop(statement);
                     // DML commands
-                    case "display":
-                        output = dml.display(statement);
-                        break;
-                    case "insert":
-                        output = dml.insert(statement);
-                        break;
-                    case "select":
-                        output = dml.select(statement);
-                        break;
-                    case "test":
-                        output = dml.test(statement);
-                        break;
-                    default:
-                        System.err.println("Invalid command: `" + statement.getFirst() + "`");
-                }
-                if (output != null) {
-                    System.out.println(output);
+                    case "display" -> dml.display(statement);
+                    case "insert" -> dml.insert(statement);
+                    case "select" ->  dml.select(statement);
+                    case "test" -> dml.test(statement);
+                    default ->  System.err.println("Invalid command: `" + statement.getFirst() + "`");
                 }
             }
         }

@@ -1,6 +1,7 @@
 package components;
 import tableData.Attribute;
 import tableData.AttributeType;
+import tableData.Record;
 import tableData.TableSchema;
 import utils.TestData;
 
@@ -104,15 +105,15 @@ public class DatabaseEngine {
         storageManager.addAttribute(tableName, attribute);
     }
 
-<<<<<<< Updated upstream
-=======
     public void selectRecords(ArrayList<String> columns, ArrayList<String> tables, ArrayList<String> where) {
-        ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));
-        
+        //TODO: (IN PHASE 2) this only implements select * from a single table
 
-
+        ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));    // select * from table
+        System.out.println(records.get(0));
+        for (Record record : records) {
+            System.out.println(record.toString());
+        }
     }
->>>>>>> Stashed changes
 
     /**
      * Parses the insert logic for an arbitrary number of records. Input is valid, this checks for data correctness
