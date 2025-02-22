@@ -8,10 +8,13 @@ Team Members
 - Aayan Sayed
 - Roshan Nunna
 
-To run:
-java src.Main \<database path> \<page size> \<buffer size>
+To compile: take the src folder, paste it into your desired directory, and in the ROOT of your directory (i.e. OUTSIDE OF THE SRC FOLDER), do the following cmd:
+```javac **/**/*.java```
 
-ex: java src.Main test_databases/test1 50 5
+To run, go **INTO THE SRC FOLDER** and do the following:
+```java Main database page_size buffer_size```
+
+ex: java Main test1 50 5
 
 Project Structure:
 - parsers: DML and DDL take in commands, and format them to send to the Database Engine
