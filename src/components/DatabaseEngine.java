@@ -70,8 +70,13 @@ public class DatabaseEngine {
      * @param tableName The name of the table
      */
     public void deleteTable(String tableName) {
-        System.out.println("Deleting table " + tableName);
-        storageManager.deleteTable(tableName);
+        try {
+            if (!storageManager.deleteTable(tableName)) {
+                System.err.println("Table `" + tableName + "` does not exist.");
+            }
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
     }
 
     /**

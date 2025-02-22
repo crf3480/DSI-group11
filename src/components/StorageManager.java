@@ -226,10 +226,23 @@ public class StorageManager {
         }
     }
 
-    public void deleteTable(String tableName) {
-        this.catalog.removeTableSchema(tableName);
-        File dataFile = new File(this.catalog.getFilePath() + File.separator + tableName + ".bin");
-        dataFile.delete();
+    /**
+     * Removes a table from the database
+     * @param tableName The name of the table to drop
+     * @return `true` if the table exists and was deleted
+     */
+    public boolean deleteTable(String tableName) throws IOException {
+        if (catalog.getTableSchema(tableName) == null) { return false; }
+        File dataFile = new File(this.catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
+        try {
+            if (!dataFile.delete()) { return false; }
+            catalog.save();
+        } catch (IOException e) {
+            throw new IOException("Encountered an error while deleting table file:" + e.getMessage());
+        }
+        catalog.removeTableSchema(tableName);
+        buffer.remove(tableName);
+        return true;
     }
 
     public boolean addAttribute(String tableName, Attribute newAttribute) {
