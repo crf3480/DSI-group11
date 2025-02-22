@@ -2,7 +2,6 @@ package components;
 
 import tableData.*;
 import tableData.Record;
-
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
