@@ -148,6 +148,12 @@ public class StorageManager {
             }
         }
         // If that did not work, split the first page and try again
+        // Increment page numbers before the split
+        for (Page p : pages) {
+            if (p.pageNumber > pages.getLast().pageNumber + 1){
+                p.pageNumber++;
+            }
+        }
         Page split = pages.getLast().split();
         pages.add(split);
         save();

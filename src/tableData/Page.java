@@ -232,7 +232,7 @@ public class Page {
             splitRecords.add(records.removeLast());
             newSize += splitRecordSize;
         }
-        // TODO: When you need to split update all the page numbers higher than page + 1 before calling split
+
         return new Page(pageNumber + 1, splitRecords, pageSize, tableSchema);
     }
 
