@@ -200,6 +200,8 @@ public class StorageManager {
     }
 
     public void createTable(String tableName, ArrayList<Attribute> values) throws IOException {
+        catalog.addTableSchema(new TableSchema(tableName, values));
+        buffer.put(tableName, new ArrayList<>());
         File tableFile = new File(catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
         if (tableFile.exists()) {
             throw new RuntimeException("File already exists for table `" + tableName + "` at `" + tableFile.getAbsolutePath() + "`");
@@ -214,8 +216,6 @@ public class StorageManager {
         } catch (Exception e) {
             throw new IOException("Encountered an error while creating table file:" + e.getMessage());
         }
-        catalog.addTableSchema(new TableSchema(tableName, values));
-        buffer.put(tableName, new ArrayList<>());
     }
 
     public void deleteTable(String tableName) {
@@ -319,6 +319,9 @@ public class StorageManager {
                 return;
             }
             displayTable(table);
+        }
+        if (catalog.getTableNames().isEmpty()) {
+            System.out.println("<None>");
         }
     }
 

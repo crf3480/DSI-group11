@@ -87,7 +87,6 @@ public class DDL {
      * @return The output of the command. `null` if command produces no output
      */
     public String create(ArrayList<String> inputList) {
-        System.out.println(inputList);
         // Soft validate input format
         if (inputList.size() < 4){
             System.err.println("Insufficient parameters for `create table` statement");

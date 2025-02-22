@@ -65,7 +65,6 @@ public class DatabaseEngine {
         }
     }
 
-
     /**
      * deletes a table
      * @param tableName The name of the table
@@ -74,8 +73,6 @@ public class DatabaseEngine {
         System.out.println("Deleting table " + tableName);
         storageManager.deleteTable(tableName);
     }
-
-
 
     /**
      * Displays information about a table
