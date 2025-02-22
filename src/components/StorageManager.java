@@ -132,8 +132,8 @@ public class StorageManager {
         for (Page p : pageManager) {
             for (Record r : p.getRecords()) {
                 if (r.rowData.get(primIndex).equals(key)) {
+                    r.rowData.remove(primIndex);
                     //Need to actually delete the record
-
                 }
             }
         }
