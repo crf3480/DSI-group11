@@ -375,18 +375,20 @@ public class StorageManager {
         System.out.println("Database location: " + catalog.getFilePath().getAbsolutePath());
         System.out.println("Page size: " + pageSize);
         System.out.println("Buffer size: " + bufferSize);
-        System.out.println("\nTables:\n");
-        for(String table : catalog.getTableNames()) {
-            try {
-                loadTable(table);
-            } catch (IOException e) {
-                System.err.println("Failed to load table `" + table + "`");
-                return;
-            }
-            displayTable(table);
-        }
         if (catalog.getTableNames().isEmpty()) {
             System.out.println("No Tables to Display");
+        }
+        else{
+            System.out.println("\nTables:\n");
+            for(String table : catalog.getTableNames()) {
+                try {
+                    loadTable(table);
+                } catch (IOException e) {
+                    System.err.println("Failed to load table `" + table + "`");
+                    return;
+                }
+                displayTable(table);
+            }
         }
     }
 
