@@ -1,7 +1,6 @@
 package parsers;
 
 import components.DatabaseEngine;
-import components.PageFileManager;
 import tableData.Page;
 import tableData.Record;
 import tableData.TableSchema;
