@@ -27,7 +27,7 @@ public class TableSchema {
                 }
             }
         }
-        if (primaryKey == null) { throw new IllegalArgumentException("Table `" + name + "` has no primary key"); }
+        if (primaryKey == null) { throw new IllegalArgumentException("No primary key defined"); }
     }
 
     /**
