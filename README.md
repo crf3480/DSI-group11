@@ -1,7 +1,6 @@
-WOO README!
-
-Team Members
-
+CSCI-421: Database System Implementation
+-
+Group 11
 - Cameron Fanning
 - D. William Campman
 - Greg Lynskey
