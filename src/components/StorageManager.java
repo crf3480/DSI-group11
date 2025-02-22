@@ -131,6 +131,11 @@ public class StorageManager {
     public void insertRecord(String tableName, ArrayList<ArrayList<Object>> values){
         //Step 1: get the pages for that table
         ArrayList<Page> pages = getPageList(tableName);
+
+        if (pages.isEmpty()) {
+            pages.add(new Page(1, catalog.getTableSchema(tableName), this.pageSize));
+        }
+
         //Step 2: loop through the table's pages, and try to insert at each one.
         int valuesIndex = 0;
         boolean ranThroughOnce = false;
@@ -138,15 +143,12 @@ public class StorageManager {
         while (valuesIndex != values.size()) {
             //this top branch runs if all the pages are full but there are still records to be inserted
             if (ranThroughOnce) {
-                //splitting shit
                 Page split = prevPage.split();
                 pages.add(split);
             }
             ranThroughOnce = true;
             //loops through the table's pages and tries to insert at each one, one by one
-            if (pages.size() == 0) {
-                pages.add(new Page(1, catalog.getTableSchema(tableName), this.pageSize));
-            }
+
             for (Page p : pages) {
                 prevPage = p;
                 for (int i = valuesIndex; i < values.size(); ++i) {
@@ -157,6 +159,12 @@ public class StorageManager {
                 }
             }
         }
+        try {
+            save();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     public boolean deleteByPrimaryKey(String tableName, String key){
