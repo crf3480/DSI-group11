@@ -27,19 +27,16 @@ public class DML extends GeneralParser {
     /**
      * Performs a display table command
      * @param inputList The list of tokens representing the user's input
-     * @return The output of the command. `null` if command produces no output
      */
-    public String display(ArrayList<String> inputList) {
+    public void display(ArrayList<String> inputList) {
         engine.displayTable("");
-        return null;
     }
 
     /**
      * Performs a insert table command
      * @param inputList The list of tokens representing the user's input
-     * @return The output of the command. `null` if command produces no output
      */
-    public String insert(ArrayList<String> inputList) {
+    public void insert(ArrayList<String> inputList) {
         if (inputList.size() < 7 ||                 // minimum input will have 7 items: insert into <table> values ( <value1> )
             !inputList.get(1).equals("into") ||     // insert requires three keywords (insert (found in Main)
             !inputList.get(3).equals("values") ||   // into, values and both paretheses) to be a valid statement
@@ -47,13 +44,13 @@ public class DML extends GeneralParser {
             !inputList.getLast().equals(")"))
         {
             System.err.println("Invalid insert statement: " + listString(inputList));
-            return null;
+            return;
         }
         else {  // input is also invalid if there aren't commas between multiple records
             for (int i = 0; i < inputList.size(); i++) {
                 if (inputList.get(i).equals(")") && (i!=inputList.size()-1 && !inputList.get(i+1).equals(","))) {
                     System.err.println("Invalid insert statement: " + listString(inputList));
-                    return null;
+                    return;
                 }
             }
         }
@@ -67,7 +64,6 @@ public class DML extends GeneralParser {
         }
 
         engine.insert(tableName, values);
-        return null;
     }
 
     /**
@@ -75,8 +71,8 @@ public class DML extends GeneralParser {
      * @param inputList The list of tokens representing the user's input
      * @return The output of the command. `null` if command produces no output
      */
-    public String select(ArrayList<String> inputList) {
-        return tableToString(TestData.testData(5,10), TestData.testHeaders(5));
+    public void select(ArrayList<String> inputList) {
+
     }
 
     /**
@@ -84,7 +80,7 @@ public class DML extends GeneralParser {
      * @param inputList The list of tokens representing the user's input
      * @return The output of the command. `null` if command produces no output
      */
-    public String test(ArrayList<String> inputList) {
+    public void test(ArrayList<String> inputList) {
         ArrayList<Record> records = new ArrayList<>();
         int pageSize = 2000;
         TableSchema ts = TestData.permaTable();
@@ -98,7 +94,6 @@ public class DML extends GeneralParser {
         } catch (Exception e) {
             System.out.println("Test: " + e);
         }
-        return null;
     }
 
     private String listString(ArrayList<String> inputList) {
