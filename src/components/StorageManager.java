@@ -157,12 +157,28 @@ public class StorageManager {
                 }
             }
         }
-
-
         return false;
     }
 
-    public boolean updateByPrimaryKey(int id){
+    public boolean updateByPrimaryKey(String tableName, String key, Record record){
+        ArrayList<Page> pageManager = getPageFileManager(tableName);
+        TableSchema tschema = catalog.getTableSchema(tableName);
+        //finding the attribute index with the primary key
+        int primIndex = 0;
+        for (Attribute a : tschema.attributes) {
+            if (a.primaryKey) {
+                break;
+            }
+            primIndex++;
+        }
+        for (Page p : pageManager) {
+            for (Record r : p.getRecords()) {
+                if (r.rowData.get(primIndex).equals(key)) {
+                    r.rowData.remove(primIndex);
+                    r.rowData.add(primIndex, record);
+                }
+            }
+        }
         return false;
     }
 
