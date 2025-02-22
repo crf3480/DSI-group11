@@ -342,7 +342,7 @@ public class StorageManager {
             displayTable(table);
         }
         if (catalog.getTableNames().isEmpty()) {
-            System.out.println("<None>");
+            System.out.println("No Tables to Display");
         }
     }
 

@@ -48,7 +48,7 @@ public class DML extends GeneralParser {
     }
 
     /**
-     * Performs a insert table command
+     * Performs an insert table command
      * @param inputList The list of tokens representing the user's input
      * @return The output of the command. `null` if command produces no output
      */
