@@ -1,6 +1,7 @@
 package components;
 import tableData.Attribute;
 import tableData.AttributeType;
+import tableData.Record;
 import tableData.TableSchema;
 import utils.TestData;
 
@@ -105,6 +106,10 @@ public class DatabaseEngine {
     }
 
     public void selectRecords(ArrayList<String> columns, ArrayList<String> tables, ArrayList<String> where) {
+        ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));
+
+        System.out.println(records);
+
 
     }
 
