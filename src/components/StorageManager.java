@@ -194,7 +194,17 @@ public class StorageManager {
     }
 
     public boolean addAttribute(String tableName, Attribute newAttribute) {
-        return false;
+        ArrayList<Page> pageList = getPageList(tableName);
+        if (!buffer.containsKey(tableName)) {
+            System.err.println("Table " + tableName + " does not exist");
+            return false;
+        }
+        TableSchema schema = catalog.getTableSchema(tableName);
+        schema.attributes.add(newAttribute);
+        for (Page p : pageList) {
+            p.updateSchema(schema);
+        }
+        return true;
     }
 
     /**
@@ -220,7 +230,7 @@ public class StorageManager {
         for (Page p : pageList) {
             p.updateSchema(schema);
         }
-        return false;
+        return true;
     }
 
     public void displayTable(String tableName){
