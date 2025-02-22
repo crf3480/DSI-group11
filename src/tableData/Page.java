@@ -232,6 +232,7 @@ public class Page {
             splitRecords.add(records.removeLast());
             newSize += splitRecordSize;
         }
+        // TODO: Next phase change this logic to update all pages if there is a page after
         return new Page(pageNumber + 1, splitRecords, pageSize, tableSchema);
     }
 
