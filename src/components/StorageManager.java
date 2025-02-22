@@ -200,22 +200,26 @@ public class StorageManager {
     }
 
     public void createTable(String tableName, ArrayList<Attribute> values) throws IOException {
-        File tableFile = new File(catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
-        if (tableFile.exists()) {
-            throw new RuntimeException("File already exists for table `" + tableName + "` at `" + tableFile.getAbsolutePath() + "`");
-        }
-        tableFile.createNewFile();
-        try (FileOutputStream fs = new FileOutputStream(tableFile)) {
-            try (DataOutputStream out = new DataOutputStream(fs)) {
-                out.writeInt(0); // Initial page count is zero
+        if (catalog.addTableSchema(new TableSchema(tableName, values))) {
+            buffer.put(tableName, new ArrayList<>());
+            File tableFile = new File(catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
+            if (tableFile.exists()) {
+                throw new RuntimeException("File already exists for table `" + tableName + "` at `" + tableFile.getAbsolutePath() + "`");
+            }
+            tableFile.createNewFile();
+            try (FileOutputStream fs = new FileOutputStream(tableFile)) {
+                try (DataOutputStream out = new DataOutputStream(fs)) {
+                    out.writeInt(0); // Initial page count is zero
+                } catch (Exception e) {
+                    throw new IOException("Encountered an error while creating table file:" + e.getMessage());
+                }
             } catch (Exception e) {
                 throw new IOException("Encountered an error while creating table file:" + e.getMessage());
             }
-        } catch (Exception e) {
-            throw new IOException("Encountered an error while creating table file:" + e.getMessage());
         }
-        catalog.addTableSchema(new TableSchema(tableName, values));
-        buffer.put(tableName, new ArrayList<>());
+        else {
+            System.err.println("Table " + tableName + " already exists.");
+        }
     }
 
     public void deleteTable(String tableName) {
