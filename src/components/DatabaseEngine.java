@@ -108,7 +108,7 @@ public class DatabaseEngine {
         //TODO: (IN PHASE 2) this only implements select * from a single table
 
         ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));    // select * from table
-        System.out.println(records.get(0));
+        System.out.println(storageManager.catalog.getTableSchema(tables.get(0)));
         for (Record record : records) {
             System.out.println(record.toString());
         }

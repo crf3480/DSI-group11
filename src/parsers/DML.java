@@ -1,10 +1,8 @@
 package parsers;
-
 import components.DatabaseEngine;
 import tableData.*;
 import tableData.Record;
 import utils.TestData;
-
 import java.io.IOException;
 import java.util.ArrayList;
 
