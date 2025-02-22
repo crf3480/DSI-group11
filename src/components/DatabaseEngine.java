@@ -156,10 +156,6 @@ public class DatabaseEngine {
      */
     public void insert(String tableName, ArrayList<String> values) {
         TableSchema schema = storageManager.getTableSchema(tableName);
-        //checking to make sure that it's not too many attributes being inserted
-        if (values.size() > schema.attributes.size()) {
-            System.err.println("Too many attributes");
-        }
         //schema = TestData.permaTable();        //TODO: testing set. delete when complete
         if (schema == null){
             System.err.println("Table " + tableName + " does not exist");
@@ -170,13 +166,14 @@ public class DatabaseEngine {
         ArrayList<Object> currentRow = new ArrayList<>();
         for (int i = 0; i <= values.size(); i++) {
             if (i == values.size() || values.get(i).equals(",")) { // every comma denotes a new record, insert record after comma or end of input
-                currentRow = parseData(schema, currentRow);
                 if(currentRow.size()==schema.attributes.size()){    // row size is only equal to attributes schema if valid
                     //System.out.println("Inserting row " + currentRow.toString());
+                    currentRow = parseData(schema, currentRow);
                     data.add(currentRow);                           // append to new data and reset currentRow
                     currentRow = new ArrayList<>();
                 }
                 else{
+                    System.err.println("Record "+currentRow.toString()+" of size "+ currentRow.size()+" is too "+(currentRow.size()>schema.attributes.size() ? "large" : "small")+" for schema "+tableName+" with "+schema.attributes.size()+" attributes");
                     break;
                 }
             }
@@ -198,8 +195,6 @@ public class DatabaseEngine {
     private ArrayList<Object> parseData(TableSchema schema, ArrayList<Object> row) {
         ArrayList<Object> data = new ArrayList<>();
 
-        //System.out.println(row);
-        //System.out.println(schema.toString());
         for (int i = 0; i < schema.attributes.size(); i++) {
             switch (schema.attributes.get(i).type){
                 case INT -> {
