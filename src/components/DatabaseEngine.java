@@ -149,7 +149,10 @@ public class DatabaseEngine {
      */
     public void insert(String tableName, ArrayList<String> values) {
         TableSchema schema = storageManager.getTableSchema(tableName);
-
+        //checking to make sure that it's not too many attributes being inserted
+        if (values.size() > schema.attributes.size()) {
+            System.err.println("Too many attributes");
+        }
         //schema = TestData.permaTable();        //TODO: testing set. delete when complete
         if (schema == null){
             System.err.println("Table " + tableName + " does not exist");
