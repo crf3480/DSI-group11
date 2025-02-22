@@ -22,6 +22,25 @@ public class Record {
         this.rowData = new ArrayList<>();
     }
 
+    /**
+     * Returns the object stored in this record at a given row
+     * @param index The index of the attribute to fetch
+     * @return The object stored at that index
+     */
+    public Object get(int index) {
+        return rowData.get(index);
+    }
+
+    /**
+     * Updates the value of an attribute at a given index
+     * @param index The index of the attribute to replace
+     * @param value The value to replace the specified index with
+     * @return The value previously stored at that index
+     */
+    public Object update(int index, Object value) {
+        return rowData.set(index, value);
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();

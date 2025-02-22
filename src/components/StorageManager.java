@@ -40,11 +40,11 @@ public class StorageManager {
     /**
      * Loads a table into the buffer
      * @param tableName The name of the table
-     * @throws IOException
+     * @throws IOException An error was encountered when parsing the data file
      */
     private void loadTable(String tableName) throws IOException {
         TableSchema tschema = catalog.getTableSchema(tableName);
-        ArrayList<Page> pageList = ParseDataFile(catalog.getFilePath().getParent() + File.separator + tableName + ".bin", tschema);
+        ArrayList<Page> pageList = ParseDataFile(catalog.tableFile(tableName), tschema);
         buffer.put(tableName, pageList);
     }
 
@@ -54,16 +54,17 @@ public class StorageManager {
      * @return An ArrayList of every Page in that table. If table does not exist, `null`
      */
     public ArrayList<Page> getPageList(String tableName) {
-        ArrayList<Page> pageManager = buffer.get(tableName);
-        if (pageManager == null) {
-            try {
-                loadTable(tableName);
-            } catch (IOException e) {
-                System.err.println("Table not found: `" + tableName + "`");
-                return null;
-            }
-        }
-        return pageManager;
+        //This might be useful in the future, but right now the buffer always contains the list of pages
+//        ArrayList<Page> pageManager = buffer.get(tableName);
+//        if (pageManager == null) {
+//            try {
+//                loadTable(tableName);
+//            } catch (IOException e) {
+//                System.err.println("Table not found: `" + tableName + "`");
+//                return null;
+//            }
+//        }
+        return buffer.get(tableName);
     }
 
     /**
@@ -86,7 +87,7 @@ public class StorageManager {
         //looping through pages and records to find The One
         for (Page p : pageManager) {
             for (Record r : p.getRecords()) {
-                if (r.rowData.get(primIndex).equals(key)) {
+                if (r.get(primIndex).equals(key)) {
                     return r;
                 }
             }
@@ -123,9 +124,9 @@ public class StorageManager {
         }
 
     /**
-     * Inserts a record into a given table
-     * @param tableName
-     * @param values
+     * Inserts a list of records into a given table
+     * @param tableName The name of the table to insert the records into
+     * @param values The list of records to insert
      */
     public void insertRecord(String tableName, ArrayList<ArrayList<Object>> values){
         //Step 1: get the pages for that table
@@ -171,8 +172,8 @@ public class StorageManager {
         }
         for (Page p : pageManager) {
             for (Record r : p.getRecords()) {
-                if (r.rowData.get(primIndex).equals(key)) {
-                    r.rowData.remove(primIndex);
+                if (r.get(primIndex).equals(key)) {
+                    r.rowData.remove(primIndex);  // <-- What's the reason to do this?
                     //Need to actually delete the record
                 }
             }
@@ -193,23 +194,27 @@ public class StorageManager {
         }
         for (Page p : pageManager) {
             for (Record r : p.getRecords()) {
-                if (r.rowData.get(primIndex).equals(key)) {
-                    r.rowData.remove(primIndex);
-                    r.rowData.add(primIndex, record);
+                if (r.get(primIndex).equals(key)) {
+                    r.update(primIndex, record);
                 }
             }
         }
         return false;
     }
 
-    public void createTable(String tableName, ArrayList<Attribute> values) throws IOException {
-        if (catalog.addTableSchema(new TableSchema(tableName, values))) {
+    /**
+     * Creates a table with a given name in the catalog and creates a file for it
+     * @param tableName The name of the table
+     * @param attributes The list of attributes in each record of the table
+     * @throws IOException If an error is encountered when creating the table file
+     */
+    public void createTable(String tableName, ArrayList<Attribute> attributes) throws IOException {
+        if (catalog.addTableSchema(new TableSchema(tableName, attributes))) {
             buffer.put(tableName, new ArrayList<>());
             File tableFile = new File(catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
-            if (tableFile.exists()) {
+            if (!tableFile.createNewFile()) {
                 throw new RuntimeException("File already exists for table `" + tableName + "` at `" + tableFile.getAbsolutePath() + "`");
             }
-            tableFile.createNewFile();
             try (FileOutputStream fs = new FileOutputStream(tableFile)) {
                 try (DataOutputStream out = new DataOutputStream(fs)) {
                     out.writeInt(0); // Initial page count is zero
@@ -232,7 +237,9 @@ public class StorageManager {
      * @return `true` if the table exists and was deleted
      */
     public boolean deleteTable(String tableName) throws IOException {
-        if (catalog.getTableSchema(tableName) == null) { return false; }
+        if (catalog.getTableSchema(tableName) == null) {
+            System.err.println("Table `" + tableName + "` does not exist.");
+        }
         File dataFile = new File(this.catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
         try {
             if (!dataFile.delete()) { return false; }
@@ -245,13 +252,38 @@ public class StorageManager {
         return true;
     }
 
+    /**
+     * Adds a new attribute to every record in a table. An attribute cannot be added if:
+     * <ul>
+     *     <li>New attribute is a primary key</li>
+     *     <li>An attribute with that name already exists in the table</li>
+     *     <li>The attribute is `notNull` but has a null default value</li>
+     * </ul>
+     * @param tableName The name of the table to modify
+     * @param newAttribute The attribute to add
+     * @return `true` if the attribute was added to the table; `false` if there was an error
+     */
     public boolean addAttribute(String tableName, Attribute newAttribute) {
+        if (newAttribute.primaryKey) {
+            System.err.println("Cannot add primary key to an existing table.");
+            return false;
+        }
+        if (newAttribute.notNull && newAttribute.defaultValue == null) {
+            System.err.println("New attribute is `notnull`, but `null` is the default value.");
+            return false;
+        }
         ArrayList<Page> pageList = getPageList(tableName);
         if (!buffer.containsKey(tableName)) {
             System.err.println("Table " + tableName + " does not exist");
             return false;
         }
         TableSchema schema = catalog.getTableSchema(tableName);
+        for (Attribute a : schema.attributes) {
+            if (a.name.equals(newAttribute.name)) {
+                System.err.println("Table " + tableName + " already contains attribute `" + newAttribute.name + "`.");
+                return false;
+            }
+        }
         schema.attributes.add(newAttribute);
         for (Page p : pageList) {
             p.updateSchema(schema);
@@ -260,7 +292,7 @@ public class StorageManager {
     }
 
     /**
-     * Removes an attribute from a given table
+     * Removes an attribute from a given table, so long as the attribute is not the primary key
      * @param tableName The name of the table to remove the attribute from
      * @param attributeName The name of the attribute to remove. Should be
      * @return `true` if the attribute was successfully dropped; `false` if there was an error
@@ -275,10 +307,14 @@ public class StorageManager {
         ArrayList<Attribute> attributes = schema.attributes;
         int attrIndex = schema.getAttributeIndex(attributeName);
         if (attrIndex == -1) {
-            System.err.println("Table " + tableName + " has no attribute '" + attributeName + "'");
+            System.err.println("Cannot drop attribute `" + attributeName + "`: no such attribute.");
             return false;
         }
-        schema.attributes.remove(attrIndex);
+        if (attributes.get(attrIndex).primaryKey) {
+            System.err.println("Cannot drop attribute `" + attributeName + "`: key is primary key.");
+            return false;
+        }
+        attributes.remove(attrIndex);
         for (Page p : pageList) {
             p.updateSchema(schema);
         }
@@ -382,7 +418,13 @@ public class StorageManager {
         return false;
     }
 
-    private ArrayList<Page> ParseDataFile(String dataFile, TableSchema tableSchema){
+    /**
+     * Parses a table file into a sequence of pages using a given schema
+     * @param dataFile A File object pointing to the table's data file
+     * @param tableSchema The schema of the table data
+     * @return The list of Page objects that were stored in the table file
+     */
+    private ArrayList<Page> ParseDataFile(File dataFile, TableSchema tableSchema) throws IOException {
         ArrayList<Page> pages = new ArrayList<>();
         try (FileInputStream fs = new FileInputStream(dataFile)) {
             try (DataInputStream in = new DataInputStream(fs)) {
@@ -391,17 +433,23 @@ public class StorageManager {
                 //reading each page into the pages arraylist
                 byte[] pageBytes = new byte[pageSize];
                 for (int i = 0; i < numPages; ++i) {
-                    in.read(pageBytes);
+                    int bytesRead = in.read(pageBytes);
+                    if (bytesRead != pageSize) {
+                        throw new IOException("Encountered EOF while reading page " + i + "; expected "
+                                + pageSize + " but got " + bytesRead);
+                    }
                     Page pageToAdd = new Page(pageBytes, tableSchema);
                     pages.add(pageToAdd);
                 }
             } catch (Exception e) {
                 System.err.println("Error while reading table data file: " + e.getMessage());
             }
-
         }
         catch (FileNotFoundException e) {
-            throw new RuntimeException("Table file `" + dataFile + "` not found.");
+            throw new IOException("Table file `" + dataFile + "` not found.");
+        }
+        catch (IOException e) {
+            throw e;  // Propagate IO exceptions up
         }
         catch (Exception e) {
             throw new RuntimeException(e);

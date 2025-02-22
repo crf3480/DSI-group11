@@ -145,8 +145,21 @@ public class Catalog {
         outputStream.close();
     }
 
+    /**
+     * Returns a File object pointing to the catalog file
+     * @return A File object pointing to the catalog file
+     */
     public File getFilePath() {
         return catalogFile;
+    }
+
+    /**
+     * Returns a File object matching the path to the filename for a table with a given name
+     * @param tableName The name of the table
+     * @return The table's File object
+     */
+    public File tableFile(String tableName){
+        return new File(catalogFile.getParent() + File.separator + tableName + ".bin");
     }
 
     public String toString() {

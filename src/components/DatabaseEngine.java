@@ -134,7 +134,7 @@ public class DatabaseEngine {
             Object[][] objects = new Object[records.size()][schema.attributes.size()];
             for (int i = 0; i < records.size(); i++) {
                 for (int j = 0; j < schema.attributes.size(); j++) {
-                    objects[i][j] = records.get(i).rowData.get(j);
+                    objects[i][j] = records.get(i).get(j);
                 }
             }
             String[] headers = new String[schema.attributes.size()];
