@@ -61,7 +61,7 @@ public class DDL {
                 int hasDefaultVal = inputList.indexOf("default");
                 if (hasDefaultVal == -1) {
                     // No default so setting it to NULL
-                    engine.addAttribute(tableName, attributeName, attributeType, "null");
+                    engine.addAttribute(tableName, attributeName, attributeType, null);
                 } else {
                    //default value is set
                     String defaultVal = inputList.get(hasDefaultVal);
