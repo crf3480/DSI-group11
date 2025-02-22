@@ -104,8 +104,8 @@ public class StorageManager {
 
     /**
      * Inserts a record into a given table
-     * @param tableName
-     * @param values
+     * @param tableName the name of the table we're inserting into
+     * @param values arraylist of arraylists, each representing a record
      */
     public void insertRecord(String tableName, ArrayList<ArrayList<Object>> values){
         //Step 1: get the pages for that table

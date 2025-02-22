@@ -104,6 +104,9 @@ public class DatabaseEngine {
         storageManager.addAttribute(tableName, attribute);
     }
 
+    public void selectRecords(ArrayList<String> columns, ArrayList<String> tables, ArrayList<String> where) {
+
+    }
 
     public void insert(String tableName, ArrayList<String> values) {
         TableSchema schema = storageManager.getTableSchema(tableName);

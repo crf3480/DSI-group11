@@ -43,13 +43,13 @@ public class DML extends GeneralParser {
             !inputList.get(4).equals("(") ||
             !inputList.getLast().equals(")"))
         {
-            System.err.println("Invalid insert statement: " + listString(inputList));
+            System.err.println("Invalid insert statement: " + String.join(" ", inputList));
             return;
         }
         else {  // input is also invalid if there aren't commas between multiple records
             for (int i = 0; i < inputList.size(); i++) {
                 if (inputList.get(i).equals(")") && (i!=inputList.size()-1 && !inputList.get(i+1).equals(","))) {
-                    System.err.println("Invalid insert statement: " + listString(inputList));
+                    System.err.println("Invalid insert statement: " + String.join(" ", inputList));
                     return;
                 }
             }
@@ -72,7 +72,21 @@ public class DML extends GeneralParser {
      * @return The output of the command. `null` if command produces no output
      */
     public void select(ArrayList<String> inputList) {
-
+        if (!inputList.getFirst().equals("select") || !inputList.contains("from")) {
+            System.err.println("Invalid select statement: " + String.join(" ", inputList));
+            return;
+        }
+        ArrayList<String> columns = new ArrayList<>(inputList.subList(1, inputList.indexOf("from")));
+        if (columns.contains("*") && columns.size() > 1) {
+            System.err.println("Invalid select statement: " + String.join(" ", inputList));
+            return;
+        }
+        ArrayList<String> tables = new ArrayList<>(inputList.subList(inputList.indexOf("from") + 1, (inputList.contains("where") ? inputList.indexOf("where") : inputList.size())));
+        ArrayList<String> where = new ArrayList<>();
+        if (inputList.contains("where")) {
+            where.addAll(inputList.subList(inputList.indexOf("where")+1, inputList.size()));
+        }
+        engine.selectRecords(columns, tables, where);
     }
 
     /**
@@ -94,13 +108,5 @@ public class DML extends GeneralParser {
         } catch (Exception e) {
             System.out.println("Test: " + e);
         }
-    }
-
-    private String listString(ArrayList<String> inputList) {
-        String output = "";
-        for (String s : inputList) {
-            output += s+" ";
-        }
-        return output;
     }
 }
