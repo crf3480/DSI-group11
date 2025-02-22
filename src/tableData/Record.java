@@ -29,7 +29,7 @@ public class Record {
         for (Object o : rowData) {
             sb.append(o).append(", ");
         }
-        sb.append(" }");
+        sb.append("}");
 
         return sb.toString();
     }
