@@ -92,6 +92,10 @@ public class StorageManager {
     }
 
     public ArrayList<Record> getAllInTable(String tableName) {
+        if (buffer.get(tableName) == null) {
+            System.err.println("Table `" + tableName + "` not found");
+            return null;
+        }
         ArrayList<Record> records = new ArrayList<>();
         ArrayList<Page> pageManager = getPageList(tableName);
         for (Page p : pageManager) {
