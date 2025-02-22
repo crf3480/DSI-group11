@@ -45,7 +45,9 @@ public class StorageManager {
     private void loadTable(String tableName) throws IOException {
         TableSchema tschema = catalog.getTableSchema(tableName);
         ArrayList<Page> pageList = ParseDataFile(catalog.tableFile(tableName), tschema);
-        buffer.put(tableName, pageList);
+        if (!buffer.containsKey(tableName)) {
+            buffer.put(tableName, pageList);
+        }
     }
 
     /**
@@ -345,12 +347,6 @@ public class StorageManager {
             System.err.println("Table not found: `" + tableName + "`");
             return;
         }
-//        try {
-//            loadTable(tableName);  // Load table into memory
-//        } catch (IOException e) {
-//            System.err.println("Failed to load table `" + tableName + "`");
-//            return;
-//        }
         System.out.println("Table name: " + tableName);
         System.out.println("Table schema: ");
         System.out.println(schema);
@@ -375,18 +371,20 @@ public class StorageManager {
         System.out.println("Database location: " + catalog.getFilePath().getAbsolutePath());
         System.out.println("Page size: " + pageSize);
         System.out.println("Buffer size: " + bufferSize);
-        System.out.println("\nTables:\n");
-        for(String table : catalog.getTableNames()) {
-            try {
-                loadTable(table);
-            } catch (IOException e) {
-                System.err.println("Failed to load table `" + table + "`");
-                return;
-            }
-            displayTable(table);
-        }
         if (catalog.getTableNames().isEmpty()) {
             System.out.println("No Tables to Display");
+        }
+        else{
+            System.out.println("\nTables:\n");
+            for(String table : catalog.getTableNames()) {
+                try {
+                    loadTable(table);
+                } catch (IOException e) {
+                    System.err.println("Failed to load table `" + table + "`");
+                    return;
+                }
+                displayTable(table);
+            }
         }
     }
 
