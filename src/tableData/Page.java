@@ -19,6 +19,7 @@ public class Page {
     public int pageNumber;
     public ArrayList<Record> records;
 
+
     /**
      * Creates a page object from a Page data byte array
      * @param pageData The byte array of page data
@@ -231,7 +232,7 @@ public class Page {
             splitRecords.add(records.removeLast());
             newSize += splitRecordSize;
         }
-        return new Page(-1, splitRecords, pageSize, tableSchema);
+        return new Page(pageNumber + 1, splitRecords, pageSize, tableSchema);
     }
 
     /**

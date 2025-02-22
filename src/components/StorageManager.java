@@ -345,12 +345,12 @@ public class StorageManager {
             System.err.println("Table not found: `" + tableName + "`");
             return;
         }
-        try {
-            loadTable(tableName);  // Load table into memory
-        } catch (IOException e) {
-            System.err.println("Failed to load table `" + tableName + "`");
-            return;
-        }
+//        try {
+//            loadTable(tableName);  // Load table into memory
+//        } catch (IOException e) {
+//            System.err.println("Failed to load table `" + tableName + "`");
+//            return;
+//        }
         System.out.println("Table name: " + tableName);
         System.out.println("Table schema: ");
         System.out.println(schema);
