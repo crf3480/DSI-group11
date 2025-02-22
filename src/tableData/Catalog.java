@@ -96,12 +96,14 @@ public class Catalog {
         return true;
     }
 
+    /**
+     * Removes a table schema from the catalog
+     * @param tableName The name of the table to remove
+     * @return `true` if the table was removed from the schema; `false` if a table with that name did not exist
+     * in the catalog
+     */
     public boolean removeTableSchema(String tableName){
-        if (!tableSchemas.containsKey(tableName)) {
-            tableSchemas.remove(tableName);
-            return true;
-        }
-        return false;
+        return tableSchemas.remove(tableName) != null;
     }
 
     /**

@@ -236,12 +236,12 @@ public class StorageManager {
         File dataFile = new File(this.catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
         try {
             if (!dataFile.delete()) { return false; }
-            catalog.save();
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IOException("Encountered an error while deleting table file:" + e.getMessage());
         }
         catalog.removeTableSchema(tableName);
         buffer.remove(tableName);
+        catalog.save();
         return true;
     }
 
