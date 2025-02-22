@@ -104,6 +104,13 @@ public class DatabaseEngine {
         storageManager.addAttribute(tableName, attribute);
     }
 
+    /**
+     * SELECT name, salary FROM students, teachers WHERE salary = 1000
+     *
+     * @param columns   Everything between the SELECT and FROM in a select statement
+     * @param tables    Everything between the FROM and the WHERE in a select statement
+     * @param where     Everything after the WHERE in a select statement
+     */
     public void selectRecords(ArrayList<String> columns, ArrayList<String> tables, ArrayList<String> where) {
         //TODO: (IN PHASE 2) this only implements select * from a single table
 
