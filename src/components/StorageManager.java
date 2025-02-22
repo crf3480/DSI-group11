@@ -40,7 +40,7 @@ public class StorageManager {
      * @param tableName The name of the table
      * @return An ArrayList of every Page in that table
      */
-    public ArrayList<Page> getPageFileManager(String tableName) {
+    public ArrayList<Page> getPageList(String tableName) {
         ArrayList<Page> pageManager = buffer.get(tableName);
         TableSchema tschema = catalog.getTableSchema(tableName);
         if (pageManager == null) {
@@ -58,7 +58,7 @@ public class StorageManager {
      * @return record with matching key (or null if no matches)
      */
     public Record getByPrimaryKey(String tableName, String key)  {
-        ArrayList<Page> pageManager = getPageFileManager(tableName);
+        ArrayList<Page> pageManager = getPageList(tableName);
         TableSchema tschema = catalog.getTableSchema(tableName);
         //finding the attribute index with the primary key
         int primIndex = 0;
@@ -81,7 +81,7 @@ public class StorageManager {
 
     // Unsure about this one...
     public Page pageByTableAndPageNum(String tableName, int pageNum){
-        ArrayList<Page> pageManager = getPageFileManager(tableName);
+        ArrayList<Page> pageManager = getPageList(tableName);
         for (Page p : pageManager) {
             if (p.pageNumber == pageNum) {
                 return p;
@@ -93,7 +93,7 @@ public class StorageManager {
 
     public ArrayList<Record> getAllInTable(String tableName) {
         ArrayList<Record> records = new ArrayList<>();
-        ArrayList<Page> pageManager = getPageFileManager(tableName);
+        ArrayList<Page> pageManager = getPageList(tableName);
         for (Page p : pageManager) {
             for (Record r : p.getRecords()) {
                     records.add(r);
@@ -109,7 +109,7 @@ public class StorageManager {
      */
     public void insertRecord(String tableName, ArrayList<ArrayList<Object>> values){
         //Step 1: get the pages for that table
-        ArrayList<Page> pages = getPageFileManager(tableName);
+        ArrayList<Page> pages = getPageList(tableName);
         //Step 2: loop through the table's pages, and try to insert at each one.
         int valuesIndex = 0;
         boolean ranThroughOnce = false;
@@ -139,7 +139,7 @@ public class StorageManager {
     }
 
     public boolean deleteByPrimaryKey(String tableName, String key){
-        ArrayList<Page> pageManager = getPageFileManager(tableName);
+        ArrayList<Page> pageManager = getPageList(tableName);
         TableSchema tschema = catalog.getTableSchema(tableName);
         //finding the attribute index with the primary key
         int primIndex = 0;
