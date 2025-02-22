@@ -2,12 +2,15 @@ package components;
 
 import tableData.*;
 import tableData.Record;
-import utils.TestData;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+/**
+ * StorageManager.java
+ * Manages fetching and saving pages to file
+ */
 public class StorageManager {
 
     int bufferSize;
@@ -16,6 +19,14 @@ public class StorageManager {
 
     int pageSize;
 
+    /**
+     * Creates a StorageManager object
+     * @param databaseDir A File object pointing to the directory where the database files are stored
+     * @param pageSize The page size used. If a catalog already exists, the page size of that catalog
+     *                 will be used instead
+     * @param bufferSize The size of the page buffer
+     * @throws IOException If there are problems accessing or modifying the catalog and table files
+     */
     public StorageManager(File databaseDir, int pageSize, int bufferSize) throws IOException {
         this.bufferSize = bufferSize;
         buffer = new HashMap<>();
@@ -24,6 +35,11 @@ public class StorageManager {
         this.pageSize = pageSize;
     }
 
+    /**
+     * Returns the list of pages of a specified table
+     * @param tableName The name of the table
+     * @return An ArrayList of every Page in that table
+     */
     public ArrayList<Page> getPageFileManager(String tableName) {
         ArrayList<Page> pageManager = buffer.get(tableName);
         TableSchema tschema = catalog.getTableSchema(tableName);
@@ -86,7 +102,11 @@ public class StorageManager {
         return records;
         }
 
-
+    /**
+     * Inserts a record into a given table
+     * @param tableName
+     * @param values
+     */
     public void insertRecord(String tableName, ArrayList<ArrayList<Object>> values){
         //Step 1: get the pages for that table
         ArrayList<Page> pages = getPageFileManager(tableName);
@@ -183,14 +203,15 @@ public class StorageManager {
         } catch (IOException e) {
             System.err.println("ERROR: Failed to save catalog to disk: " + e.getMessage());
         }
-        for (ArrayList<Page> table : buffer.values()) {
-            File tableFile = new File(catalog.getFilePath() + "/" + table + ".bin");
+        for (String tableName : buffer.keySet()) {
+            ArrayList<Page> pages = buffer.get(tableName);
+            File tableFile = new File(catalog.getFilePath().getParent() + "/" + tableName + ".bin");
             try (FileOutputStream fs = new FileOutputStream(tableFile)) {
                 try (DataOutputStream dis = new DataOutputStream(fs)) {
                     // First value of file is the # of pages
-                    dis.writeInt(table.size());
+                    dis.writeInt(pages.size());
                     // Write each page
-                    for (Page page : table) {
+                    for (Page page : pages) {
                         dis.write(page.encodePage());
                     }
                 } catch (Exception e) {

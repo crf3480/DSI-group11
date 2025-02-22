@@ -135,8 +135,8 @@ public class Catalog {
         outputStream.close();
     }
 
-    public String getFilePath() {
-        return this.catalogFile.getAbsolutePath();
+    public File getFilePath() {
+        return catalogFile;
     }
 
     public String toString() {
