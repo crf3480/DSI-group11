@@ -32,6 +32,9 @@ public class StorageManager {
         File catalogFile = new File(databaseDir, "catalog.bin");
         catalog = new Catalog(catalogFile, pageSize);
         this.pageSize = pageSize;
+        for (String name : catalog.getTableNames()) {
+            loadTable(name);
+        }
     }
 
     /**
