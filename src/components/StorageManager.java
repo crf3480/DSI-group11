@@ -213,6 +213,7 @@ public class StorageManager {
             try (FileOutputStream fs = new FileOutputStream(tableFile)) {
                 try (DataOutputStream out = new DataOutputStream(fs)) {
                     out.writeInt(0); // Initial page count is zero
+                    catalog.save();
                 } catch (Exception e) {
                     throw new IOException("Encountered an error while creating table file:" + e.getMessage());
                 }
