@@ -122,7 +122,7 @@ public class Main {
                     if (escaped) {
                         if (c != '\n') { token.append(c); }  // Escaping a new line ignores it
                         escaped = false;
-                    } else if (c == '\\') {
+                    } else if (c == '/') {
                         escaped = true;
                     } else if (c == '"') {  // Close quote
                         token.append('"');
