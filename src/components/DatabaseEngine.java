@@ -120,21 +120,26 @@ public class DatabaseEngine {
      */
     public void selectRecords(ArrayList<String> columns, ArrayList<String> tables, ArrayList<String> where) {
         //TODO: (IN PHASE 2) this only implements select * from a single table
-
-        ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));    // select * from table
-        if (records == null) { return; }  // If table does not exist, cancel
-        TableSchema schema = storageManager.getTableSchema(tables.get(0));
-        Object[][] objects = new Object[records.size()][schema.attributes.size()];
-        for (int i = 0; i < records.size(); i++) {
-            for (int j = 0; j < schema.attributes.size(); j++) {
-                objects[i][j] = records.get(i).rowData.get(j);
+        try {
+            ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));    // select * from table
+            if (records == null) { return; }  // If table does not exist, cancel
+            TableSchema schema = storageManager.getTableSchema(tables.get(0));
+            Object[][] objects = new Object[records.size()][schema.attributes.size()];
+            for (int i = 0; i < records.size(); i++) {
+                for (int j = 0; j < schema.attributes.size(); j++) {
+                    objects[i][j] = records.get(i).rowData.get(j);
+                }
             }
+            String[] headers = new String[schema.attributes.size()];
+            for (int i = 0; i < schema.attributes.size(); i++) {
+                headers[i] = schema.attributes.get(i).name;
+            }
+            System.out.println(tableToString(objects, headers));
         }
-        String[] headers = new String[schema.attributes.size()];
-        for (int i = 0; i < schema.attributes.size(); i++) {
-            headers[i] = schema.attributes.get(i).name;
+        catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
         }
-        System.out.println(tableToString(objects, headers));
+
     }
 
     /**
