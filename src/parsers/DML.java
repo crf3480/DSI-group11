@@ -27,7 +27,15 @@ public class DML extends GeneralParser {
      * @return The output of the command. `null` if command produces no output
      */
     public void display(ArrayList<String> inputList) {
-        engine.displayTable("");
+        if (inputList.size() != 3) {
+            System.err.println("Invalid number of arguments: display info <table>;");
+            return;
+        }
+        if (!inputList.get(1).equals("info")) {
+            System.err.println("Invalid argument to display: display info <table>;");
+            return;
+        }
+        engine.displayTable(inputList.get(2));
     }
 
     /**

@@ -35,17 +35,30 @@ public class StorageManager {
     }
 
     /**
+     * Loads a table into the buffer
+     * @param tableName The name of the table
+     * @throws IOException
+     */
+    private void loadTable(String tableName) throws IOException {
+        TableSchema tschema = catalog.getTableSchema(tableName);
+        ArrayList<Page> pageList = ParseDataFile(catalog.getFilePath().getParent() + File.separator + tableName + ".bin", tschema);
+        buffer.put(tableName, pageList);
+    }
+
+    /**
      * Returns the list of pages of a specified table
      * @param tableName The name of the table
-     * @return An ArrayList of every Page in that table
+     * @return An ArrayList of every Page in that table. If table does not exist, `null`
      */
     public ArrayList<Page> getPageList(String tableName) {
         ArrayList<Page> pageManager = buffer.get(tableName);
-        TableSchema tschema = catalog.getTableSchema(tableName);
         if (pageManager == null) {
-            //this happens when the table is not in the buffer
-            pageManager = ParseDataFile(catalog.getFilePath().getParent() + File.separator + tableName + ".bin", tschema);
-            buffer.put(tableName, pageManager);
+            try {
+                loadTable(tableName);
+            } catch (IOException e) {
+                System.err.println("Table not found: `" + tableName + "`");
+                return null;
+            }
         }
         return pageManager;
     }
@@ -91,6 +104,7 @@ public class StorageManager {
     }
 
     public ArrayList<Record> getAllInTable(String tableName) {
+        getPageList(tableName);
         if (buffer.get(tableName) == null) {
             System.err.println("Table `" + tableName + "` not found");
             return null;
@@ -237,7 +251,25 @@ public class StorageManager {
     }
 
     public void displayTable(String tableName){
-        System.out.println(catalog);
+        TableSchema schema = catalog.getTableSchema(tableName);
+        if (schema == null) {
+            System.err.println("Table not found: `" + tableName + "`");
+            return;
+        }
+        try {
+            loadTable(tableName);  // Load table into memory
+        } catch (IOException e) {
+            System.err.println("Failed to load table `" + tableName + "`");
+            return;
+        }
+        System.out.println("[" + tableName + "]");
+        System.out.println(schema);
+        System.out.println("Pages: " + buffer.get(tableName).size());
+        int totalPages = 0;
+        for (Page p : buffer.get(tableName)) {
+            totalPages += p.getRecords().size();
+        }
+        System.out.println("Records: " + totalPages);
     }
 
     public TableSchema getTableSchema(String tableName){
