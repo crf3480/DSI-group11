@@ -9,7 +9,7 @@ Team Members
 - Roshan Nunna
 
 To run:
-java src.Main <database path> <page size> <buffer size>
+java src.Main \<database path> \<page size> \<buffer size>
 ex: java src.Main test_databases/test1 50 5
 
 Project Structure:
