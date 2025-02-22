@@ -66,7 +66,6 @@ public class DML extends GeneralParser {
     /**
      * Performs a select table command
      * @param inputList The list of tokens representing the user's input
-     * @return The output of the command. `null` if command produces no output
      */
     public void select(ArrayList<String> inputList) {
         if (!inputList.getFirst().equals("select") || !inputList.contains("from")) {

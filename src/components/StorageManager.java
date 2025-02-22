@@ -45,7 +45,7 @@ public class StorageManager {
         TableSchema tschema = catalog.getTableSchema(tableName);
         if (pageManager == null) {
             //this happens when the table is not in the buffer
-            pageManager = ParseDataFile(catalog.getFilePath() + "/" + tableName + ".bin", tschema);
+            pageManager = ParseDataFile(catalog.getFilePath().getParent()+ "/" + tableName + ".bin", tschema);
             buffer.put(tableName, pageManager);
         }
         return pageManager;
