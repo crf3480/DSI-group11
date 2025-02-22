@@ -37,8 +37,8 @@ public class DatabaseEngine {
             }
             String name = attributeTokens.getFirst();
             boolean primaryKey = attributeTokens.contains("primarykey");
-            boolean unique = attributeTokens.contains("unique") || primaryKey;
-            boolean notNull = attributeTokens.contains("notnull") || primaryKey;
+            boolean unique = attributeTokens.contains("unique");
+            boolean notNull = attributeTokens.contains("notnull");
             int length = 0;
             AttributeType attrType;
             try {
@@ -320,8 +320,10 @@ public class DatabaseEngine {
             table.append(String.join(CELL_DIVIDER, dataStrings[row]));
             table.append(RIGHT_WALL);
         }
-        // Add bottom border and return
-        table.append(horizontalLine);
+        // Add bottom border (if entries exist) and return
+        if (rows.length > 0) {
+            table.append(horizontalLine);
+        }
         return table.toString();
     }
 
