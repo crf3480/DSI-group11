@@ -3,7 +3,6 @@ import tableData.Attribute;
 import tableData.AttributeType;
 import tableData.Record;
 import tableData.TableSchema;
-import utils.TestData;
 
 import java.util.ArrayList;
 
@@ -87,7 +86,7 @@ public class DatabaseEngine {
      */
     //Storage manager
     public void dropAttribute(String tableName, String attributeName) {
-        storageManager.deleteAttribute(tableName, attributeName);
+        storageManager.dropAttribute(tableName, attributeName);
 
     }
 

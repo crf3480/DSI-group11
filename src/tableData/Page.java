@@ -137,6 +137,39 @@ public class Page {
     }
 
     /**
+     * Converts all records in this page to a new schema
+     * @param newSchema The schema to update the records in the Page to match
+     * @return If updating the schema results in the Page becoming overfull, this Page will be split until
+     * all resulting pages are an appropriate size and all resulting Pages will be returned
+     * @throws IllegalArgumentException if the existing records cannot be mapped onto the new schema
+     */
+    public ArrayList<Page> updateSchema(TableSchema newSchema) {
+        Integer[] schemaMap = new Integer[newSchema.attributes.size()];
+        for (int i = 0; i < newSchema.attributes.size(); i++) {
+            schemaMap[i] = tableSchema.getAttributeIndex(newSchema.attributes.get(i).name);
+        }
+        System.out.print(" ");
+        for (Integer i : schemaMap) {
+            System.out.print(i);
+            System.out.print(" ");
+        }
+        System.out.println();
+        for (Record record : records) {
+            ArrayList<Object> rowData = new ArrayList<>();
+            for (int i = 0; i < schemaMap.length; i++) {
+                rowData.add(schemaMap[i] == -1 ? newSchema.attributes.get(i).defaultValue : record.rowData.get(schemaMap[i]));
+            }
+            record.rowData = rowData;
+        }
+        tableSchema = newSchema;
+        ArrayList<Page> newPages = new ArrayList<>();
+        while (pageDataSize() > pageSize) {
+            newPages.add(split());
+        }
+        return newPages.isEmpty() ? null : newPages;
+    }
+
+    /**
      * Converts a binary array of data into a list of records
      * @param numRecords The number of records contained within the byte array
      * @param recordData The byte array containing the encoded record data
@@ -194,19 +227,19 @@ public class Page {
      */
     public Page split() {
         ArrayList<Record> splitRecords = new ArrayList<>();
-        int currSize = pageDataSize();
-        while (currSize > pageSize / 2) {
+        int newSize = 0;
+        while (newSize < pageSize / 2) {
             // Check if moving the new record over will get the page below half size, ending the split
             int splitRecordSize = recordSize(records.getLast());
-            if (currSize - splitRecordSize < pageSize / 2) {
+            if (newSize + splitRecordSize > pageSize / 2) {
                 // If keeping the Record is closer (or equal) to an even split than moving it over, keep it
-                if (currSize - (pageSize / 2) <= (pageSize / 2) - (currSize - splitRecordSize)) {
+                if ((pageSize / 2) - newSize <= (newSize + splitRecordSize) - (pageSize / 2)) {
                     break;
                 }
             }
             // If not, move it over and update the new size of the current page
             splitRecords.add(records.removeLast());
-            currSize -= splitRecordSize;
+            newSize += splitRecordSize;
         }
         return new Page(-1, splitRecords, pageSize, tableSchema);
     }
@@ -244,7 +277,7 @@ public class Page {
             int nullFlagBit = 0;
             // For every attribute which can be null, set that bit to `1` if the value is `null`
             for (int i = 0; i < attributes.size(); i++) {
-                if (!attributes.get(i).notNull && !attributes.get(i).primaryKey) {
+                if (attributes.get(i).allowsNull()) {
                     if (record.rowData.get(i) == null) {
                         nullableBytes[nullFlagBit / 8] += (byte) (1 << nullFlagBit % 8);
                     }

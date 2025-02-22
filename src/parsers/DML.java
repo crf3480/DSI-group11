@@ -1,9 +1,8 @@
 package parsers;
 
 import components.DatabaseEngine;
-import tableData.Page;
+import tableData.*;
 import tableData.Record;
-import tableData.TableSchema;
 import utils.TestData;
 
 import java.io.IOException;
@@ -100,13 +99,20 @@ public class DML extends GeneralParser {
         TableSchema ts = TestData.permaTable();
         Page page = new Page(0, records, pageSize, ts);
         while (page.insertRecord(TestData.testRecord(ts))) { } // Do nothing until the page gets full
+        TableSchema newSchema = TestData.permaTable();
+        newSchema.attributes.remove(3);
+        newSchema.attributes.add(new Attribute("jizz",
+                AttributeType.CHAR,
+                false,
+                true,
+                true,
+                100,
+                "Hallo"));
         System.out.println(page);
-        try {
-            byte[] encoded = page.encodePage();
-            Page decoded = new Page(encoded, ts);
-            System.out.println(decoded);
-        } catch (Exception e) {
-            System.out.println("Test: " + e);
+        ArrayList<Page> splitPages = page.updateSchema(newSchema);
+        System.out.println(page);
+        for (Page newPage : splitPages) {
+            System.out.println(newPage);
         }
     }
 }

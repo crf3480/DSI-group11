@@ -13,6 +13,20 @@ public class TableSchema {
     }
 
     /**
+     * Returns the index of the attribute with a given name
+     * @param attributeName The name of the attribute to look for
+     * @return The index of the attribute within the schema. If an attribute with that name does not exist, `-1`;
+     */
+    public int getAttributeIndex(String attributeName) {
+        for (int i = 0; i < attributes.size(); i++) {
+            if (attributes.get(i).name.equals(attributeName)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
      * Returns the number of attributes in this table that are can be null
      * @return The number of nullable attributes
      */
