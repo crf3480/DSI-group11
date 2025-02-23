@@ -53,7 +53,7 @@ public class StorageManager {
     /**
      * Returns the list of pages of a specified table
      * @param tableName The name of the table
-     * @return An ArrayList of every Page in that table. If table does not exist, `null`
+     * @return An ArrayList of every Page in that table. If table does not exist, 'null'
      */
     public ArrayList<Page> getPageList(String tableName) {
         //This might be useful in the future, but right now the buffer always contains the list of pages
@@ -62,7 +62,7 @@ public class StorageManager {
 //            try {
 //                loadTable(tableName);
 //            } catch (IOException e) {
-//                System.err.println("Table not found: `" + tableName + "`");
+//                System.err.println("Table not found: '" + tableName + "'");
 //                return null;
 //            }
 //        }
@@ -112,7 +112,7 @@ public class StorageManager {
     public ArrayList<Record> getAllInTable(String tableName) {
         getPageList(tableName);
         if (buffer.get(tableName) == null) {
-            System.err.println("Table `" + tableName + "` does not exist.");
+            System.err.println("Table '" + tableName + "' does not exist.");
             return null;
         }
         ArrayList<Record> records = new ArrayList<>();
@@ -135,7 +135,7 @@ public class StorageManager {
         ArrayList<Page> pages = getPageList(tableName);
         TableSchema tschema = catalog.getTableSchema(tableName);
         if (tschema == null) {
-            throw new IllegalArgumentException("Table `" + tableName + "` does not exist.");
+            throw new IllegalArgumentException("Table '" + tableName + "' does not exist.");
         }
         // If table is empty, insert a new page
         if (pages.isEmpty()) {
@@ -213,7 +213,7 @@ public class StorageManager {
             buffer.put(tableName, new ArrayList<>());
             File tableFile = new File(catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
             if (!tableFile.createNewFile()) {
-                throw new RuntimeException("File already exists for table `" + tableName + "` at `" + tableFile.getAbsolutePath() + "`");
+                throw new RuntimeException("File already exists for table '" + tableName + "' at '" + tableFile.getAbsolutePath() + "'");
             }
             try (FileOutputStream fs = new FileOutputStream(tableFile)) {
                 try (DataOutputStream out = new DataOutputStream(fs)) {
@@ -234,11 +234,11 @@ public class StorageManager {
     /**
      * Removes a table from the database
      * @param tableName The name of the table to drop
-     * @return `true` if the table exists and was deleted
+     * @return 'true' if the table exists and was deleted
      */
     public boolean deleteTable(String tableName) throws IOException {
         if (catalog.getTableSchema(tableName) == null) {
-            System.err.println("Table `" + tableName + "` does not exist.");
+            System.err.println("Table '" + tableName + "' does not exist.");
         }
         File dataFile = new File(this.catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
         try {
@@ -257,11 +257,11 @@ public class StorageManager {
      * <ul>
      *     <li>New attribute is a primary key</li>
      *     <li>An attribute with that name already exists in the table</li>
-     *     <li>The attribute is `notNull` but has a null default value</li>
+     *     <li>The attribute is 'notNull' but has a null default value</li>
      * </ul>
      * @param tableName The name of the table to modify
      * @param newAttribute The attribute to add
-     * @return `true` if the attribute was added to the table; `false` if there was an error
+     * @return 'true' if the attribute was added to the table; 'false' if there was an error
      */
     public boolean addAttribute(String tableName, Attribute newAttribute) {
         if (newAttribute.primaryKey) {
@@ -269,7 +269,7 @@ public class StorageManager {
             return false;
         }
         if (newAttribute.notNull && newAttribute.defaultValue == null) {
-            System.err.println("New attribute is `notnull`, but `null` is the default value.");
+            System.err.println("New attribute is 'notnull', but 'null' is the default value.");
             return false;
         }
         ArrayList<Page> pageList = getPageList(tableName);
@@ -280,14 +280,15 @@ public class StorageManager {
         TableSchema schema = catalog.getTableSchema(tableName);
         for (Attribute a : schema.attributes) {
             if (a.name.equals(newAttribute.name)) {
-                System.err.println("Table " + tableName + " already contains attribute `" + newAttribute.name + "`.");
+                System.err.println("Table " + tableName + " already contains attribute '" + newAttribute.name + "'.");
                 return false;
             }
         }
-        schema.attributes.add(newAttribute);
         for (Page p : pageList) {
             p.updateSchema(schema);
         }
+        schema.attributes.add(newAttribute);
+        System.out.println("Added attribute '" + newAttribute.name + "' to table '" + tableName + "'");
         return true;
     }
 
@@ -295,7 +296,7 @@ public class StorageManager {
      * Removes an attribute from a given table, so long as the attribute is not the primary key
      * @param tableName The name of the table to remove the attribute from
      * @param attributeName The name of the attribute to remove. Should be
-     * @return `true` if the attribute was successfully dropped; `false` if there was an error
+     * @return 'true' if the attribute was successfully dropped; 'false' if there was an error
      */
     public boolean dropAttribute(String tableName, String attributeName) {
         ArrayList<Page> pageList = getPageList(tableName);
@@ -307,11 +308,11 @@ public class StorageManager {
         ArrayList<Attribute> attributes = schema.attributes;
         int attrIndex = schema.getAttributeIndex(attributeName);
         if (attrIndex == -1) {
-            System.err.println("Cannot drop attribute `" + attributeName + "`: no such attribute.");
+            System.err.println("Cannot drop attribute '" + attributeName + "': no such attribute.");
             return false;
         }
         if (attributes.get(attrIndex).primaryKey) {
-            System.err.println("Cannot drop attribute `" + attributeName + "`: key is primary key.");
+            System.err.println("Cannot drop attribute '" + attributeName + "': key is primary key.");
             return false;
         }
         attributes.remove(attrIndex);
@@ -334,7 +335,7 @@ public class StorageManager {
     public void displayTable(String tableName){
         TableSchema schema = catalog.getTableSchema(tableName);
         if (schema == null) {
-            System.err.println("Table not found: `" + tableName + "`");
+            System.err.println("Table not found: '" + tableName + "'");
             return;
         }
         System.out.println("Table name: " + tableName);
@@ -370,7 +371,7 @@ public class StorageManager {
                 try {
                     loadTable(table);
                 } catch (IOException e) {
-                    System.err.println("Failed to load table `" + table + "`");
+                    System.err.println("Failed to load table '" + table + "'");
                     return;
                 }
                 displayTable(table);
@@ -384,7 +385,7 @@ public class StorageManager {
 
     /**
      * Writes the buffer and catalog to disk
-     * @return `true` if this operation succeeded; `false` if there was an error
+     * @return 'true' if this operation succeeded; 'false' if there was an error
      */
     public boolean save() {
         try {
@@ -402,7 +403,7 @@ public class StorageManager {
 
     /**
      * Writes the buffer for a particular table to file
-     * @return `true` if this operation succeeded; `false` if there was an error
+     * @return 'true' if this operation succeeded; 'false' if there was an error
      */
     public boolean save(String tableName) {
         ArrayList<Page> pages = buffer.get(tableName);
@@ -458,7 +459,7 @@ public class StorageManager {
             }
         }
         catch (FileNotFoundException e) {
-            throw new IOException("Table file `" + dataFile + "` not found.");
+            throw new IOException("Table file '" + dataFile + "' not found.");
         }
         catch (IOException e) {
             throw e;  // Propagate IO exceptions up

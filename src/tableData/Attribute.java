@@ -82,7 +82,7 @@ public class Attribute {
 
     /**
      * Checks if this attribute is allowed to be assigned null
-     * @return `true` if this attribute accepts a null assignment, `false` otherwise
+     * @return 'true' if this attribute accepts a null assignment, 'false' otherwise
      */
     public boolean allowsNull() {
         return !primaryKey && !notNull;

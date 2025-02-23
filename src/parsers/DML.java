@@ -24,7 +24,7 @@ public class DML extends GeneralParser {
     /**
      * Performs a display table command
      * @param inputList The list of tokens representing the user's input
-     * @return The output of the command. `null` if command produces no output
+     * @return The output of the command. 'null' if command produces no output
      */
     public void display(ArrayList<String> inputList) {
         if (inputList.size() < 2) {
@@ -60,7 +60,7 @@ public class DML extends GeneralParser {
             System.err.println("Invalid insert command: insert into <table> values (<data>);");
             return;
         } else if (!inputList.get(4).equals("(")) {
-            System.err.println("Invalid insert command: records must begin with `(`");
+            System.err.println("Invalid insert command: records must begin with '('");
             return;
         } else if (!inputList.getLast().equals(")")) {
             System.err.println("Invalid insert command: unclosed parenthesis.");
@@ -104,7 +104,7 @@ public class DML extends GeneralParser {
                 }
             }
             // If the token isn't a comma, add it to the list
-            // If it is a comma, add `null` to tuples if the previous value was also a comma, indicating a default value
+            // If it is a comma, add 'null' to tuples if the previous value was also a comma, indicating a default value
             if (s.equals(",")) {
                 if (prevWasComma) {
                     tupleTokens.add(null);
@@ -148,7 +148,7 @@ public class DML extends GeneralParser {
     /**
      * Command to allow for simple testing of database
      * @param inputList The list of tokens representing the user's input
-     * @return The output of the command. `null` if command produces no output
+     * @return The output of the command. 'null' if command produces no output
      */
     public void test(ArrayList<String> inputList) {
         ArrayList<Record> records = new ArrayList<>();

@@ -28,12 +28,12 @@ public class DDL {
      * Performs an alter table command
      *
      * @param inputList The list of tokens representing the user's input
-     * @return The output of the command. `null` if command produces no output
+     * @return The output of the command. 'null' if command produces no output
      */
     public String alter(ArrayList<String> inputList) {
         //Check if inital query length is correct
         if (inputList.size() < 5){
-            System.err.println("Incorrect Alter Statement");
+            System.err.println("Invalid Alter Statement");
             return null;
         }
         //Splitting the string into qiery
@@ -50,7 +50,7 @@ public class DDL {
             } else if (addOrDrop.equals("add")) {
                 String attributeType = " ";
                 //Add an attribute
-                //Need to figure out if attribute type has Parenthesis
+                //Need to figure out if attribute type has Parentheses
                 int hasParenthesis = inputList.indexOf("(");
                 if (hasParenthesis == -1) {
                     attributeType = inputList.get(5);
@@ -69,11 +69,11 @@ public class DDL {
                 }
                 return null;
             } else {
-                System.err.println("Incorrect Alter Statement");
+                System.err.println("Invalid Alter Statement");
                 return null;
             }
         } else {
-            System.err.println("Incorrect Alter Statement");
+            System.err.println("Invalid Alter Statement");
             return null;
         }
         return null;
@@ -84,16 +84,16 @@ public class DDL {
      * Performs a create table command
      *
      * @param inputList The list of tokens representing the user's input
-     * @return The output of the command. `null` if command produces no output
+     * @return The output of the command. 'null' if command produces no output
      */
     public String create(ArrayList<String> inputList) {
         // Soft validate input format
         if (inputList.size() < 4){
-            System.err.println("Insufficient parameters for `create table` statement");
+            System.err.println("Insufficient parameters for 'create table' statement");
             return null;
         }
         if (!inputList.get(1).equals("table") || !inputList.get(3).equals("(") || !inputList.getLast().equals(")")) {
-            System.err.println("Invalid `create table` statement: create table <name>(<attr name> <attr type>...);");
+            System.err.println("Invalid 'create table' statement: create table <name>(<attr name> <attr type>...);");
             return null;
         }
         // Read basic table data
@@ -117,7 +117,7 @@ public class DDL {
      * Performs a drop table command
      *
      * @param inputList The list of tokens representing the user's input
-     * @return The output of the command. `null` if command produces no output
+     * @return The output of the command. 'null' if command produces no output
      */
     public String drop(ArrayList<String> inputList) {
         //Error handling

@@ -118,7 +118,7 @@ public class Page {
     /**
      * Inserts a record into the page
      * @param record The record being inserted into the page
-     * @return `true` if the record was inserted. `false` if the record could not be inserted because it is full
+     * @return 'true' if the record was inserted. 'false' if the record could not be inserted because it is full
      */
     public boolean insertRecord(Record record) {
         int recordSize = recordSize(record);
@@ -149,16 +149,22 @@ public class Page {
         for (int i = 0; i < newSchema.attributes.size(); i++) {
             schemaMap[i] = tableSchema.getAttributeIndex(newSchema.attributes.get(i).name);
         }
-        System.out.print(" ");
+        /*
+        System.out.print("SCHEMAMAP: ");
         for (Integer i : schemaMap) {
             System.out.print(i);
             System.out.print(" ");
         }
         System.out.println();
+
+         */
         for (Record record : records) {
             ArrayList<Object> rowData = new ArrayList<>();
+            //System.out.println("ROWDATA: "+record.rowData.toString());
             for (int i = 0; i < schemaMap.length; i++) {
-                rowData.add(schemaMap[i] == -1 ? newSchema.attributes.get(i).defaultValue : record.rowData.get(schemaMap[i]));
+                Object def = newSchema.attributes.get(i).defaultValue;
+                Object grab = record.rowData.get(schemaMap[i]);
+                rowData.add(schemaMap[i] == -1 ? def : grab);
             }
             record.rowData = rowData;
         }
@@ -213,7 +219,7 @@ public class Page {
 
     /**
      * Splits the data of this page in half, transferring half to a new Page which is then returned. This new
-     * Page will be given a default page number of -1. `Half` is determined by data size, not record count.
+     * Page will be given a default page number of -1. 'Half' is determined by data size, not record count.
      * @return The new page containing half the records that were in this Page
      */
     public Page split() {
@@ -269,7 +275,7 @@ public class Page {
         if (nullable > 0) {
             byte[] nullableBytes = new byte[(nullable + 7) / 8];
             int nullFlagBit = 0;
-            // For every attribute which can be null, set that bit to `1` if the value is `null`
+            // For every attribute which can be null, set that bit to '1' if the value is 'null'
             for (int i = 0; i < attributes.size(); i++) {
                 if (attributes.get(i).allowsNull()) {
                     if (record.rowData.get(i) == null) {

@@ -50,7 +50,7 @@ public class Record {
     }
 
     /**
-     * Checks if this record and another are equivalent under a given schema, comparing any fields marked `unique`
+     * Checks if this record and another are equivalent under a given schema, comparing any fields marked 'unique'
      * @param other The other record to compare
      * @param schema The schema to compare the records by
      * @return If the records are considered a duplicate under this schema, returns the index of the attribute
@@ -74,6 +74,7 @@ public class Record {
         for (Object o : rowData) {
             sb.append(o).append(", ");
         }
+        sb.delete(sb.length() - 2, sb.length());
         sb.append(" }");
 
         return sb.toString();

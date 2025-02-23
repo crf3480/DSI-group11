@@ -31,7 +31,7 @@ public class DatabaseEngine {
         //Building out attribute objects using constraints
         ArrayList<Attribute> allAttributes = new ArrayList<>();
         for (ArrayList<String> attributeTokens : attributeList) {
-            String errorMessage = "Invalid attribute declaration: `" + String.join(" ", attributeTokens) + "`. ";
+            String errorMessage = "Invalid attribute declaration: '" + String.join(" ", attributeTokens) + "'. ";
             if (attributeTokens.size() < 2) {
                 throw new IllegalArgumentException(errorMessage + "All attributes must have at least a name and type");
             }
@@ -53,7 +53,7 @@ public class DatabaseEngine {
                 try {
                     length = Integer.parseInt(attributeTokens.get(3));
                 } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException(errorMessage + "Invalid length parameter `" + attributeTokens.get(2) + "`.");
+                    throw new IllegalArgumentException(errorMessage + "Invalid length parameter '" + attributeTokens.get(2) + "'.");
                 }
             }
             allAttributes.add(new Attribute(name, attrType, primaryKey, notNull, unique, length));
@@ -72,7 +72,7 @@ public class DatabaseEngine {
     public void deleteTable(String tableName) {
         try {
             if (!storageManager.deleteTable(tableName)) {
-                System.err.println("Table `" + tableName + "` does not exist.");
+                System.err.println("Table '" + tableName + "' does not exist.");
             }
         } catch (Exception e) {
             System.err.println(e.getMessage());
@@ -106,7 +106,14 @@ public class DatabaseEngine {
 
     public void addAttribute(String tableName, String attributeName, String attributeType, String defaultValue) {
         String[] parts = attributeType.split(" ");
-        AttributeType type = AttributeType.fromString(parts[0]);
+        AttributeType type;
+        try{
+            type = AttributeType.fromString(parts[0]);
+        }catch (IllegalArgumentException e) {
+            System.err.println("Invalid attribute type: " + attributeType);
+            return;
+        }
+
         int attributeLength;
         if (parts.length < 3){
             attributeLength = 0;
@@ -155,7 +162,7 @@ public class DatabaseEngine {
      * @param tableName The table to insert the record into
      * @param tupleValues Strings representing the values for every attribute of the record. Any value which
      *                    was assigned default should be null (null values are just the string "null")
-     * @return `true` if the record was inserted. `false` if the insert failed for any reason
+     * @return 'true' if the record was inserted. 'false' if the insert failed for any reason
      */
     public boolean insert(String tableName, ArrayList<String> tupleValues) {
         TableSchema schema = storageManager.getTableSchema(tableName);
@@ -177,8 +184,8 @@ public class DatabaseEngine {
             for (Record existingRec : storageManager.getAllInTable(tableName)) {
                 int matchAttr = record.duplicate(existingRec, schema);
                 if (matchAttr != -1) {
-                    System.err.println("Invalid tuple: a record with the value `" + record.get(matchAttr) +
-                            "` already exists for column `" + schema.attributes.get(matchAttr).name + "`.");
+                    System.err.println("Invalid tuple: a record with the value '" + record.get(matchAttr) +
+                            "' already exists for column '" + schema.attributes.get(matchAttr).name + "'.");
                     return false;
                 }
             }
@@ -212,8 +219,8 @@ public class DatabaseEngine {
             // If the string is the *word* "null", check if attribute can be null and set it
             if (value.equals("null")) {
                 if (!attr.allowsNull()) {
-                    throw new ClassCastException("Invalid value for `" + attr.name +
-                            "`: attribute does not allow null values.");
+                    throw new ClassCastException("Invalid value for '" + attr.name +
+                            "': attribute does not allow null values.");
                 }
                 data.add(null);
                 continue;
@@ -226,25 +233,25 @@ public class DatabaseEngine {
                         }
                         data.add(Integer.parseInt(value));
                     } catch (NumberFormatException e) {
-                        throw new ClassCastException("Invalid INT: `" + value + "` not an integer");
+                        throw new ClassCastException("Invalid INT: '" + value + "' not an integer");
                     }
                 }
                 case CHAR, VARCHAR -> {
                     if (value.charAt(0)!='\"' || value.charAt(value.length()-1)!='\"') {
-                        throw new ClassCastException("Invalid " + attr.type + ": `" + value +
-                                "` missing encapsulating double quotes");
+                        throw new ClassCastException("Invalid " + attr.type + ": '" + value +
+                                "' missing encapsulating double quotes");
                     }
                     value = value.substring(1, value.length()-1);       // string has quotes, so it's valid. remove quotes to get the inner string
                     if (value.length() > attr.length){
-                        throw new ClassCastException(attr.type + " `" + value +
-                                "` exceeds maximum length " + attr.length);
+                        throw new ClassCastException(attr.type + " '" + value +
+                                "' exceeds maximum length " + attr.length);
                     }
                     data.add(value);
                 }
                 case DOUBLE -> {
                     try {
                         if (value.charAt(0)=='\"' || value.charAt(value.length()-1)=='\"') {    // avoid parseDouble from incorrectly accepting "47.59"
-                            throw new ClassCastException("Invalid DOUBLE `" + value + "`: value is a string.");
+                            throw new ClassCastException("Invalid DOUBLE '" + value + "': value is a string.");
                         }
                         data.add(Double.parseDouble(value));
                     } catch (NumberFormatException e) {
@@ -255,7 +262,7 @@ public class DatabaseEngine {
                     if (value.charAt(0)=='\"' || value.charAt(value.length()-1)=='\"' ||    // avoid parseBoolean from incorrectly accepting "true"
                             (!value.toLowerCase().equals("true") && !value.toLowerCase().equals("false"))   // booleans can only be true or false
                     ) {
-                        throw new ClassCastException("Invalid BOOLEAN: `" + value + "` is not a boolean");
+                        throw new ClassCastException("Invalid BOOLEAN: '" + value + "' is not a boolean");
                     }
                     else{
                         data.add(Boolean.parseBoolean(value));

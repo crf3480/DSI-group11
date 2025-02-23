@@ -18,14 +18,14 @@ public class Main {
         try {
             pageSize = Integer.parseInt(args[1]);
         } catch (NumberFormatException e) {
-            throw new RuntimeException("Invalid page size: `" + args[1] + "`");
+            throw new RuntimeException("Invalid page size: '" + args[1] + "'");
         }
 
         int bufferSize;
         try {
             bufferSize = Integer.parseInt(args[2]);
         } catch (NumberFormatException e) {
-            throw new RuntimeException("Invalid buffer size: `" + args[2] + "`");
+            throw new RuntimeException("Invalid buffer size: '" + args[2] + "'");
         }
 
         // Check if database exists and either restart the database or
@@ -33,7 +33,10 @@ public class Main {
 
         // Create a directory at the location of the database
         if (databaseDir.mkdir()) {
-            System.out.println("Created new database directory at `" + dbLocation + "`");
+            System.out.println("Created new database directory at " + databaseDir.getAbsolutePath());
+        }
+        else{
+            System.out.println("Opening database at " + databaseDir.getAbsolutePath());
         }
         StorageManager storageManager = new StorageManager(databaseDir, pageSize, bufferSize);
         DatabaseEngine databaseEngine = new DatabaseEngine(storageManager);
@@ -46,7 +49,7 @@ public class Main {
         while (true) {
             System.out.print("Input ('<quit>' to quit): ");
             for (ArrayList<String> statement : getQuery(br)) {
-                //System.out.println(statement);  // Check that `getQuery()` is parsing command correctly
+                //System.out.println(statement);  // Check that 'getQuery()' is parsing command correctly
                 switch (statement.getFirst()) {
                     case "<quit>"-> {
                         storageManager.save();
@@ -61,7 +64,7 @@ public class Main {
                     case "insert" -> dml.insert(statement);
                     case "select" ->  dml.select(statement);
                     case "test" -> dml.test(statement);
-                    default ->  System.err.println("Invalid command: `" + statement.getFirst() + "`");
+                    default ->  System.err.println("Invalid command: '" + statement.getFirst() + "'");
                 }
             }
         }
@@ -92,7 +95,7 @@ public class Main {
         ArrayList<String> statement = new ArrayList<>();
         StringBuilder token = new StringBuilder();
 
-        // It's dumb that I have to do it this way, but Array doesn't have a `.contains()` method
+        // It's dumb that I have to do it this way, but Array doesn't have a '.contains()' method
         List<Character> delimiters = Arrays.asList(' ', '\t', '\r', '\n');
         List<Character> isolatedChars = Arrays.asList('(', ')', ',');
 
@@ -155,7 +158,7 @@ public class Main {
                         return statementList;
                     }
                 } else if (delimiters.contains(c)) {  // Token delimiters
-                    // Don't fold this into the parent if, because even when `token` is empty,
+                    // Don't fold this into the parent if, because even when 'token' is empty,
                     // we still want to ignore delimiters
                     if (!token.isEmpty()) {
                         statement.add(token.toString());

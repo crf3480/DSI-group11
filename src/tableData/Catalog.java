@@ -86,7 +86,7 @@ public class Catalog {
     /**
      * Inserts a table schema into the catalog
      * @param newSchema The schema to add
-     * @return `true` if the schema was inserted; `false` if a table with that name already exists in the catalog
+     * @return 'true' if the schema was inserted; 'false' if a table with that name already exists in the catalog
      */
     public boolean addTableSchema(TableSchema newSchema){
         if (tableSchemas.containsKey(newSchema.name)) {
@@ -99,7 +99,7 @@ public class Catalog {
     /**
      * Removes a table schema from the catalog
      * @param tableName The name of the table to remove
-     * @return `true` if the table was removed from the schema; `false` if a table with that name did not exist
+     * @return 'true' if the table was removed from the schema; 'false' if a table with that name did not exist
      * in the catalog
      */
     public boolean removeTableSchema(String tableName){
@@ -109,7 +109,7 @@ public class Catalog {
     /**
      * Fetches the schema of a table by name
      * @param tableName The name of the table
-     * @return The table's schema, or `null` if that table name does not exist in the schema
+     * @return The table's schema, or 'null' if that table name does not exist in the schema
      */
     public TableSchema getTableSchema(String tableName){
         return tableSchemas.get(tableName);

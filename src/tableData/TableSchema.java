@@ -15,13 +15,13 @@ public class TableSchema {
         ArrayList<String> attributeNames = new ArrayList<>();
         for (Attribute attribute : attributeArrayList) {
             if (attributeNames.contains(attribute.name)) {
-                throw new IllegalArgumentException("Duplicate attribute name: `" + attribute.name + "`");
+                throw new IllegalArgumentException("Duplicate attribute name: '" + attribute.name + "'");
             }
             attributeNames.add(attribute.name);
             if (attribute.primaryKey) {
                 if (primaryKey != null) {
-                    throw new IllegalArgumentException("Multiple primary key attributes: `" +
-                            attribute.name + "` and `" + primaryKey + "`");
+                    throw new IllegalArgumentException("Multiple primary key attributes: '" +
+                            attribute.name + "' and '" + primaryKey + "'");
                 } else {
                     primaryKey = attribute.name;
                 }
@@ -33,7 +33,7 @@ public class TableSchema {
     /**
      * Returns the index of the attribute with a given name
      * @param attributeName The name of the attribute to look for
-     * @return The index of the attribute within the schema. If an attribute with that name does not exist, `-1`;
+     * @return The index of the attribute within the schema. If an attribute with that name does not exist, '-1';
      */
     public int getAttributeIndex(String attributeName) {
         for (int i = 0; i < attributes.size(); i++) {

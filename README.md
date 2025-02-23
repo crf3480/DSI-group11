@@ -8,10 +8,10 @@ Group 11
 - Roshan Nunna
 
 To compile: take the src folder, paste it into your desired directory, and in the ROOT of your directory (i.e. OUTSIDE OF THE SRC FOLDER), do the following cmd:
-```javac **/**/*.java```
+'''javac **/**/*.java'''
 
 To run, go **INTO THE SRC FOLDER** and do the following:
-```java Main database page_size buffer_size```
+'''java Main database page_size buffer_size'''
 
 ex: java Main test1 50 5
 
