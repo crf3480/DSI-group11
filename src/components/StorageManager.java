@@ -288,6 +288,7 @@ public class StorageManager {
             p.updateSchema(schema);
         }
         schema.attributes.add(newAttribute);
+        catalog.setTableSchema(tableName, schema);
         System.out.println("Added attribute '" + newAttribute.name + "' to table '" + tableName + "'");
         return true;
     }
@@ -315,10 +316,11 @@ public class StorageManager {
             System.err.println("Cannot drop attribute '" + attributeName + "': key is primary key.");
             return false;
         }
-        attributes.remove(attrIndex);
+        schema.attributes.remove(attrIndex);
         for (Page p : pageList) {
             p.updateSchema(schema);
         }
+        catalog.setTableSchema(tableName, schema);
         return true;
     }
 

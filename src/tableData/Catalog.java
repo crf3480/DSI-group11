@@ -116,6 +116,15 @@ public class Catalog {
     }
 
     /**
+     * Updates a table's schema the schema of a table by name
+     * @param tableName The name of the table
+     * @return The previous schema for that table, if one existed
+     */
+    public TableSchema setTableSchema(String tableName, TableSchema newSchema){
+        return tableSchemas.put(tableName, newSchema);
+    }
+
+    /**
      * Writes the contents of the catalog to its file on disk
      * @throws IOException If there was an error writing to disk
      */
