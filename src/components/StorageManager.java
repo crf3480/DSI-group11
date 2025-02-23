@@ -284,11 +284,13 @@ public class StorageManager {
                 return false;
             }
         }
+        TableSchema newSchema = schema.duplicate();
+        newSchema.attributes.add(newAttribute);
         for (Page p : pageList) {
-            p.updateSchema(schema);
+            p.updateSchema(newSchema);
         }
-        schema.attributes.add(newAttribute);
-        catalog.setTableSchema(tableName, schema);
+        // schema.attributes.add(newAttribute);
+        catalog.setTableSchema(tableName, newSchema);
         System.out.println("Added attribute '" + newAttribute.name + "' to table '" + tableName + "'");
         return true;
     }
@@ -423,7 +425,7 @@ public class StorageManager {
                     dis.write(page.encodePage());
                 }
             } catch (Exception e) {
-                System.out.println("Error while reading in pages: " + e.getMessage());
+                System.out.println("Error while writing pages pages: " + e.getMessage());
                 return false;
             }
         }

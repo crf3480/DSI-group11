@@ -120,7 +120,6 @@ public class DatabaseEngine {
         } else {
             attributeLength = Integer.parseInt(parts[2]);
         }
-        System.out.println(attributeLength);
         Attribute attribute = new Attribute(attributeName, type, false  , false , false ,attributeLength);
         storageManager.addAttribute(tableName, attribute);
     }

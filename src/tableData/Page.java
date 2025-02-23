@@ -149,22 +149,10 @@ public class Page {
         for (int i = 0; i < newSchema.attributes.size(); i++) {
             schemaMap[i] = tableSchema.getAttributeIndex(newSchema.attributes.get(i).name);
         }
-        /*
-        System.out.print("SCHEMAMAP: ");
-        for (Integer i : schemaMap) {
-            System.out.print(i);
-            System.out.print(" ");
-        }
-        System.out.println();
-
-         */
         for (Record record : records) {
             ArrayList<Object> rowData = new ArrayList<>();
-            //System.out.println("ROWDATA: "+record.rowData.toString());
             for (int i = 0; i < schemaMap.length; i++) {
-                Object def = newSchema.attributes.get(i).defaultValue;
-                Object grab = record.rowData.get(schemaMap[i]);
-                rowData.add(schemaMap[i] == -1 ? def : grab);
+                rowData.add(schemaMap[i] == -1 ? newSchema.attributes.get(i).defaultValue : record.rowData.get(schemaMap[i]));
             }
             record.rowData = rowData;
         }

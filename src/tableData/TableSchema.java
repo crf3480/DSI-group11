@@ -58,6 +58,11 @@ public class TableSchema {
         return count;
     }
 
+    public TableSchema duplicate() {
+        ArrayList<Attribute> duplicateAttributes = new ArrayList<>(attributes);
+        return new TableSchema(name, duplicateAttributes);
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
