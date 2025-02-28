@@ -12,13 +12,13 @@ import java.util.Collection;
 public class Page {
 
     // The discrepancy between pageSize and recordData size because of additional data
-    private final int SIZE_OFFSET = Integer.BYTES * 3;
+    private final int SIZE_OFFSET = (Integer.BYTES * 2) + 8;
 
     private TableSchema tableSchema;
     private int pageSize;
     public int pageNumber;
 
-    public int nextPage;  // pointer to next page in the file
+    public long nextPage;  // pointer to next page in the file
     public ArrayList<Record> records;
 
 
@@ -35,7 +35,7 @@ public class Page {
         DataInputStream in = new DataInputStream(inStream);
         pageNumber = in.readInt();
         int numRecords = in.readInt();
-        this.nextPage = in.readInt();
+        this.nextPage = in.readLong();
         // Read in records
         byte[] recordData = new byte[pageData.length - SIZE_OFFSET];
         in.readFully(recordData);
@@ -232,8 +232,6 @@ public class Page {
             newSize += splitRecordSize;
         }
         Page p = new Page(pageNumber + 1, splitRecords, pageSize, tableSchema);
-        p.nextPage = this.nextPage;
-        //TODO: CHANGE THIS PAGE'S NEXT PAGE POINTER TO POINT TO P
         return p;
     }
 
@@ -311,7 +309,7 @@ public class Page {
         DataOutputStream out = new DataOutputStream(bs);
         out.writeInt(pageNumber); // Writes the page number first
         out.writeInt(records.size()); // Writes the number of records
-        out.writeInt(nextPage);  // Writes the pointer to the next page
+        out.writeLong(nextPage);  // Writes the pointer to the next page
         out.write(encodeRecords(records));    // Writes the record data
 
         return bs.toByteArray();

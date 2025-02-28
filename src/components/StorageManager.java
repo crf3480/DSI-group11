@@ -155,6 +155,9 @@ public class StorageManager {
             }
         }
         Page split = pages.getLast().split();
+        //setting next page pointers
+        split.nextPage = pages.getLast().nextPage;
+        pages.getLast().nextPage = catalog.getTableFile(tableName).length();
         pages.add(split);
         save();
     }
