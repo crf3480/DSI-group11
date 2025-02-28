@@ -12,11 +12,13 @@ import java.util.Collection;
 public class Page {
 
     // The discrepancy between pageSize and recordData size because of additional data
-    private final int SIZE_OFFSET = Integer.BYTES * 2;
+    private final int SIZE_OFFSET = Integer.BYTES * 3;
 
     private TableSchema tableSchema;
     private int pageSize;
     public int pageNumber;
+
+    public int nextPage;  // pointer to next page in the file
     public ArrayList<Record> records;
 
 
