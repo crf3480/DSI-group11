@@ -35,6 +35,7 @@ public class Page {
         DataInputStream in = new DataInputStream(inStream);
         pageNumber = in.readInt();
         int numRecords = in.readInt();
+        this.nextPage = in.readInt();
         // Read in records
         byte[] recordData = new byte[pageData.length - SIZE_OFFSET];
         in.readFully(recordData);
@@ -52,6 +53,7 @@ public class Page {
         this.pageNumber = pageNumber;
         this.tableSchema = tableSchema;
         this.pageSize = pageSize;
+        this.nextPage = -1; //default next page value
         this.records = records;
     }
 
@@ -228,7 +230,7 @@ public class Page {
             splitRecords.add(records.removeLast());
             newSize += splitRecordSize;
         }
-
+        //TODO: CHANGE THIS PAGE'S NEXT PAGE POINTER TO POINT TO THE PAGE CREATED BELOW
         return new Page(pageNumber + 1, splitRecords, pageSize, tableSchema);
     }
 
@@ -306,6 +308,7 @@ public class Page {
         DataOutputStream out = new DataOutputStream(bs);
         out.writeInt(pageNumber); // Writes the page number first
         out.writeInt(records.size()); // Writes the number of records
+        out.writeInt(nextPage);  // Writes the pointer to the next page
         out.write(encodeRecords(records));    // Writes the record data
 
         return bs.toByteArray();
