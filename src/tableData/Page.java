@@ -231,8 +231,10 @@ public class Page {
             splitRecords.add(records.removeLast());
             newSize += splitRecordSize;
         }
-        //TODO: CHANGE THIS PAGE'S NEXT PAGE POINTER TO POINT TO THE PAGE CREATED BELOW
-        return new Page(pageNumber + 1, splitRecords, pageSize, tableSchema);
+        Page p = new Page(pageNumber + 1, splitRecords, pageSize, tableSchema);
+        p.nextPage = this.nextPage;
+        //TODO: CHANGE THIS PAGE'S NEXT PAGE POINTER TO POINT TO P
+        return p;
     }
 
     /**
