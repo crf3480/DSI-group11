@@ -67,6 +67,7 @@ public class Page {
         this.pageNumber = pageNumber;
         this.tableSchema = tableSchema;
         this.pageSize = pageSize;
+        this.nextPage = -1; //default next page value
         this.records = new ArrayList<>();
     }
 
