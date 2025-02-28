@@ -5,11 +5,18 @@ import tableData.Record;
 import tableData.TableSchema;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * Class for performing SQL actions, as directed by the parsers
  */
 public class DatabaseEngine {
+
+    /// Output constants
+    private static final String LEFT_WALL = "| ";
+    private static final String RIGHT_WALL = " |";
+    private static final String CELL_DIVIDER = " | ";
+    private static final char TRUCATION_CHAR = '…';
 
     private StorageManager storageManager;
 
@@ -137,17 +144,9 @@ public class DatabaseEngine {
             ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));    // select * from table
             if (records == null) { return; }  // If table does not exist, cancel
             TableSchema schema = storageManager.getTableSchema(tables.get(0));
-            Object[][] objects = new Object[records.size()][schema.attributes.size()];
-            for (int i = 0; i < records.size(); i++) {
-                for (int j = 0; j < schema.attributes.size(); j++) {
-                    objects[i][j] = records.get(i).get(j);
-                }
-            }
-            String[] headers = new String[schema.attributes.size()];
-            for (int i = 0; i < schema.attributes.size(); i++) {
-                headers[i] = schema.attributes.get(i).name;
-            }
-            System.out.println(tableToString(objects, headers));
+            System.out.println(headerToString(schema, 10));
+            System.out.println(tableToString(records, 10));
+            System.out.println(footerString(schema, 10));
         }
         catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
@@ -273,94 +272,93 @@ public class DatabaseEngine {
     }
 
     /**
-     * Converts a 2D array into a clean, printed output
-     * @param rows The data to display
-     * @param headers Optionally, the names of each column. If the length does not match the number of columns in data
-     *                blank values will be inserted into the smaller to match. If null, no headers will be displayed
-     * @return The string representation of the table
+     * Returns a string containing the properly formatted header to a table printout
+     * @param schema The schema of the table being printed
+     * @param colWidth The width of every column in the printout. Any attribute name which
+     *                 doesn't fit will be truncated
+     * @return The header printout
      */
-    public String tableToString(Object[][] rows, String[] headers) {
-        final String LEFT_WALL = "| ";
-        final String RIGHT_WALL = " |\n";
-        final String CELL_DIVIDER = " | ";
+    public String headerToString(TableSchema schema, int colWidth) {
+        int totalWidth = LEFT_WALL.length() + RIGHT_WALL.length();
+        totalWidth += (colWidth + CELL_DIVIDER.length()) * (schema.attributes.size());
+        totalWidth -= CELL_DIVIDER.length(); // Last cell doesn't have divider
+        // Add top line
+        StringBuilder output = new StringBuilder("+");
+        output.append("-".repeat(totalWidth - 2));
+        output.append("+\n");
+        output.append(LEFT_WALL);
 
-        // Find max number of columns between headers and rows, with a minimum of 1
-        int numCols = Math.max((rows.length == 0) ? 1 : rows[0].length, (headers == null) ? 1 : headers.length);
-        String[][] dataStrings = new String[rows.length][numCols];
-        int[] colWidths = new int[numCols];  // Max width of data in each column
-        // If present, check the header widths
-        if (headers != null) {
-            for (int i = 0; i < numCols; i++) {
-                if (i < headers.length) {
-                    colWidths[i] = headers[i].length();
-                }
+        // Print each header cell
+        for (int i = 0; i < schema.attributes.size(); i++) {
+            if (i != 0) {
+                output.append(CELL_DIVIDER);
             }
+            output.append(fitToWidth(schema.attributes.get(i).name, colWidth));
         }
-        // Convert data to String, tracking the max width of every String
-        // If numCols is greater than the length of the rows, just put an empty String
-        for (int col = 0; col < numCols; col++) {
-            for (int row = 0; row < rows.length; row++) {
-                if (col < rows[row].length) {
-                    String str = (rows[row][col] == null) ? "null" : rows[row][col].toString();
-                    dataStrings[row][col] = str;
-                    colWidths[col] = Math.max(colWidths[col], str.length());
-                } else {
-                    dataStrings[row][col] = "";
-                }
-            }
-        }
-        // Compute the horizontal dividing line
-        StringBuilder horizontalLine = new StringBuilder("+");
-        for (int col = 0; col < numCols; col++) {
-            horizontalLine.append("-".repeat(colWidths[col] + 1));
-            horizontalLine.append("-+");
-        }
-        horizontalLine.append("\n");
-
-        StringBuilder table = new StringBuilder(horizontalLine);
-        // Create header boxes
-        if (headers != null) {
-            table.append(LEFT_WALL);
-            for (int i = 0; i < numCols; i++) {
-                if (i < headers.length) {
-                    table.append(padded(headers[i], colWidths[i]));
-                } else {
-                    table.append(" ".repeat(colWidths[i]));
-                }
-                // Don't print on last col
-                if (i < numCols - 1) {
-                    table.append(CELL_DIVIDER);
-                }
-            }
-            table.append(RIGHT_WALL);
-            table.append(horizontalLine);
-        }
-
-        // Pad each cell to length and then print
-        for (int row = 0; row < dataStrings.length; row++) {
-            table.append(LEFT_WALL);
-            for (int col = 0; col < numCols; col++) {
-                dataStrings[row][col] = padded(dataStrings[row][col], colWidths[col]);
-            }
-            table.append(String.join(CELL_DIVIDER, dataStrings[row]));
-            table.append(RIGHT_WALL);
-        }
-        // Add bottom border (if entries exist) and return
-        if (rows.length > 0) {
-            table.append(horizontalLine);
-        }
-        return table.toString();
+        output.append(RIGHT_WALL);
+        output.append('\n');
+        // Add bottom line and return
+        output.append('+');
+        output.append("-".repeat(totalWidth - 2));
+        output.append('+');
+        return output.toString();
     }
 
     /**
-     * Pads a string to a given length by appending spaces
-     * @param text The text to display
-     * @param width The width to pad it to
-     * @return The padding string. If string is longer than width, returns string
+     * Returns the
+     * @param schema The schema of the table being printed
+     * @param colWidth The width of every column in the printout. Any attribute name which
+     *                 doesn't fit will be truncated
+     * @return The header printout
      */
-    private String padded(String text, int width) {
-        if (text.length() > width) {
+    public String footerString(TableSchema schema, int colWidth) {
+        int totalWidth = LEFT_WALL.length() + RIGHT_WALL.length();
+        totalWidth += (colWidth + CELL_DIVIDER.length()) * (schema.attributes.size());
+        totalWidth -= CELL_DIVIDER.length(); // Last cell doesn't have divider
+        return '+' + "-".repeat(totalWidth - 2) + '+';
+    }
+
+    /**
+     * Converts a list of records to a printable output
+     * @param records The data to display
+     * @param colWidth The width to use for each column. Any cell value longer than this amount will be truncated
+     * @return The string representation of the table
+     */
+    public String tableToString(Collection<Record> records, int colWidth) {
+        StringBuilder output = new StringBuilder();
+
+        // Pad each cell to length and then print
+        for (Record record : records) {
+            output.append(LEFT_WALL);
+            for (int i = 0; i < record.rowData.size(); i++) {
+                if (i != 0) {
+                    output.append(CELL_DIVIDER);
+                }
+                if (record.rowData.get(i) == null) {
+                    output.append(fitToWidth("null", colWidth));
+                } else {
+                    output.append(fitToWidth(record.rowData.get(i).toString(), colWidth));
+                }
+            }
+            output.append(RIGHT_WALL);
+            output.append('\n');
+        }
+        // Remove last new line
+        output.deleteCharAt(output.length() - 1);
+        return output.toString();
+    }
+
+    /**
+     * Truncates/pads a given String to a given length
+     * @param text The String to fit
+     * @param width The length to set it to.
+     * @return The updated String
+     */
+    private String fitToWidth(String text, int width) {
+        if (text.length() == width) {
             return text;
+        } else if (text.length() > width) {
+            return text.substring(0, width - 1) + TRUCATION_CHAR;
         }
         return text + " ".repeat(width - text.length());
     }
