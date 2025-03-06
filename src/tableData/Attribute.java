@@ -61,6 +61,10 @@ public class Attribute {
         this.notNull = notNull;
         this.unique = unique;
         // TODO: Throw an error if defaultValue is null and attribute cannot be null
+        if (defaultValue == null && notNull){
+            System.err.print("Warning: Attribute is not null but default value is null");
+        }
+
         this.defaultValue = defaultValue;
 
         switch(type){
