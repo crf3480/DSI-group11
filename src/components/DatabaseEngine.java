@@ -159,8 +159,8 @@ public class DatabaseEngine {
      */
     private ArrayList<String> parseWhere(ArrayList<String> where) {
         ArrayList<String> out = new ArrayList<>();
-        Stack<String> stack = new Stack<>();
-        Queue<String> queue = new LinkedList<>();
+        Stack<String> operators = new Stack<>();
+        Stack<String> operands = new Stack<>();
 
         for (String s : where) {
 
