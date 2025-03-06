@@ -258,21 +258,7 @@ public class DML extends GeneralParser {
         System.out.println("WHERE "+where);
         System.out.println("ORDER BY "+orderby);
         */
-        where = parseWhere(where);
         engine.selectRecords(attributes, tables, where, orderby);
-    }
-
-    private ArrayList<String> parseWhere(ArrayList<String> where) {
-        ArrayList<String> out = new ArrayList<>();
-        Stack<String> stack = new Stack<>();
-        Queue<String> queue = new LinkedList<>();
-
-        for (String s : where) {
-
-        }
-
-
-        return where;
     }
 
     private int commaCount(ArrayList<String> set) {
