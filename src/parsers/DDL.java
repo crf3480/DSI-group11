@@ -97,6 +97,9 @@ public class DDL {
             return null;
         }
         // Read basic table data
+        if (Character.isDigit(inputList.get(2).charAt(0))) {
+            System.err.println("Invalid table name: "+inputList.get(2));
+        }
         String tableName = inputList.get(2);
         ArrayList<ArrayList<String>> attributeList = new ArrayList<>();
         ArrayList<String> attributeTokens = new ArrayList<>();
