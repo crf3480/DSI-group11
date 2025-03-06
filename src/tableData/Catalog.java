@@ -124,14 +124,19 @@ public class Catalog {
         return tableSchemas.get(tableId);
     }
 
+    public TableSchema getTableSchemaById(int tableId){
+       return  tableSchemas.get(tableId);
+    }
+
     /**
      * Updates a table's schema the schema of a table by name
      * @param tableName The name of the table
      * @return The previous schema for that table, if one existed
      */
     public TableSchema setTableSchema(String tableName, TableSchema newSchema){
-        int oldTableId = tableNameToId.get(tableName);
-        return tableSchemas.put(oldTableId, newSchema);
+        int tableId = tableNameToId.get(tableName);
+
+        return tableSchemas.put(tableId, newSchema);
     }
 
     /**
