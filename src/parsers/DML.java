@@ -128,21 +128,144 @@ public class DML extends GeneralParser {
      * @param inputList The list of tokens representing the user's input
      */
     public void select(ArrayList<String> inputList) {
-        if (!inputList.getFirst().equals("select") || !inputList.contains("from")) {
+        if (!inputList.getFirst().equals("select")) {
             System.err.println("Invalid select statement: " + String.join(" ", inputList));
             return;
         }
-        ArrayList<String> columns = new ArrayList<>(inputList.subList(1, inputList.indexOf("from")));
-        if (columns.contains("*") && columns.size() > 1) {
-            System.err.println("Invalid select statement: " + String.join(" ", inputList));
-            return;
-        }
-        ArrayList<String> tables = new ArrayList<>(inputList.subList(inputList.indexOf("from") + 1, (inputList.contains("where") ? inputList.indexOf("where") : inputList.size())));
+
+        ArrayList<String> currentSet = new ArrayList<>();
+        ArrayList<String> attributes = new ArrayList<>();
+        ArrayList<String> tables = new ArrayList<>();
         ArrayList<String> where = new ArrayList<>();
-        if (inputList.contains("where")) {
-            where.addAll(inputList.subList(inputList.indexOf("where")+1, inputList.size()));
+        String orderby = "";
+        int scanMode = 0;
+        for (int x = 1; x < inputList.size(); x++) {
+            String s = inputList.get(x);
+            if (s.equals("select")) {    //Select is a keyword. if we find it the statement is bad
+                System.err.println("Invalid select statement: " + String.join(" ", inputList));
+                return;
+            }
+            switch (scanMode) {
+                case 0 -> {     // Adding attributes to select. Searching for "from"
+                    if (s.equals("from")) {
+                        attributes.addAll(currentSet);
+                        currentSet = new ArrayList<>();
+                        scanMode = 1;
+                    } else if (s.equals("where") || s.equals("orderby")) {
+                        System.err.println("Invalid select statement: " + String.join(" ", inputList));
+                        return;
+                    } else {
+                        currentSet.add(s);
+                    }
+                }
+                case 1 -> {     // Adding tables to select from. Searching for "where" or "orderby"
+                    if (s.equals("from")) {   // from is now an invalid keyword
+                        System.err.println("Invalid select statement: " + String.join(" ", inputList));
+                        return;
+                    } else if (s.equals("where")) {
+                        tables.addAll(currentSet);
+                        currentSet = new ArrayList<>();
+                        scanMode = 2;
+                    } else if (s.equals("orderby")) {
+                        tables.addAll(currentSet);
+                        currentSet = new ArrayList<>();
+                        scanMode = 3;
+                    } else {
+                        currentSet.add(s);
+                    }
+                }
+                case 2 -> {     // Building WHERE clause. Searching for "orderby" if it exists
+                    if (s.equals("from") || s.equals("where")) {  // from and where are now invalid keywords
+                        System.err.println("Invalid select statement: " + String.join(" ", inputList));
+                        return;
+                    } else if (s.equals("orderby")) {
+                        scanMode = 3;
+                        where.addAll(currentSet);
+                        currentSet = new ArrayList<>();
+                    } else{
+                        currentSet.add(s);
+                    }
+                }
+                case 3 -> {     // ORDERBY clause. Always has a single element.
+                    if (x!=inputList.size()-1) {
+                        System.err.println("Invalid select statement: " + String.join(" ", inputList));
+                        System.err.println("Invalid ORDERBY clause - can only order by one attribute");
+                        return;
+                    }
+                    currentSet.add(s);
+                    orderby = inputList.get(x);
+                }
+            }
         }
-        engine.selectRecords(columns, tables, where);
+
+        // End of inputList reached. Parse final currentSet value.
+
+        if (scanMode == 0) {    // if the statement has no "from" it's not a valid select statement
+            System.err.println("Invalid select statement: " + String.join(" ", inputList));
+            System.err.println("Missing FROM clause");
+            return;
+        }
+        else{
+            if (currentSet.isEmpty()) {
+                System.err.println("Invalid select statement: " + String.join(" ", inputList));
+                switch (scanMode){
+                    case 1 -> {
+                        System.err.println("Incomplete FROM clause");
+                    }
+                    case 2 -> {
+                        System.err.println("Incomplete WHERE clause");
+                    }
+                    case 3 -> {
+                        System.err.println("Incomplete ORDERBY clause");
+                    }
+                }
+                return;
+            }
+            else{
+                if (attributes.size()>1){
+                    if (attributes.size()%2!=1 || (commaCount(attributes) != attributes.size()/2)){
+                        System.err.println("Invalid select statement: " + String.join(" ", inputList));
+                        return;
+                    }
+                }
+                switch (scanMode){  // Will only ever enter this switch in mode 1 or 2
+                                    // 0 errors out already if invalid and 3's error checking is done in the loop
+                    case 1 -> {
+                        if (currentSet.size()>1){
+                            if (currentSet.size()%2!=1 || (commaCount(currentSet) != currentSet.size()/2)){
+                                System.err.println("Invalid select statement: " + String.join(" ", inputList));
+                                return;
+                            }
+                        }
+                        tables.addAll(currentSet);
+                    }
+                    case 2 -> {
+                        if (commaCount(currentSet)!=0){
+                            System.err.println("Invalid select statement: " + String.join(" ", inputList));
+                            return;
+                        }
+                        where.addAll(currentSet);
+                    }
+                }
+            }
+        }
+        /*
+        System.out.println("SELECT "+attributes);
+        System.out.println("FROM "+tables);
+        System.out.println("WHERE "+where);
+        System.out.println("ORDER BY "+orderby);
+        */
+        engine.selectRecords(attributes, tables, where, orderby);
+    }
+
+    private int commaCount(ArrayList<String> set) {
+        int count = 0;
+        for (String s : set) {
+            if (s.equals(",")) {
+                count++;
+            }
+        }
+        return count;
     }
 
     /**

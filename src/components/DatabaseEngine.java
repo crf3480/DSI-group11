@@ -132,13 +132,11 @@ public class DatabaseEngine {
     }
 
     /**
-     * SELECT name, salary FROM students, teachers WHERE salary = 1000
-     *
-     * @param columns   Everything between the SELECT and FROM in a select statement
-     * @param tables    Everything between the FROM and the WHERE in a select statement
-     * @param where     Everything after the WHERE in a select statement
+     * @param attributes    Names of all attributes to be selected from the tables. Comma separated.
+     * @param tables        Names of all tables that the attributes will be selected from. Comma separated.
+     * @param where         The entirety of the where clause
      */
-    public void selectRecords(ArrayList<String> columns, ArrayList<String> tables, ArrayList<String> where) {
+    public void selectRecords(ArrayList<String> attributes, ArrayList<String> tables, ArrayList<String> whereClause, String orderby) {
         //TODO: (IN PHASE 2) this only implements select * from a single table
         try {
             ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));    // select * from table
