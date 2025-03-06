@@ -135,6 +135,7 @@ public class DatabaseEngine {
      * @param attributes    Names of all attributes to be selected from the tables. Comma separated.
      * @param tables        Names of all tables that the attributes will be selected from. Comma separated.
      * @param where         The entirety of the where clause
+     * @param orderby       Attribute to order by in ascending order.
      */
     public void selectRecords(ArrayList<String> attributes, ArrayList<String> tables, ArrayList<String> whereClause, String orderby) {
         //TODO: (IN PHASE 2) this only implements select * from a single table
