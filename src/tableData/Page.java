@@ -12,30 +12,39 @@ import java.util.Collection;
 public class Page {
 
     // The discrepancy between pageSize and recordData size because of additional data
-    private final int SIZE_OFFSET = (Integer.BYTES * 2) + 8;
+    private final int SIZE_OFFSET =
+            Integer.BYTES +                                // Record count
+            Integer.BYTES +                                // Previous page index
+            Integer.BYTES;                                 // Next page index
 
     private TableSchema tableSchema;
     private int pageSize;
     public int pageNumber;
+    public int pageIndex;
 
-    public long nextPage;  // pointer to next page in the file
+    public int nextPage;  // index of next page in the file
+    public int prevPage;  // index of previous page in the file
     public ArrayList<Record> records;
 
 
     /**
      * Creates a page object from a Page data byte array
+     * @param pageIndex The index into the table file where this page is located
+     * @param pageNumber The number of the page
      * @param pageData The byte array of page data
      * @param tableSchema The schema of the data in this page
      */
-    public Page(byte[] pageData, TableSchema tableSchema) throws IOException {
+    public Page(int pageIndex, int pageNumber, byte[] pageData, TableSchema tableSchema) throws IOException {
+        this.pageIndex = pageIndex;
         this.tableSchema = tableSchema;
         pageSize = pageData.length;
 
         ByteArrayInputStream inStream = new ByteArrayInputStream(pageData);
         DataInputStream in = new DataInputStream(inStream);
-        pageNumber = in.readInt();
+        this.pageNumber = pageNumber;
         int numRecords = in.readInt();
-        this.nextPage = in.readLong();
+        this.nextPage = in.readInt();
+        this.prevPage = in.readInt();
         // Read in records
         byte[] recordData = new byte[pageData.length - SIZE_OFFSET];
         in.readFully(recordData);
@@ -44,30 +53,36 @@ public class Page {
 
     /**
      * Creates a Page from a pre-existing list of Records
+     * @param pageIndex The index into the table file where this page is located
      * @param pageNumber The number of the Page
      * @param records The list of records in the Page
      * @param pageSize The size of the Page
      * @param tableSchema The table schema for records in the page
      */
-    public Page(int pageNumber, ArrayList<Record> records, int pageSize, TableSchema tableSchema) {
+    public Page(int pageIndex, int pageNumber, ArrayList<Record> records, int pageSize, TableSchema tableSchema) {
+        this.pageIndex = pageIndex;
         this.pageNumber = pageNumber;
         this.tableSchema = tableSchema;
         this.pageSize = pageSize;
         this.nextPage = -1; //default next page value
+        this.prevPage = -1; //default prev page value
         this.records = records;
     }
 
     /**
      * Creates an empty page with a given page number
+     * @param pageIndex The index into the table file where this page is located
      * @param pageNumber The number of the page
      * @param tableSchema The schema of the records stored in this page
      * @param pageSize The page size in bytes
      */
-    public Page(int pageNumber, TableSchema tableSchema, int pageSize) {
+    public Page(int pageIndex, int pageNumber, TableSchema tableSchema, int pageSize) {
+        this.pageIndex = pageIndex;
         this.pageNumber = pageNumber;
         this.tableSchema = tableSchema;
         this.pageSize = pageSize;
         this.nextPage = -1; //default next page value
+        this.prevPage = -1; //default prev page value
         this.records = new ArrayList<>();
     }
 
@@ -77,6 +92,14 @@ public class Page {
      */
     public int recordCount() {
         return records.size();
+    }
+
+    /**
+     * Gets the name of the table this page belongs to
+     * @return The name of the table
+     */
+    public String getTableName() {
+        return tableSchema.name;
     }
 
     /**
@@ -150,23 +173,25 @@ public class Page {
      * @throws IllegalArgumentException if the existing records cannot be mapped onto the new schema
      */
     public ArrayList<Page> updateSchema(TableSchema newSchema) {
-        Integer[] schemaMap = new Integer[newSchema.attributes.size()];
-        for (int i = 0; i < newSchema.attributes.size(); i++) {
-            schemaMap[i] = tableSchema.getAttributeIndex(newSchema.attributes.get(i).name);
-        }
-        for (Record record : records) {
-            ArrayList<Object> rowData = new ArrayList<>();
-            for (int i = 0; i < schemaMap.length; i++) {
-                rowData.add(schemaMap[i] == -1 ? newSchema.attributes.get(i).defaultValue : record.rowData.get(schemaMap[i]));
-            }
-            record.rowData = rowData;
-        }
-        tableSchema = newSchema;
-        ArrayList<Page> newPages = new ArrayList<>();
-        while (pageDataSize() > pageSize) {
-            newPages.add(split());
-        }
-        return newPages.isEmpty() ? null : newPages;
+//        Integer[] schemaMap = new Integer[newSchema.attributes.size()];
+//        for (int i = 0; i < newSchema.attributes.size(); i++) {
+//            schemaMap[i] = tableSchema.getAttributeIndex(newSchema.attributes.get(i).name);
+//        }
+//        for (Record record : records) {
+//            ArrayList<Object> rowData = new ArrayList<>();
+//            for (int i = 0; i < schemaMap.length; i++) {
+//                rowData.add(schemaMap[i] == -1 ? newSchema.attributes.get(i).defaultValue : record.rowData.get(schemaMap[i]));
+//            }
+//            record.rowData = rowData;
+//        }
+//        tableSchema = newSchema;
+//        ArrayList<Page> newPages = new ArrayList<>();
+//        while (pageDataSize() > pageSize) {
+//            newPages.add(split(-1));
+//        }
+//        return newPages.isEmpty() ? null : newPages;
+        //TODO: replace in-place update with temp table migration method
+        return null;
     }
 
     /**
@@ -213,9 +238,10 @@ public class Page {
     /**
      * Splits the data of this page in half, transferring half to a new Page which is then returned. This new
      * Page will be given a default page number of -1. 'Half' is determined by data size, not record count.
+     * @param childPageIndex The page index that will be assigned to the child page
      * @return The new page containing half the records that were in this Page
      */
-    public Page split() {
+    public Page split(int childPageIndex) {
         ArrayList<Record> splitRecords = new ArrayList<>();
         int newSize = 0;
         while (newSize < pageSize / 2) {
@@ -231,8 +257,14 @@ public class Page {
             splitRecords.add(records.removeLast());
             newSize += splitRecordSize;
         }
-        Page p = new Page(pageNumber + 1, splitRecords, pageSize, tableSchema);
-        return p;
+        Page childPage = new Page(childPageIndex, pageNumber + 1, splitRecords, pageSize, tableSchema);
+        // Update page pointers
+        childPage.nextPage = nextPage;
+        nextPage = childPageIndex;
+        childPage.prevPage = pageIndex;
+        System.out.println("New page: ");
+        System.out.println(childPage);
+        return childPage;
     }
 
     /**
@@ -302,14 +334,13 @@ public class Page {
      * @return A byte array containing the fully encoded Page
      */
     public byte[] encodePage() throws IOException {
-
-        System.out.println("Encoding Page: " + pageNumber + " | Total Records: " + records.size());
+        // System.out.println("Encoding Page: " + pageNumber + " | Total Records: " + records.size());
 
         ByteArrayOutputStream bs = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(bs);
-        out.writeInt(pageNumber); // Writes the page number first
         out.writeInt(records.size()); // Writes the number of records
-        out.writeLong(nextPage);  // Writes the pointer to the next page
+        out.writeInt(nextPage);  // Writes the pointer to the next page
+        out.writeInt(prevPage);  // Writes the pointer to the next page
         out.write(encodeRecords(records));    // Writes the record data
 
         return bs.toByteArray();
@@ -320,11 +351,19 @@ public class Page {
         StringBuilder sb = new StringBuilder();
         sb.append("Page #");
         sb.append(pageNumber);
+        sb.append(" (index: ");
+        sb.append(pageIndex);
+        sb.append(")\nNext: ");
+        sb.append(nextPage);
+        sb.append("\nPrev: ");
+        sb.append(prevPage);
         sb.append("\n------------\n");
-        for (Record record : records) {
-            sb.append(record.toString());
-            sb.append("\n");
-        }
+        sb.append(recordCount());
+        sb.append(" records");
+//        for (Record record : records) {
+//            sb.append(record.toString());
+//            sb.append("\n");
+//        }
         return sb.toString();
     }
 }

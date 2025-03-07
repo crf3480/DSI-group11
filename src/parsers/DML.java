@@ -280,7 +280,7 @@ public class DML extends GeneralParser {
         ArrayList<Record> records = new ArrayList<>();
         int pageSize = 2000;
         TableSchema ts = TestData.permaTable();
-        Page page = new Page(0, records, pageSize, ts);
+        Page page = new Page(0, 0, records, pageSize, ts);
         while (page.insertRecord(TestData.testRecord(ts))) { } // Do nothing until the page gets full
         TableSchema newSchema = TestData.permaTable();
         newSchema.attributes.remove(3);
