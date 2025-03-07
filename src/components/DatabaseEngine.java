@@ -4,8 +4,7 @@ import tableData.AttributeType;
 import tableData.Record;
 import tableData.TableSchema;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 
 /**
  * Class for performing SQL actions, as directed by the parsers
@@ -132,13 +131,12 @@ public class DatabaseEngine {
     }
 
     /**
-     * SELECT name, salary FROM students, teachers WHERE salary = 1000
-     *
-     * @param columns   Everything between the SELECT and FROM in a select statement
-     * @param tables    Everything between the FROM and the WHERE in a select statement
-     * @param where     Everything after the WHERE in a select statement
+     * @param attributes    Names of all attributes to be selected from the tables. Comma separated.
+     * @param tables        Names of all tables that the attributes will be selected from. Comma separated.
+     * @param whereClause        The entirety of the where clause.
+     * @param orderby       Attribute to order by in ascending order.
      */
-    public void selectRecords(ArrayList<String> columns, ArrayList<String> tables, ArrayList<String> where) {
+    public void selectRecords(ArrayList<String> attributes, ArrayList<String> tables, ArrayList<String> whereClause, String orderby) {
         //TODO: (IN PHASE 2) this only implements select * from a single table
         try {
             ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));    // select * from table
@@ -152,6 +150,24 @@ public class DatabaseEngine {
             System.err.println("Error: " + e.getMessage());
         }
 
+    }
+
+    /**
+     *
+     * @param where
+     * @return
+     */
+    private ArrayList<String> parseWhere(ArrayList<String> where) {
+        ArrayList<String> out = new ArrayList<>();
+        Stack<String> operators = new Stack<>();
+        Stack<String> operands = new Stack<>();
+
+        for (String s : where) {
+
+        }
+
+
+        return where;
     }
 
     /**
