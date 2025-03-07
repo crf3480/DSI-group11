@@ -7,9 +7,8 @@ public class Catalog {
 
     private final File catalogFile;
     private int pageSize;
-    private int currentPageId;
-    private HashMap<Integer, TableSchema> tableSchemas;
-    private HashMap<String, Integer> tableNameToId;
+    private int currentTempID;
+    private HashMap<String, TableSchema> tableSchemas;
     private final byte TYPE_MASK =        0b0000111;
     private final byte PRIMARY_KEY_MASK = 0b1000000;
     private final byte NOT_NULL_MASK =    0b0100000;
@@ -25,8 +24,7 @@ public class Catalog {
         this.catalogFile = file;
         this.pageSize = pageSize;
         tableSchemas = new HashMap<>();
-        tableNameToId = new HashMap<>();
-        currentPageId = 0;
+        currentTempID = 0;
 
         if (!catalogFile.exists()) {  // Create new catalog file
             System.out.println("Creating new catalog file");
@@ -48,6 +46,7 @@ public class Catalog {
                     // Read table header data
                     String tableName = inputStream.readUTF();
                     ArrayList<Attribute> attributes = new ArrayList<>();
+                    int rootIndex = inputStream.readInt();
                     int numAttributes = inputStream.readInt();
                     // Read attributes
                     for (int i = 0; i < numAttributes; i++) {
@@ -65,9 +64,7 @@ public class Catalog {
                         attributes.add(new Attribute(typeName, attrType, primaryKey, notNull, unique, length));
                     }
                     try  {
-                        currentPageId += 1;
-                        tableNameToId.put(tableName, currentPageId);
-                        tableSchemas.put(tableNameToId.get(tableName), new TableSchema(tableName, attributes));
+                        tableSchemas.put(tableName, new TableSchema(tableName, rootIndex, attributes));
                     } catch (IllegalArgumentException e) {
                         System.err.println("Encountered error while creating table from catalog: " + e.getMessage());
                     }
@@ -84,9 +81,16 @@ public class Catalog {
      * Returns a set of all tables present in the catalog
      * @return The set of all table names
      */
-    public Set<String> getTableNames() { return tableNameToId.keySet(); }
+    public Set<String> getTableNames() { return tableSchemas.keySet(); }
 
-    public Set<String> getTableNamesById () { return tableNameToId.keySet(); }
+    /**
+     * Returns the next valid name for a temporary table
+     * @return The next temp name
+     */
+    public String nextTempName() {
+        currentTempID += 1;
+        return String.valueOf(currentTempID);
+    }
 
     /**
      * Inserts a table schema into the catalog
@@ -94,12 +98,10 @@ public class Catalog {
      * @return 'true' if the schema was inserted; 'false' if a table with that name already exists in the catalog
      */
     public boolean addTableSchema(TableSchema newSchema){
-        if (tableNameToId.containsKey(newSchema.name)) {
+        if (tableSchemas.containsKey(newSchema.name)) {
             return false;
         }
-        currentPageId += 1;
-        tableNameToId.put(newSchema.name, currentPageId);
-        tableSchemas.put(currentPageId, newSchema);
+        tableSchemas.put(newSchema.name, newSchema);
         return true;
     }
 
@@ -110,8 +112,7 @@ public class Catalog {
      * in the catalog
      */
     public boolean removeTableSchema(String tableName){
-        int tableId = tableNameToId.get(tableName);
-        return tableSchemas.remove(tableId) != null;
+        return tableSchemas.remove(tableName) != null;
     }
 
     /**
@@ -120,12 +121,7 @@ public class Catalog {
      * @return The table's schema, or 'null' if that table name does not exist in the schema
      */
     public TableSchema getTableSchema(String tableName){
-        int tableId = tableNameToId.get(tableName);
-        return tableSchemas.get(tableId);
-    }
-
-    public TableSchema getTableSchemaById(int tableId){
-       return  tableSchemas.get(tableId);
+        return tableSchemas.get(tableName);
     }
 
     /**
@@ -134,9 +130,7 @@ public class Catalog {
      * @return The previous schema for that table, if one existed
      */
     public TableSchema setTableSchema(String tableName, TableSchema newSchema){
-        int tableId = tableNameToId.get(tableName);
-
-        return tableSchemas.put(tableId, newSchema);
+        return tableSchemas.put(tableName, newSchema);
     }
 
     /**
@@ -150,6 +144,7 @@ public class Catalog {
         List<AttributeType> attributeTypes = Arrays.stream(AttributeType.values()).toList();
         for (TableSchema tableSchema : tableSchemas.values()){
             outputStream.writeUTF(tableSchema.name);
+            outputStream.writeInt(tableSchema.rootIndex);
             ArrayList<Attribute> attributes = tableSchema.attributes;
             outputStream.writeInt(attributes.size()); // Number of attributes
             for (Attribute attribute : attributes){

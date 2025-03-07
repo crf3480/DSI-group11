@@ -4,7 +4,9 @@ import tableData.*;
 import tableData.Record;
 import java.io.*;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.Iterator;
 
 /**
  * StorageManager.java
@@ -13,7 +15,7 @@ import java.util.HashMap;
 public class StorageManager {
 
     int bufferSize;
-    HashMap<String, ArrayList<Page>> buffer;
+    ArrayDeque<Page> buffer;
     Catalog catalog;
 
     int pageSize;
@@ -28,102 +30,176 @@ public class StorageManager {
      */
     public StorageManager(File databaseDir, int pageSize, int bufferSize) throws IOException {
         this.bufferSize = bufferSize;
-        buffer = new HashMap<>();
+        buffer = new ArrayDeque<>(bufferSize);
         File catalogFile = new File(databaseDir, "catalog.bin");
         catalog = new Catalog(catalogFile, pageSize);
         this.pageSize = pageSize;
-        for (String name : catalog.getTableNames()) {
-            loadTable(name);
+    }
+
+    /**
+     * Returns a page with a given ID from a specified table. It will be retrieved from the buffer,
+     * unless the page isn't present, in which case it will be fetched from storage
+     * @param tableName The name of the table to fetch the page from
+     * @param pageNum The number of the page to fetch
+     * @return The requested Page. `null` if page number exceeds the number of pages in the table
+     */
+    public Page getPage(String tableName, int pageNum) {
+        // Search the buffer for the page and return it
+        Page currClosest = null;
+        for (Page page : buffer) {
+            if (page.getTableName().equals(tableName)) {
+                if (page.pageNumber == pageNum) {
+                    // Move page to the back of the queue and return it
+                    buffer.remove(page);
+                    buffer.push(page);
+                    return page;
+                }
+                // Check if this ID was at least closer than the previous target
+                if (currClosest == null ||
+                        Math.abs(page.pageNumber - pageNum) < Math.abs(currClosest.pageNumber - pageNum)) {
+                    currClosest = page;
+                }
+            }
+        }
+        // Page wasn't in the buffer, so load it in.
+        // First, if requested page was page 0, just load it from rootIndex return
+        if (pageNum == 0) {
+            return loadPage(tableName, getTableSchema(tableName).rootIndex, 0);
+        }
+        // Otherwise, find page offset by hunting from the closest page.
+        // If no page from this table was in the buffer, start from the beginning
+        if (currClosest == null) {
+            currClosest = loadPage(tableName, getTableSchema(tableName).rootIndex, 0);
+            if (currClosest == null) {
+                // If the first page cannot be loaded, table must have zero pages
+                return null;
+            }
+        }
+        HashSet<Integer> visitedIndices = new HashSet<>();
+        int currPageNumber = currClosest.pageNumber;
+        int nextIndex;
+        // Hop from page to page until you get to the target
+        while (true) {
+            // Update nextIndex and currPageNumber depending on the direction
+            if (currPageNumber < pageNum) {
+                nextIndex = currClosest.nextPage;
+                currPageNumber += 1;
+            } else {
+                nextIndex = currClosest.prevPage;
+                currPageNumber -= 1;
+            }
+            // Error checking
+            if (visitedIndices.contains(currClosest.pageNumber)) {
+                System.err.println("Found reference loop with pages indices " + visitedIndices +
+                        " in table `" + tableName + "`");
+            }
+            visitedIndices.add(nextIndex);
+            // Load next page, unless you've run out of pages to loop through
+            try {
+                currClosest = loadPage(tableName, nextIndex, currPageNumber);
+            } catch (IndexOutOfBoundsException ioob) {
+                return null;
+            }
+            if (currClosest == null) {
+                return null;
+            } else if (currPageNumber == pageNum) {
+                return currClosest;
+            }
         }
     }
 
     /**
-     * Loads a table into the buffer
-     * @param tableName The name of the table
-     * @throws IOException An error was encountered when parsing the data file
+     * Loads a specific page into the buffer, freeing up an existing page if space is needed.
+     * NOTE: This function <b>does not</b> check if the page already exists in the buffer.
+     * @param tableName The ID of the table the Page belongs to
+     * @param pageIndex The index of the page within the table's file, irrespective of the page's
+     *                  actual number (i.e. pageIndex * pageSize = the byte offset of the desired page)
+     * @param pageNum The page number that should be assigned to this page. If there are gaps in
+     *                a table file or the pages are out of order, this number will be different from
+     *                pageIndex.
+     * @return A reference to the Page that was inserted. If pageIndex exceeds the size of the
+     * table file, returns `null`
+     * @throws IndexOutOfBoundsException if pageIndex exceeds the size of the table file
      */
-    private void loadTable(String tableName) throws IOException {
-        TableSchema tschema = catalog.getTableSchema(tableName);
-        ArrayList<Page> pageList = ParseDataFile(catalog.getTableFile(tableName), tschema);
-        if (!buffer.containsKey(tableName)) {
-            buffer.put(tableName, pageList);
+    private Page loadPage(String tableName, int pageIndex, int pageNum) throws IndexOutOfBoundsException {
+        byte[] pageData = new byte[pageSize];
+        File tableFile = catalog.getTableFile(tableName);
+        if (!tableFile.exists()) {
+            System.err.println("Could not find table file.");
+            return null;
+        }
+        // Make sure the file contains a page with that index
+        if ((pageIndex + 1) > tableFile.length() / pageSize) {  // This won't work if page size is less than ~10 bytes
+            return null;
+        } else if (pageIndex < 0) {
+            throw new IndexOutOfBoundsException("Invalid page index `" + pageIndex + "`");
+        }
+        // Read in the data
+        try (RandomAccessFile raf = new RandomAccessFile(tableFile, "r")) {
+            long offset = Integer.BYTES + ((long) pageIndex * pageSize);  // Page count + pageIndex offset
+            raf.seek(offset);
+            if (raf.read(pageData) != pageSize) {
+                System.err.println("WARNING: Read fewer bytes than expected while loading page from `" +
+                        tableFile.getAbsolutePath() + "`");
+            }
+        } catch (IOException ioe) {
+            System.err.println("Encountered problem while attempting to read table file: " + ioe.getMessage());
+            return null;
+        }
+        // Parse the page data and return it
+        try {
+            Page newPage = new Page(pageIndex, pageNum, pageData, catalog.getTableSchema(tableName));
+            insertPage(newPage);
+            return newPage;
+        } catch (IOException ioe) {
+            System.err.println("Failed to parse page " + pageNum + " at index " + pageIndex +
+                    " for table `" + tableName + "`");
+            return null;
         }
     }
 
     /**
-     * Returns the list of pages of a specified table
-     * @param tableName The name of the table
-     * @return An ArrayList of every Page in that table. If table does not exist, 'null'
+     * Inserts a Page into the buffer, popping another Page if the buffer is full and saving it to disk
+     * @param page The page to insert
+     * @return `true` if a page was dropped from the buffer to make room
      */
-    public ArrayList<Page> getPageList(String tableName) {
-        //This might be useful in the future, but right now the buffer always contains the list of pages
-//        ArrayList<Page> pageManager = buffer.get(tableName);
-//        if (pageManager == null) {
-//            try {
-//                loadTable(tableName);
-//            } catch (IOException e) {
-//                System.err.println("Table not found: '" + tableName + "'");
-//                return null;
-//            }
-//        }
-        return buffer.get(tableName);
+    private boolean insertPage(Page page) {
+        Page old = null;
+        // See if we need to make room in the buffer
+        if (buffer.size() >= bufferSize) {
+            old = buffer.removeLast();
+            savePage(old);
+        }
+        buffer.push(page);
+        return old != null;
     }
 
     /**
-     * gets record from a particular table by primary key
+     * Gets record from a particular table by primary key
      * @param tableName name of table
      * @param key string of key to search
      * @return record with matching key (or null if no matches)
      */
     public Record getByPrimaryKey(String tableName, String key)  {
-        ArrayList<Page> pageManager = getPageList(tableName);
         TableSchema tschema = catalog.getTableSchema(tableName);
         //finding the attribute index with the primary key
-        int primIndex = 0;
-        for (Attribute a : tschema.attributes) {
-            if (a.primaryKey) {
-                break;
-            }
-            primIndex++;
-        }
+        int primIndex = tschema.getAttributeIndex(tschema.primaryKey);
         //looping through pages and records to find The One
-        for (Page p : pageManager) {
-            for (Record r : p.getRecords()) {
+        Page currPage;
+        int pageNum = 0;
+        while (true) {
+            currPage = getPage(tableName, pageNum);
+            pageNum += 1;
+            if (currPage == null) {  // Reached end of table without finding the list
+                return null;
+            }
+            for (Record r : currPage.getRecords()) {
                 if (r.get(primIndex).equals(key)) {
                     return r;
                 }
             }
         }
-        return null;
     }
-
-    // Unsure about this one...
-    public Page pageByTableAndPageNum(String tableName, int pageNum){
-        ArrayList<Page> pageManager = getPageList(tableName);
-        for (Page p : pageManager) {
-            if (p.pageNumber == pageNum) {
-                return p;
-            }
-        }
-
-        return null;
-    }
-
-    public ArrayList<Record> getAllInTable(String tableName) {
-        getPageList(tableName);
-        if (buffer.get(tableName) == null) {
-            System.err.println("Table '" + tableName + "' does not exist.");
-            return null;
-        }
-        ArrayList<Record> records = new ArrayList<>();
-        ArrayList<Page> pageManager = getPageList(tableName);
-        for (Page p : pageManager) {
-            for (Record r : p.getRecords()) {
-                    records.add(r);
-                }
-            }
-        return records;
-        }
 
     /**
      * Inserts a record into a given table
@@ -132,74 +208,123 @@ public class StorageManager {
      */
     public void insertRecord(String tableName, Record record) {
         // Get the pages for that table
-        ArrayList<Page> pages = getPageList(tableName);
         TableSchema tschema = catalog.getTableSchema(tableName);
         if (tschema == null) {
             throw new IllegalArgumentException("Table '" + tableName + "' does not exist.");
         }
-        // If table is empty, insert a new page
-        if (pages.isEmpty()) {
-            pages.add(new Page(1, tschema, this.pageSize));
-        }
-        // Attempt to insert the record into each page
-        for (Page p : pages) {
-            if (p.insertRecord(record)) {
+        // Attempt to get the first page from the table. If null, make a new page
+        if (getPage(tableName, 0) == null) {
+            insertPage(new Page(0, 0, tschema, pageSize));
+            try {
+                expandTable(tableName);
+            } catch (IOException e) {
+                System.err.println("Encountered error while creating page: " + e.getMessage());
                 return;
             }
         }
-        // If that did not work, split the first page and try again
-        // Increment page numbers before the split
-        for (Page p : pages) {
-            if (p.pageNumber > pages.getLast().pageNumber + 1){
-                p.pageNumber++;
+        // Iterate over pages until you find the one where the record goes
+        int currIndex = 0;
+        Page currPage = getPage(tableName, 0);
+        int recordIndex = 0;
+        // Loop over all records and all pages until you find the insertion point
+        pageLoop:
+        while (true) {
+            // Iterate over the records until you find the one that comes after the new record in order
+            for (int i = 0; i < currPage.recordCount(); i++) {
+                Record pageRecord = currPage.records.get(i);
+                recordIndex = i;
+                // If new record goes before pageRecord or you hit the end of the table,
+                // insert it into the page at that index
+                if (pageRecord.compareTo(record, tschema) >= 0) {
+                    break pageLoop;
+                }
             }
+            // If there is no page after this one, break and insert into the last page
+            if (currPage.nextPage == -1) {
+                recordIndex = currPage.recordCount();
+                break;
+            }
+            currIndex += 1;
+            currPage = getPage(tableName, currIndex);
         }
-        Page split = pages.getLast().split();
-        pages.add(split);
-        save();
+        // At this point, currPage is the page to insert into and recordIndex is the index to insert into
+        currPage.records.add(recordIndex, record);
+        // If the record is now oversize, split
+        if (currPage.pageDataSize() > pageSize) {
+            int pageIndex;
+            try {
+                pageIndex = expandTable(tableName);
+            } catch (IOException e) {
+                // If there was a failure, undo the record insert and abort
+                System.err.println(e.getMessage());
+                currPage.records.remove(recordIndex);
+                return;
+            }
+            Page child = currPage.split(pageIndex);
+            System.out.println("Curr Page: ");
+            System.out.println(currPage);
+            if (child.nextPage != -1) {
+                // Update the prevPage pointer for the page after this one, if one exists
+                Page afterChild = getPage(tableName, currPage.pageNumber + 1);
+                afterChild.prevPage = pageIndex;
+                // Increment the page number for every page that follows child
+                for (Page page : buffer) {
+                    if (page.getTableName().equals(tableName) && page.pageNumber >= currPage.pageNumber) {
+                        page.pageNumber += 1;
+                    }
+                }
+            }
+            // Insert the new page into the buffer
+            insertPage(child);
+        }
     }
 
     public boolean deleteByPrimaryKey(String tableName, String key){
-        ArrayList<Page> pageManager = getPageList(tableName);
         TableSchema tschema = catalog.getTableSchema(tableName);
         //finding the attribute index with the primary key
-        int primIndex = 0;
-        for (Attribute a : tschema.attributes) {
-            if (a.primaryKey) {
-                break;
+        int primIndex = tschema.getAttributeIndex(tschema.primaryKey);
+        //looping through pages and records to find The One
+        Page currPage;
+        int pageNum = 0;
+        while (true) {
+            currPage = getPage(tableName, pageNum);
+            pageNum += 1;
+            if (currPage == null) {  // Reached end of table without finding the record
+                return false;
             }
-            primIndex++;
-        }
-        for (Page p : pageManager) {
-            for (Record r : p.getRecords()) {
+            // Loop over the page, removing the record if you find it
+            for (int i = 0; i < currPage.recordCount(); i++) {
+                Record r = currPage.records.get(i);
                 if (r.get(primIndex).equals(key)) {
-                    r.rowData.remove(primIndex);  // <-- What's the reason to do this?
-                    //Need to actually delete the record
+                    currPage.records.remove(i);
+                    return true;
                 }
             }
         }
-        return false;
     }
 
     public boolean updateByPrimaryKey(String tableName, String key, Record record){
-        ArrayList<Page> pageManager = getPageList(tableName);
         TableSchema tschema = catalog.getTableSchema(tableName);
         //finding the attribute index with the primary key
-        int primIndex = 0;
-        for (Attribute a : tschema.attributes) {
-            if (a.primaryKey) {
-                break;
+        int primIndex = tschema.getAttributeIndex(tschema.primaryKey);
+        //looping through pages and records to find The One
+        Page currPage;
+        int pageNum = 0;
+        while (true) {
+            currPage = getPage(tableName, pageNum);
+            pageNum += 1;
+            if (currPage == null) {  // Reached end of table without finding the record
+                return false;
             }
-            primIndex++;
-        }
-        for (Page p : pageManager) {
-            for (Record r : p.getRecords()) {
+            // Loop over the page, removing the record if you find it
+            for (int i = 0; i < currPage.recordCount(); i++) {
+                Record r = currPage.records.get(i);
                 if (r.get(primIndex).equals(key)) {
-                    r.update(primIndex, record);
+                    currPage.records.set(i, record);
+                    return true;
                 }
             }
         }
-        return false;
     }
 
     /**
@@ -209,8 +334,7 @@ public class StorageManager {
      * @throws IOException If an error is encountered when creating the table file
      */
     public void createTable(String tableName, ArrayList<Attribute> attributes) throws IOException {
-        if (catalog.addTableSchema(new TableSchema(tableName, attributes))) {
-            buffer.put(tableName, new ArrayList<>());
+        if (catalog.addTableSchema(new TableSchema(tableName, 0, attributes))) {
             File tableFile = new File(catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
             if (!tableFile.createNewFile()) {
                 throw new RuntimeException("File already exists for table '" + tableName + "' at '" + tableFile.getAbsolutePath() + "'");
@@ -247,7 +371,7 @@ public class StorageManager {
             throw new IOException("Encountered an error while deleting table file:" + e.getMessage());
         }
         catalog.removeTableSchema(tableName);
-        buffer.remove(tableName);
+        //TODO: Remove pages from buffer for dropped table
         catalog.save();
         return true;
     }
@@ -264,35 +388,37 @@ public class StorageManager {
      * @return 'true' if the attribute was added to the table; 'false' if there was an error
      */
     public boolean addAttribute(String tableName, Attribute newAttribute) {
-        if (newAttribute.primaryKey) {
-            System.err.println("Cannot add primary key to an existing table.");
-            return false;
-        }
-        if (newAttribute.notNull && newAttribute.defaultValue == null) {
-            System.err.println("New attribute is 'notnull', but 'null' is the default value.");
-            return false;
-        }
-        ArrayList<Page> pageList = getPageList(tableName);
-        if (!buffer.containsKey(tableName)) {
-            System.err.println("Table " + tableName + " does not exist");
-            return false;
-        }
-        TableSchema schema = catalog.getTableSchema(tableName);
-        for (Attribute a : schema.attributes) {
-            if (a.name.equals(newAttribute.name)) {
-                System.err.println("Table " + tableName + " already contains attribute '" + newAttribute.name + "'.");
-                return false;
-            }
-        }
-        TableSchema newSchema = schema.duplicate();
-        newSchema.attributes.add(newAttribute);
-        for (Page p : pageList) {
-            p.updateSchema(newSchema);
-        }
-        // schema.attributes.add(newAttribute);
-        catalog.setTableSchema(tableName, newSchema);
-        System.out.println("Added attribute '" + newAttribute.name + "' to table '" + tableName + "'");
-        return true;
+//        if (newAttribute.primaryKey) {
+//            System.err.println("Cannot add primary key to an existing table.");
+//            return false;
+//        }
+//        if (newAttribute.notNull && newAttribute.defaultValue == null) {
+//            System.err.println("New attribute is 'notnull', but 'null' is the default value.");
+//            return false;
+//        }
+//        ArrayList<Page> pageList = getPageList(tableName);
+//        if (!buffer.containsKey(tableName)) {
+//            System.err.println("Table " + tableName + " does not exist");
+//            return false;
+//        }
+//        TableSchema schema = catalog.getTableSchema(tableName);
+//        for (Attribute a : schema.attributes) {
+//            if (a.name.equals(newAttribute.name)) {
+//                System.err.println("Table " + tableName + " already contains attribute '" + newAttribute.name + "'.");
+//                return false;
+//            }
+//        }
+//        TableSchema newSchema = schema.duplicate();
+//        newSchema.attributes.add(newAttribute);
+//        for (Page p : pageList) {
+//            p.updateSchema(newSchema);
+//        }
+//        // schema.attributes.add(newAttribute);
+//        catalog.setTableSchema(tableName, newSchema);
+//        System.out.println("Added attribute '" + newAttribute.name + "' to table '" + tableName + "'");
+//        return true;
+        //TODO: Replace implementation with temp table approach
+        return false;
     }
 
     /**
@@ -302,28 +428,30 @@ public class StorageManager {
      * @return 'true' if the attribute was successfully dropped; 'false' if there was an error
      */
     public boolean dropAttribute(String tableName, String attributeName) {
-        ArrayList<Page> pageList = getPageList(tableName);
-        if (!buffer.containsKey(tableName)) {
-            System.err.println("Table " + tableName + " does not exist");
-            return false;
-        }
-        TableSchema schema = catalog.getTableSchema(tableName);
-        ArrayList<Attribute> attributes = schema.attributes;
-        int attrIndex = schema.getAttributeIndex(attributeName);
-        if (attrIndex == -1) {
-            System.err.println("Cannot drop attribute '" + attributeName + "': no such attribute.");
-            return false;
-        }
-        if (attributes.get(attrIndex).primaryKey) {
-            System.err.println("Cannot drop attribute '" + attributeName + "': key is primary key.");
-            return false;
-        }
-        schema.attributes.remove(attrIndex);
-        for (Page p : pageList) {
-            p.updateSchema(schema);
-        }
-        catalog.setTableSchema(tableName, schema);
-        return true;
+//        ArrayList<Page> pageList = getPageList(tableName);
+//        if (!buffer.containsKey(tableName)) {
+//            System.err.println("Table " + tableName + " does not exist");
+//            return false;
+//        }
+//        TableSchema schema = catalog.getTableSchema(tableName);
+//        ArrayList<Attribute> attributes = schema.attributes;
+//        int attrIndex = schema.getAttributeIndex(attributeName);
+//        if (attrIndex == -1) {
+//            System.err.println("Cannot drop attribute '" + attributeName + "': no such attribute.");
+//            return false;
+//        }
+//        if (attributes.get(attrIndex).primaryKey) {
+//            System.err.println("Cannot drop attribute '" + attributeName + "': key is primary key.");
+//            return false;
+//        }
+//        schema.attributes.remove(attrIndex);
+//        for (Page p : pageList) {
+//            p.updateSchema(schema);
+//        }
+//        catalog.setTableSchema(tableName, schema);
+//        return true;
+        //TODO: Replace implementation with temp table approach
+        return false;
     }
 
     /**
@@ -345,12 +473,16 @@ public class StorageManager {
         System.out.println("Table name: " + tableName);
         System.out.println("Table schema: ");
         System.out.println(schema);
-        System.out.println("Pages: " + buffer.get(tableName).size());
         int totalPages = 0;
-        for (Page p : buffer.get(tableName)) {
-            totalPages += p.getRecords().size();
+        int totalRecords = 0;
+        Page currPage = getPage(tableName, 0);
+        while (currPage != null) {
+            totalRecords += currPage.recordCount();
+            totalPages += 1;
+            currPage = getPage(tableName, totalPages);
         }
-        System.out.println("Records: " + totalPages);
+        System.out.println("Pages: " + totalPages);
+        System.out.println("Records: " + totalRecords);
     }
 
     /**
@@ -359,7 +491,7 @@ public class StorageManager {
      *     <li>Database location</li>
      *     <li>Page size</li>
      *     <li>Buffer size</li>
-     *     <li>Table schema</li>
+     *     <li>Table schemas</li>
      * </ul>
      */
     public void displaySchema() {
@@ -372,19 +504,37 @@ public class StorageManager {
         else{
             System.out.println("\nTables:\n");
             for(String table : catalog.getTableNames()) {
-                try {
-                    loadTable(table);
-                } catch (IOException e) {
-                    System.err.println("Failed to load table '" + table + "'");
-                    return;
-                }
                 displayTable(table);
             }
         }
     }
 
+    /**
+     * Gets the TableSchema for the table with a given name
+     * @param tableName The name of the table
+     * @return The table's schema
+     */
     public TableSchema getTableSchema(String tableName){
         return catalog.getTableSchema(tableName);
+    }
+
+    /**
+     * Increases the size of a table file by a single page. Returns the index of the page
+     * that would occupy the added space
+     * @param tableName The name of the table to expand
+     * @return The index of the added page
+     */
+    private int expandTable(String tableName) throws IOException {
+        // Being a private function, you can assume this call does not return null
+        File tableFile = catalog.getTableFile(tableName);
+        int newIndex = (int) tableFile.length() / pageSize;  // Calculate index before expanding table
+        try (RandomAccessFile out = new RandomAccessFile(tableFile, "rw")) {
+            out.seek(tableFile.length());
+            out.write(new byte[pageSize]);
+        } catch (FileNotFoundException fnf) {
+            throw new IOException("Could not locate table file for table `" + tableFile.getAbsolutePath() + "`");
+        }
+        return newIndex;
     }
 
     /**
@@ -397,80 +547,37 @@ public class StorageManager {
         } catch (IOException e) {
             System.err.println("ERROR: Failed to save catalog to disk: " + e.getMessage());
         }
-        for (String tableName : buffer.keySet()) {
-            if (!save(tableName)) {  // Try saving each table to file
+        while (!buffer.isEmpty()) {
+            // savePage() returns `false` on a failure
+            if (!savePage(buffer.pop())) {
+                // Abort and propagate that error
                 return false;
             }
         }
-        return false;
+        return true;
     }
 
     /**
-     * Writes the buffer for a particular table to file
-     * @return 'true' if this operation succeeded; 'false' if there was an error
+     * Saves a page to its corresponding table file
+     * @param page The page to write
+     * @return `false` if the table failed to be written to file
      */
-    public boolean save(String tableName) {
-        ArrayList<Page> pages = buffer.get(tableName);
-        if (pages == null) {
-            System.err.println("Table " + tableName + " does not exist");
+    private boolean savePage(Page page) {
+        // Read in the data
+        System.out.println(page);
+        File tableFile = catalog.getTableFile(page.getTableName());
+        if (!tableFile.exists()) {
+            System.err.println("Could not find table file.");
             return false;
         }
-        File tableFile = catalog.getTableFile(tableName);
-        try (FileOutputStream fs = new FileOutputStream(tableFile)) {
-            try (DataOutputStream dis = new DataOutputStream(fs)) {
-                // First value of file is the # of pages
-                dis.writeInt(pages.size());
-                // Write each page
-                for (Page page : pages) {
-                    dis.write(page.encodePage());
-                }
-            } catch (Exception e) {
-                System.out.println("Error while writing pages pages: " + e.getMessage());
-                return false;
-            }
+        try (RandomAccessFile raf = new RandomAccessFile(tableFile, "rw")) {
+            long offset = Integer.BYTES + ((long) page.pageIndex * pageSize);  // Page count + pageIndex offset
+            raf.seek(offset);
+            raf.write(page.encodePage());
+        } catch (IOException ioe) {
+            System.err.println("Encountered problem while attempting to write to table file: " + ioe.getMessage());
+            return false;
         }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return false;
-    }
-
-    /**
-     * Parses a table file into a sequence of pages using a given schema
-     * @param dataFile A File object pointing to the table's data file
-     * @param tableSchema The schema of the table data
-     * @return The list of Page objects that were stored in the table file
-     */
-    private ArrayList<Page> ParseDataFile(File dataFile, TableSchema tableSchema) throws IOException {
-        ArrayList<Page> pages = new ArrayList<>();
-        try (FileInputStream fs = new FileInputStream(dataFile)) {
-            try (DataInputStream in = new DataInputStream(fs)) {
-                //first byte of file is the # of pages
-                int numPages = in.readInt();
-                //reading each page into the pages arraylist
-                byte[] pageBytes = new byte[pageSize];
-                for (int i = 0; i < numPages; ++i) {
-                    int bytesRead = in.read(pageBytes);
-                    if (bytesRead != pageSize) {
-                        throw new IOException("Encountered EOF while reading page " + i + "; expected "
-                                + pageSize + " but got " + bytesRead);
-                    }
-                    Page pageToAdd = new Page(pageBytes, tableSchema);
-                    pages.add(pageToAdd);
-                }
-            } catch (Exception e) {
-                System.err.println("Error while reading table data file: " + e.getMessage());
-            }
-        }
-        catch (FileNotFoundException e) {
-            throw new IOException("Table file '" + dataFile + "' not found.");
-        }
-        catch (IOException e) {
-            throw e;  // Propagate IO exceptions up
-        }
-        catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        return pages;
+        return true;
     }
 }

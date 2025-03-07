@@ -1,8 +1,6 @@
 package components;
-import tableData.Attribute;
-import tableData.AttributeType;
+import tableData.*;
 import tableData.Record;
-import tableData.TableSchema;
 
 import java.util.*;
 
@@ -138,18 +136,25 @@ public class DatabaseEngine {
      */
     public void selectRecords(ArrayList<String> attributes, ArrayList<String> tables, ArrayList<String> whereClause, String orderby) {
         //TODO: (IN PHASE 2) this only implements select * from a single table
+        TableSchema schema = storageManager.getTableSchema(tables.getFirst());
+        if (schema == null) {
+            System.err.println("Table `" + tables.getFirst() + "` does not exist.");
+            return;
+        }
+        System.out.println(headerToString(schema, 10));
         try {
-            ArrayList<Record> records = storageManager.getAllInTable(tables.get(0));    // select * from table
-            if (records == null) { return; }  // If table does not exist, cancel
-            TableSchema schema = storageManager.getTableSchema(tables.get(0));
-            System.out.println(headerToString(schema, 10));
-            System.out.println(tableToString(records, 10));
-            System.out.println(footerString(schema, 10));
+            int pageIndex = 0;
+            Page currPage = storageManager.getPage(schema.name, pageIndex);
+            while (currPage != null && pageIndex < 10) {
+                System.out.println(tableToString(currPage.records, 10));
+                pageIndex += 1;
+                currPage = storageManager.getPage(schema.name, pageIndex);
+            }
         }
         catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
         }
-
+        System.out.println(footerString(schema, 10));
     }
 
     /**
@@ -194,15 +199,22 @@ public class DatabaseEngine {
         // Parse and insert record
         try {
             Record record = parseData(schema, tupleValues);
-            // Verify that record is unique
-            for (Record existingRec : storageManager.getAllInTable(tableName)) {
-                int matchAttr = record.duplicate(existingRec, schema);
-                if (matchAttr != -1) {
-                    System.err.println("Invalid tuple: a record with the value '" + record.get(matchAttr) +
-                            "' already exists for column '" + schema.attributes.get(matchAttr).name + "'.");
-                    return false;
+            int pageIndex = 0;
+            Page currPage = storageManager.getPage(schema.name, pageIndex);
+            // Verify record is unique
+            while (currPage != null) {
+                for (Record r : currPage.records) {
+                    int matchAttr = record.duplicate(r, schema);
+                    if (matchAttr != -1) {
+                        System.err.println("Invalid tuple: a record with the value '" + record.get(matchAttr) +
+                                "' already exists for column '" + schema.attributes.get(matchAttr).name + "'.");
+                        return false;
+                    }
                 }
+                pageIndex += 1;
+                currPage = storageManager.getPage(schema.name, pageIndex);
             }
+            // Insert
             storageManager.insertRecord(tableName, record);
         } catch (Exception e) {
             System.err.println(e.getMessage());
@@ -341,8 +353,11 @@ public class DatabaseEngine {
      * @return The string representation of the table
      */
     public String tableToString(Collection<Record> records, int colWidth) {
-        StringBuilder output = new StringBuilder();
+        if (records.isEmpty()) {
+            return "";
+        }
 
+        StringBuilder output = new StringBuilder();
         // Pad each cell to length and then print
         for (Record record : records) {
             output.append(LEFT_WALL);

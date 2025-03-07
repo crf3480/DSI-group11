@@ -112,7 +112,11 @@ public class DDL {
             }
         }
         attributeList.add(attributeTokens);
-        engine.createTable(tableName, attributeList);
+        try {
+            engine.createTable(tableName, attributeList);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
         return null;
     }
 
