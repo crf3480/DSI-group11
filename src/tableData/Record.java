@@ -56,7 +56,7 @@ public class Record {
      * @return If the records are considered a duplicate under this schema, returns the index of the attribute
      * they match on; Otherwise, -1
      */
-    public int duplicate(Record other, TableSchema schema) {
+    public int isEquivalent(Record other, TableSchema schema) {
         if (rowData.size() != other.size()) { return -1; }  // Records do not match
         for (int i = 0; i < rowData.size(); i++) {
             if ((schema.attributes.get(i).unique || schema.attributes.get(i).primaryKey)
@@ -65,6 +65,15 @@ public class Record {
             }
         }
         return -1;
+    }
+
+    /**
+     * Returns a shallow copy of this record
+     * @return A shallow copy of this Record
+     */
+    public Record duplicate() {
+        ArrayList<Object> duplicateValues = new ArrayList<>(rowData);
+        return new Record(duplicateValues);
     }
 
     @Override

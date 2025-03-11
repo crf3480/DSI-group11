@@ -108,6 +108,14 @@ public class Page {
     }
 
     /**
+     * Updates the schema associated with this page
+     * @param newSchema The new table name
+     */
+    public void updateSchema(TableSchema newSchema) {
+        tableSchema = newSchema;
+    }
+
+    /**
      * Returns the number of bytes taken up by all records in this Page
      * @return The number of bytes
      */
@@ -168,35 +176,6 @@ public class Page {
      */
     public void updatePageNumber(int newPageNumber) {
         this.pageNumber = newPageNumber;
-    }
-
-    /**
-     * Converts all records in this page to a new schema
-     * @param newSchema The schema to update the records in the Page to match
-     * @return If updating the schema results in the Page becoming overfull, this Page will be split until
-     * all resulting pages are an appropriate size and all resulting Pages will be returned
-     * @throws IllegalArgumentException if the existing records cannot be mapped onto the new schema
-     */
-    public ArrayList<Page> updateSchema(TableSchema newSchema) {
-//        Integer[] schemaMap = new Integer[newSchema.attributes.size()];
-//        for (int i = 0; i < newSchema.attributes.size(); i++) {
-//            schemaMap[i] = tableSchema.getAttributeIndex(newSchema.attributes.get(i).name);
-//        }
-//        for (Record record : records) {
-//            ArrayList<Object> rowData = new ArrayList<>();
-//            for (int i = 0; i < schemaMap.length; i++) {
-//                rowData.add(schemaMap[i] == -1 ? newSchema.attributes.get(i).defaultValue : record.rowData.get(schemaMap[i]));
-//            }
-//            record.rowData = rowData;
-//        }
-//        tableSchema = newSchema;
-//        ArrayList<Page> newPages = new ArrayList<>();
-//        while (pageDataSize() > pageSize) {
-//            newPages.add(split(-1));
-//        }
-//        return newPages.isEmpty() ? null : newPages;
-        //TODO: replace in-place update with temp table migration method
-        return null;
     }
 
     /**

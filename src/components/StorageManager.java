@@ -16,6 +16,7 @@ public class StorageManager {
     int bufferSize;
     ArrayDeque<Page> buffer;
     Catalog catalog;
+    int nextTempID;
 
     int pageSize;
 
@@ -32,7 +33,16 @@ public class StorageManager {
         buffer = new ArrayDeque<>(bufferSize);
         File catalogFile = new File(databaseDir, "catalog.bin");
         catalog = new Catalog(catalogFile, pageSize);
+        nextTempID = 0;
         this.pageSize = pageSize;
+    }
+
+    /**
+     * Returns a name for a temporary table
+     * @return The name of a temporary table
+     */
+    public String getTempTableName() {
+        return String.valueOf(nextTempID++);
     }
 
     /**
@@ -371,81 +381,52 @@ public class StorageManager {
     }
 
     /**
-     * Adds a new attribute to every record in a table. An attribute cannot be added if:
-     * <ul>
-     *     <li>New attribute is a primary key</li>
-     *     <li>An attribute with that name already exists in the table</li>
-     *     <li>The attribute is 'notNull' but has a null default value</li>
-     * </ul>
-     * @param tableName The name of the table to modify
-     * @param newAttribute The attribute to add
-     * @return 'true' if the attribute was added to the table; 'false' if there was an error
+     * Replaces one table with another. The target table's data will be dropped, and the source
+     * table will be renamed to the target's name.
+     * @param sourceName The name of the table whose data will be preserved
+     * @param targetName The name of the table that will be replaced by the source table
+     * @return `true` if the operation completed successfully; `false` otherwise
      */
-    public boolean addAttribute(String tableName, Attribute newAttribute) {
-//        if (newAttribute.primaryKey) {
-//            System.err.println("Cannot add primary key to an existing table.");
-//            return false;
-//        }
-//        if (newAttribute.notNull && newAttribute.defaultValue == null) {
-//            System.err.println("New attribute is 'notnull', but 'null' is the default value.");
-//            return false;
-//        }
-//        ArrayList<Page> pageList = getPageList(tableName);
-//        if (!buffer.containsKey(tableName)) {
-//            System.err.println("Table " + tableName + " does not exist");
-//            return false;
-//        }
-//        TableSchema schema = catalog.getTableSchema(tableName);
-//        for (Attribute a : schema.attributes) {
-//            if (a.name.equals(newAttribute.name)) {
-//                System.err.println("Table " + tableName + " already contains attribute '" + newAttribute.name + "'.");
-//                return false;
-//            }
-//        }
-//        TableSchema newSchema = schema.duplicate();
-//        newSchema.attributes.add(newAttribute);
-//        for (Page p : pageList) {
-//            p.updateSchema(newSchema);
-//        }
-//        // schema.attributes.add(newAttribute);
-//        catalog.setTableSchema(tableName, newSchema);
-//        System.out.println("Added attribute '" + newAttribute.name + "' to table '" + tableName + "'");
-//        return true;
-        //TODO: Replace implementation with temp table approach
-        return false;
-    }
-
-    /**
-     * Removes an attribute from a given table, so long as the attribute is not the primary key
-     * @param tableName The name of the table to remove the attribute from
-     * @param attributeName The name of the attribute to remove. Should be
-     * @return 'true' if the attribute was successfully dropped; 'false' if there was an error
-     */
-    public boolean dropAttribute(String tableName, String attributeName) {
-//        ArrayList<Page> pageList = getPageList(tableName);
-//        if (!buffer.containsKey(tableName)) {
-//            System.err.println("Table " + tableName + " does not exist");
-//            return false;
-//        }
-//        TableSchema schema = catalog.getTableSchema(tableName);
-//        ArrayList<Attribute> attributes = schema.attributes;
-//        int attrIndex = schema.getAttributeIndex(attributeName);
-//        if (attrIndex == -1) {
-//            System.err.println("Cannot drop attribute '" + attributeName + "': no such attribute.");
-//            return false;
-//        }
-//        if (attributes.get(attrIndex).primaryKey) {
-//            System.err.println("Cannot drop attribute '" + attributeName + "': key is primary key.");
-//            return false;
-//        }
-//        schema.attributes.remove(attrIndex);
-//        for (Page p : pageList) {
-//            p.updateSchema(schema);
-//        }
-//        catalog.setTableSchema(tableName, schema);
-//        return true;
-        //TODO: Replace implementation with temp table approach
-        return false;
+    public boolean replaceTable(String sourceName, String targetName) {
+        // Update the schema in the catalog
+        TableSchema sourceSchema = getTableSchema(sourceName);
+        sourceSchema.name = targetName;
+        catalog.setTableSchema(targetName, sourceSchema);
+        catalog.removeTableSchema(sourceName);
+        // Update the buffer, removing pages that belonged to the target and updating the schema for the source pages
+        for (int i = 0; i < buffer.size(); i++) {
+            Page cycledPage = buffer.removeLast();
+            if (cycledPage.getTableName().equals(targetName)) {
+                // Pages from the target are dropped
+                continue;
+            }
+            if (cycledPage.getTableName().equals(sourceName)) {
+                cycledPage.updateSchema(sourceSchema);
+            }
+            // Push the page onto the other end of the queue
+            buffer.push(cycledPage);
+        }
+        // Verify both files exist before doing anything destructive
+        File targetFile = catalog.getTableFile(targetName);
+        if (!targetFile.exists()) {
+            System.err.println("Could not locate table file `" + targetFile.getAbsolutePath() + "`");
+            return false;
+        }
+        File sourceFile = catalog.getTableFile(sourceName);
+        if (!sourceFile.exists()) {
+            System.err.println("Could not locate table file `" + sourceFile.getAbsolutePath() + "`");
+            return false;
+        }
+        // Delete target file and rename source file
+        if (!targetFile.delete()) {
+            System.err.println("Failed to delete table file `" + targetFile.getAbsolutePath() + "`");
+            return false;
+        }
+        if (!sourceFile.renameTo(targetFile)) {
+            System.err.println("Failed to rename table file `" + sourceFile.getAbsolutePath() + "` to `" +
+                    targetFile.getAbsolutePath() + "'");
+        }
+        return true;
     }
 
     /**

@@ -2,6 +2,7 @@ package components;
 import tableData.*;
 import tableData.Record;
 
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -104,10 +105,48 @@ public class DatabaseEngine {
      */
     //Storage manager
     public void dropAttribute(String tableName, String attributeName) {
-        storageManager.dropAttribute(tableName, attributeName);
-
+        TableSchema schema = storageManager.getTableSchema(tableName);
+        int dropIndex = schema.getAttributeIndex(attributeName);
+        // Validate parameters
+        if (dropIndex == -1) {
+            System.err.println("No attribute `" + attributeName + "` on table `" + tableName + "`");
+            return;
+        }
+        if (schema.primaryKey.equals(attributeName)) {
+            System.err.println("Cannot drop primary key `" + attributeName + "` from table `" + tableName + "`");
+        }
+        // Create a temporary table to transfer the updated info into
+        String tempName = storageManager.getTempTableName();
+        TableSchema newSchmea = schema.duplicate();
+        newSchmea.attributes.remove(dropIndex);
+        try {
+            storageManager.createTable(tempName, newSchmea.attributes);
+        } catch (IOException ioe) {
+            System.err.println("Encountered error while cloning table: " + ioe + " : " + ioe.getMessage());
+            return;
+        }
+        // Iterate over all records, dropping the attribute and inserting it into the new table
+        Page currPage = storageManager.getPage(tableName, 0);
+        int currIndex = 0;
+        while (currPage != null) {
+            for (Record r : currPage.records) {
+                Record updatedRec = r.duplicate();
+                updatedRec.rowData.remove(dropIndex);
+                storageManager.insertRecord(tempName, updatedRec);
+            }
+            currIndex += 1;
+            currPage = storageManager.getPage(tableName, currIndex);
+        }
+        storageManager.replaceTable(tempName, tableName);
     }
 
+    /**
+     * Adds an attribute to a specified table
+     * @param tableName The name of the table to add the attribute to
+     * @param attributeName The name of the attribute being added
+     * @param attributeType The type of the new attribute
+     * @param defaultValue The default value of the new attribute
+     */
     public void addAttribute(String tableName, String attributeName, String attributeType, String defaultValue) {
         String[] parts = attributeType.split(" ");
         AttributeType type;
@@ -125,7 +164,7 @@ public class DatabaseEngine {
             attributeLength = Integer.parseInt(parts[2]);
         }
         Attribute attribute = new Attribute(attributeName, type, false  , false , false ,attributeLength);
-        storageManager.addAttribute(tableName, attribute);
+        // storageManager.addAttribute(tableName, attribute);
     }
 
     /**
@@ -205,7 +244,7 @@ public class DatabaseEngine {
             // Verify record is unique
             while (currPage != null) {
                 for (Record r : currPage.records) {
-                    int matchAttr = record.duplicate(r, schema);
+                    int matchAttr = record.isEquivalent(r, schema);
                     if (matchAttr != -1) {
                         System.err.println("Invalid tuple: a record with the value '" + record.get(matchAttr) +
                                 "' already exists for column '" + schema.attributes.get(matchAttr).name + "'.");
