@@ -60,11 +60,8 @@ public class Attribute {
         this.primaryKey = primaryKey;
         this.notNull = notNull;
         this.unique = unique;
-<<<<<<< Updated upstream
 
-=======
         // Throw an error if defaultValue is null and attribute cannot be null
->>>>>>> Stashed changes
         if (defaultValue == null && notNull){
             System.err.print("Warning: Attribute is not null but default value is null");
         }

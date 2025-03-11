@@ -79,4 +79,29 @@ public class Record {
 
         return sb.toString();
     }
+
+    /**
+     * Determines whether this record should come before or after another when sorted by primary key
+     * @param other The other record to compare to
+     * @param schema The schema of the records
+     * @return a negative integer, zero, or a positive integer as this object is less than, equal to,
+     * or greater than the other Record.
+     */
+    public int compareTo(Record other, TableSchema schema) {
+        // Sorts based on primary key
+        int primaryIndex = schema.getAttributeIndex(schema.primaryKey);
+        switch (schema.attributes.get(primaryIndex).type) {
+            case INT:
+                return ((Integer)rowData.get(primaryIndex)).compareTo(((Integer) other.rowData.get(primaryIndex)));
+            case DOUBLE:
+                return ((Double)rowData.get(primaryIndex)).compareTo(((Double) other.rowData.get(primaryIndex)));
+            case CHAR:
+            case VARCHAR:
+                return ((String)rowData.get(primaryIndex)).compareTo(((String) other.rowData.get(primaryIndex)));
+            case BOOLEAN:
+                return ((Boolean)rowData.get(primaryIndex)).compareTo(((Boolean) other.rowData.get(primaryIndex)));
+            default:
+                return 0;
+        }
+    }
 }

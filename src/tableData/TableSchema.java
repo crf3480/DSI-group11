@@ -6,10 +6,12 @@ public class TableSchema {
 
     public String name;
     public String primaryKey = null;
+    public int rootIndex; // The location of page 0 in the table, as a number of pageSize chunks
     public ArrayList<Attribute> attributes;
 
-    public TableSchema(String name, ArrayList<Attribute> attributeArrayList) {
+    public TableSchema(String name, int rootIndex, ArrayList<Attribute> attributeArrayList) {
         this.name = name;
+        this.rootIndex = rootIndex;
         this.attributes = attributeArrayList;
         // Verify the attribute names are distinct and there is at least one primary key
         ArrayList<String> attributeNames = new ArrayList<>();
@@ -58,9 +60,13 @@ public class TableSchema {
         return count;
     }
 
+    /**
+     * Creates a shallow duplicate of this TableSchema
+     * @return The duplicated TableSchema
+     */
     public TableSchema duplicate() {
         ArrayList<Attribute> duplicateAttributes = new ArrayList<>(attributes);
-        return new TableSchema(name, duplicateAttributes);
+        return new TableSchema(name, rootIndex, duplicateAttributes);
     }
 
     @Override
