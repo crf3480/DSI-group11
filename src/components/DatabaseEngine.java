@@ -145,7 +145,7 @@ public class DatabaseEngine {
         try {
             int pageIndex = 0;
             Page currPage = storageManager.getPage(schema.name, pageIndex);
-            while (currPage != null && pageIndex < 10) {
+            while (currPage != null) {
                 System.out.println(tableToString(currPage.records, 10));
                 pageIndex += 1;
                 currPage = storageManager.getPage(schema.name, pageIndex);
@@ -154,6 +154,7 @@ public class DatabaseEngine {
         catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
         }
+        // Cap off with footer string
         System.out.println(footerString(schema, 10));
     }
 
@@ -200,7 +201,7 @@ public class DatabaseEngine {
         try {
             Record record = parseData(schema, tupleValues);
             int pageIndex = 0;
-            Page currPage = storageManager.getPage(schema.name, pageIndex);
+            Page currPage = schema.rootIndex == -1 ? null : storageManager.getPage(schema.name, pageIndex);
             // Verify record is unique
             while (currPage != null) {
                 for (Record r : currPage.records) {
@@ -392,5 +393,9 @@ public class DatabaseEngine {
             return text.substring(0, width - 1) + TRUCATION_CHAR;
         }
         return text + " ".repeat(width - text.length());
+    }
+
+    public void test(ArrayList<String> args) {
+        storageManager.test(args);
     }
 }

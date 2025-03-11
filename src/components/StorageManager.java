@@ -6,7 +6,6 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.ArrayDeque;
 import java.util.HashSet;
-import java.util.Iterator;
 
 /**
  * StorageManager.java
@@ -129,7 +128,7 @@ public class StorageManager {
             return null;
         }
         // Make sure the file contains a page with that index
-        if ((pageIndex + 1) > tableFile.length() / pageSize) {  // This won't work if page size is less than ~10 bytes
+        if ((pageIndex + 1) > tableFile.length() / pageSize) {  // This breaks if page size is less than the table offset
             return null;
         } else if (pageIndex < 0) {
             throw new IndexOutOfBoundsException("Invalid page index `" + pageIndex + "`");
@@ -153,7 +152,7 @@ public class StorageManager {
             return newPage;
         } catch (IOException ioe) {
             System.err.println("Failed to parse page " + pageNum + " at index " + pageIndex +
-                    " for table `" + tableName + "`");
+                    " for table `" + tableName + "` with error: " + ioe);
             return null;
         }
     }
@@ -212,15 +211,11 @@ public class StorageManager {
         if (tschema == null) {
             throw new IllegalArgumentException("Table '" + tableName + "' does not exist.");
         }
-        // Attempt to get the first page from the table. If null, make a new page
-        if (getPage(tableName, 0) == null) {
-            insertPage(new Page(0, 0, tschema, pageSize));
-            try {
-                expandTable(tableName);
-            } catch (IOException e) {
-                System.err.println("Encountered error while creating page: " + e.getMessage());
-                return;
-            }
+        // If table has no pages, make a new page and insert it into the buffer
+        if (tschema.rootIndex == -1) {
+            Page firstPage = new Page(0, 0, tschema, pageSize);
+            savePage(firstPage);
+            insertPage(firstPage);
         }
         // Iterate over pages until you find the one where the record goes
         int currIndex = 0;
@@ -261,8 +256,6 @@ public class StorageManager {
                 return;
             }
             Page child = currPage.split(pageIndex);
-            System.out.println("Curr Page: ");
-            System.out.println(currPage);
             if (child.nextPage != -1) {
                 // Update the prevPage pointer for the page after this one, if one exists
                 Page afterChild = getPage(tableName, currPage.pageNumber + 1);
@@ -276,6 +269,7 @@ public class StorageManager {
             }
             // Insert the new page into the buffer
             insertPage(child);
+            savePage(child);
         }
     }
 
@@ -334,7 +328,7 @@ public class StorageManager {
      * @throws IOException If an error is encountered when creating the table file
      */
     public void createTable(String tableName, ArrayList<Attribute> attributes) throws IOException {
-        if (catalog.addTableSchema(new TableSchema(tableName, 0, attributes))) {
+        if (catalog.addTableSchema(new TableSchema(tableName, -1, attributes))) {
             File tableFile = new File(catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
             if (!tableFile.createNewFile()) {
                 throw new RuntimeException("File already exists for table '" + tableName + "' at '" + tableFile.getAbsolutePath() + "'");
@@ -475,11 +469,13 @@ public class StorageManager {
         System.out.println(schema);
         int totalPages = 0;
         int totalRecords = 0;
-        Page currPage = getPage(tableName, 0);
-        while (currPage != null) {
-            totalRecords += currPage.recordCount();
-            totalPages += 1;
-            currPage = getPage(tableName, totalPages);
+        if (schema.rootIndex != -1) {
+            Page currPage = getPage(tableName, 0);
+            while (currPage != null) {
+                totalRecords += currPage.recordCount();
+                totalPages += 1;
+                currPage = getPage(tableName, totalPages);
+            }
         }
         System.out.println("Pages: " + totalPages);
         System.out.println("Records: " + totalRecords);
@@ -564,7 +560,6 @@ public class StorageManager {
      */
     private boolean savePage(Page page) {
         // Read in the data
-        System.out.println(page);
         File tableFile = catalog.getTableFile(page.getTableName());
         if (!tableFile.exists()) {
             System.err.println("Could not find table file.");
@@ -579,5 +574,32 @@ public class StorageManager {
             return false;
         }
         return true;
+    }
+
+    public void test(ArrayList<String> args) {
+        String cmd = args.get(1);
+        String val = args.get(2);
+        int num;
+        Page page;
+        switch (cmd) {
+            case "save":
+                num = Integer.parseInt(val);
+                page = getPage("foo", num);
+                savePage(page);
+                break;
+            case "load":
+                num = Integer.parseInt(val);
+                loadPage("foo", num, num);
+                break;
+            case "print":
+                num = Integer.parseInt(val);
+                page = getPage("foo", num);
+                System.out.println(page);
+                break;
+            case "flush":
+                save();
+                buffer.clear();
+                break;
+        }
     }
 }

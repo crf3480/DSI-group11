@@ -84,6 +84,11 @@ public class Page {
         this.nextPage = -1; //default next page value
         this.prevPage = -1; //default prev page value
         this.records = new ArrayList<>();
+
+        // If this is page 0, update the table schema
+        if (pageNumber == 0) {
+            tableSchema.rootIndex = pageIndex;
+        }
     }
 
     /**
@@ -108,7 +113,7 @@ public class Page {
      */
     public int pageDataSize() {
         // Calculate the total size of every record in the page
-        int totalSize = 0;
+        int totalSize = SIZE_OFFSET;
         for (Record record : records) {
             totalSize += recordSize(record);
         }
@@ -125,9 +130,9 @@ public class Page {
             Attribute attr = tableSchema.attributes.get(i);
             // Null values are not recorded and thus take up no space
             if (record.rowData.get(i) == null) { continue; }
-            // VARCHARs need their length read directly for each value
-            if (attr.type == AttributeType.VARCHAR) {
-                size += ((String) record.rowData.get(i)).length();
+            // CHARs and VARCHARs need their length read directly for each value
+            if (attr.type == AttributeType.VARCHAR || attr.type == AttributeType.CHAR) {
+                size += 2 * ((String) record.rowData.get(i)).length();
             } else {
                 size += attr.length;
             }
@@ -254,7 +259,7 @@ public class Page {
                 }
             }
             // If not, move it over and update the new size of the current page
-            splitRecords.add(records.removeLast());
+            splitRecords.addFirst(records.removeLast());
             newSize += splitRecordSize;
         }
         Page childPage = new Page(childPageIndex, pageNumber + 1, splitRecords, pageSize, tableSchema);
@@ -262,8 +267,6 @@ public class Page {
         childPage.nextPage = nextPage;
         nextPage = childPageIndex;
         childPage.prevPage = pageIndex;
-        System.out.println("New page: ");
-        System.out.println(childPage);
         return childPage;
     }
 
@@ -280,7 +283,7 @@ public class Page {
         for (Record record : records) {
             out.write(encodeRecord(record));
         }
-        byte[] recordData = new byte[pageSize];
+        byte[] recordData = new byte[pageSize - SIZE_OFFSET];
         System.arraycopy(outStream.toByteArray(), 0, recordData, 0, outStream.size());
         return recordData;
     }
@@ -334,8 +337,6 @@ public class Page {
      * @return A byte array containing the fully encoded Page
      */
     public byte[] encodePage() throws IOException {
-        // System.out.println("Encoding Page: " + pageNumber + " | Total Records: " + records.size());
-
         ByteArrayOutputStream bs = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(bs);
         out.writeInt(records.size()); // Writes the number of records
@@ -353,13 +354,12 @@ public class Page {
         sb.append(pageNumber);
         sb.append(" (index: ");
         sb.append(pageIndex);
-        sb.append(")\nNext: ");
-        sb.append(nextPage);
-        sb.append("\nPrev: ");
+        sb.append("), Prev: ");
         sb.append(prevPage);
-        sb.append("\n------------\n");
+        sb.append(", Next: ");
+        sb.append(nextPage);
+        sb.append(" | Records: ");
         sb.append(recordCount());
-        sb.append(" records");
 //        for (Record record : records) {
 //            sb.append(record.toString());
 //            sb.append("\n");

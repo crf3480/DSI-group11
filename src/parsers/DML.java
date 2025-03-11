@@ -1,13 +1,6 @@
 package parsers;
 import components.DatabaseEngine;
-import tableData.*;
-import tableData.Record;
-import utils.TestData;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Stack;
 
 /**
  * Parser for commands which modify relational data
@@ -277,25 +270,10 @@ public class DML extends GeneralParser {
      * @return The output of the command. 'null' if command produces no output
      */
     public void test(ArrayList<String> inputList) {
-        ArrayList<Record> records = new ArrayList<>();
-        int pageSize = 2000;
-        TableSchema ts = TestData.permaTable();
-        Page page = new Page(0, 0, records, pageSize, ts);
-        while (page.insertRecord(TestData.testRecord(ts))) { } // Do nothing until the page gets full
-        TableSchema newSchema = TestData.permaTable();
-        newSchema.attributes.remove(3);
-        newSchema.attributes.add(new Attribute("jizz",
-                AttributeType.CHAR,
-                false,
-                true,
-                true,
-                100,
-                "Hallo"));
-        System.out.println(page);
-        ArrayList<Page> splitPages = page.updateSchema(newSchema);
-        System.out.println(page);
-        for (Page newPage : splitPages) {
-            System.out.println(newPage);
+        try {
+            engine.test(inputList);
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
         }
     }
 }
