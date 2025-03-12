@@ -52,7 +52,7 @@ public class Attribute {
      * @param notNull Whether this attribute is allowed to be null
      * @param unique Whether this attribute must be unique in its relation
      * @param length The byte length of this attribute. For fixed length attributes, this value will be ignored
-     * @param defaultValue The default value to fill in if a
+     * @param defaultValue The default value to fill in if one is not provided
      */
     public Attribute(String name, AttributeType type, boolean primaryKey, boolean notNull, boolean unique, int length, Object defaultValue) {
         this.name = name;

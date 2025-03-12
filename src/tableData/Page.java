@@ -329,7 +329,9 @@ public class Page {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Page #");
+        sb.append("Page ");
+        sb.append(tableSchema.name);
+        sb.append(".");
         sb.append(pageNumber);
         sb.append(" (index: ");
         sb.append(pageIndex);

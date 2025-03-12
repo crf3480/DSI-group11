@@ -58,14 +58,13 @@ public class DDL {
                     attributeType = inputList.get(5) + " ( " + inputList.get(hasParenthesis + 1) + " )";
                 }
                 //Checking if there is a provided default value
-                int hasDefaultVal = inputList.indexOf("default");
-                if (hasDefaultVal == -1) {
-                    // No default so setting it to NULL
+                int defaultIndex = inputList.indexOf("default");
+                if (defaultIndex == -1 || inputList.get(defaultIndex).equals("null")) {
+                    // Default is null
                     engine.addAttribute(tableName, attributeName, attributeType, null);
                 } else {
-                   //default value is set
-                    String defaultVal = inputList.get(hasDefaultVal);
-                    engine.addAttribute(tableName, attributeName, attributeType, defaultVal);
+                   //default value is provided
+                    engine.addAttribute(tableName, attributeName, attributeType, inputList.get(defaultIndex + 1));
                 }
                 return null;
             } else {

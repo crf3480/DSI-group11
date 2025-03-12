@@ -148,23 +148,86 @@ public class DatabaseEngine {
      * @param defaultValue The default value of the new attribute
      */
     public void addAttribute(String tableName, String attributeName, String attributeType, String defaultValue) {
+        TableSchema schema = storageManager.getTableSchema(tableName);
+        // Validate parameters
+        if (schema == null) {
+            System.err.println("Table `" + tableName + "` does not exist.");
+            return;
+        } else if (schema.getAttributeIndex(attributeName) != -1) {
+            System.err.println("Attribute `" + attributeName + "` already exists on table `" + tableName + "`.");
+            return;
+        }
         String[] parts = attributeType.split(" ");
-        AttributeType type;
+        AttributeType attrType;
         try{
-            type = AttributeType.fromString(parts[0]);
+            attrType = AttributeType.fromString(parts[0]);
         }catch (IllegalArgumentException e) {
             System.err.println("Invalid attribute type: " + attributeType);
             return;
         }
-
-        int attributeLength;
-        if (parts.length < 3){
-            attributeLength = 0;
-        } else {
-            attributeLength = Integer.parseInt(parts[2]);
+        // Parse attribute length in case of CHAR or VARCHAR
+        int attributeLength = 10;
+        if (parts.length >= 3){
+            try {
+                attributeLength = Integer.parseInt(parts[2]);
+            } catch (NumberFormatException e) {
+                System.err.println("Cannot parse length parameter `" + parts[2] + "`.");
+                return;
+            }
+            // Make sure the number makes sense
+            if (attrType != AttributeType.CHAR && attrType != AttributeType.VARCHAR) {
+                System.err.println("Cannot define custom length for non-character type " + attrType.toString());
+                return;
+            } else if (attributeLength < 1) {
+                System.err.println("Invalid attribute length `" + attributeLength +
+                        "`. Length must be a positive integer");
+                return;
+            } else if (attributeLength > storageManager.pageSize) {
+                System.err.println("Attribute length `" + attributeLength + "` exceeds page size (" +
+                        storageManager.pageSize + ").");
+                return;
+            }
         }
-        Attribute attribute = new Attribute(attributeName, type, false  , false , false ,attributeLength);
-        // storageManager.addAttribute(tableName, attribute);
+        Object defaultObj = null;
+        if (defaultValue != null) {
+            try {
+                defaultObj = attrType.parseString(defaultValue);
+            } catch (IllegalArgumentException e) {
+                System.err.println(e.getMessage());
+                return;
+            }
+        }
+
+        Attribute newAttribute = new Attribute(attributeName,
+                attrType,
+                false,
+                false,
+                false,
+                attributeLength,
+                defaultObj);
+        // Create a temporary table to transfer the updated info into
+        String tempName = storageManager.getTempTableName();
+        TableSchema newSchmea = schema.duplicate();
+        newSchmea.attributes.add(newAttribute);
+        try {
+            storageManager.createTable(tempName, newSchmea.attributes);
+        } catch (IOException ioe) {
+            System.err.println("Encountered error while cloning table: " + ioe + " : " + ioe.getMessage());
+            return;
+        }
+        // Iterate over all records, dropping the attribute and inserting it into the new table
+        Page currPage = storageManager.getPage(tableName, 0);
+        int currIndex = 0;
+        while (currPage != null) {
+            for (Record r : currPage.records) {
+                Record updatedRec = r.duplicate();
+                updatedRec.rowData.add(defaultObj);
+                storageManager.insertRecord(tempName, updatedRec);
+            }
+            currIndex += 1;
+            currPage = storageManager.getPage(tableName, currIndex);
+        }
+        storageManager.replaceTable(tempName, tableName);
     }
 
     /**

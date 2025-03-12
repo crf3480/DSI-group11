@@ -388,11 +388,7 @@ public class StorageManager {
      * @return `true` if the operation completed successfully; `false` otherwise
      */
     public boolean replaceTable(String sourceName, String targetName) {
-        // Update the schema in the catalog
         TableSchema sourceSchema = getTableSchema(sourceName);
-        sourceSchema.name = targetName;
-        catalog.setTableSchema(targetName, sourceSchema);
-        catalog.removeTableSchema(sourceName);
         // Update the buffer, removing pages that belonged to the target and updating the schema for the source pages
         for (int i = 0; i < buffer.size(); i++) {
             Page cycledPage = buffer.removeLast();
@@ -406,6 +402,10 @@ public class StorageManager {
             // Push the page onto the other end of the queue
             buffer.push(cycledPage);
         }
+        // Update the schema in the catalog
+        sourceSchema.name = targetName;
+        catalog.setTableSchema(targetName, sourceSchema);
+        catalog.removeTableSchema(sourceName);
         // Verify both files exist before doing anything destructive
         File targetFile = catalog.getTableFile(targetName);
         if (!targetFile.exists()) {
@@ -489,7 +489,7 @@ public class StorageManager {
     /**
      * Gets the TableSchema for the table with a given name
      * @param tableName The name of the table
-     * @return The table's schema
+     * @return The table's schema; `null` if table name does not exist in the catalog
      */
     public TableSchema getTableSchema(String tableName){
         return catalog.getTableSchema(tableName);
@@ -558,23 +558,24 @@ public class StorageManager {
     }
 
     public void test(ArrayList<String> args) {
-        String cmd = args.get(1);
-        String val = args.get(2);
+        String table = args.get(1);
+        String cmd = args.get(2);
+        String val = args.get(3);
         int num;
         Page page;
         switch (cmd) {
             case "save":
                 num = Integer.parseInt(val);
-                page = getPage("foo", num);
+                page = getPage(table, num);
                 savePage(page);
                 break;
             case "load":
                 num = Integer.parseInt(val);
-                loadPage("foo", num, num);
+                loadPage(table, num, num);
                 break;
             case "print":
                 num = Integer.parseInt(val);
-                page = getPage("foo", num);
+                page = getPage(table, num);
                 System.out.println(page);
                 break;
             case "flush":
