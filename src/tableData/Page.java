@@ -108,6 +108,14 @@ public class Page {
     }
 
     /**
+     * Returns a clone of the Page's TableSchema
+     * @return A non-destructive copy of this Page's TableSchema
+     */
+    public TableSchema getTableSchema() {
+        return tableSchema.duplicate();
+    }
+
+    /**
      * Updates the schema associated with this page
      * @param newSchema The new table name
      */

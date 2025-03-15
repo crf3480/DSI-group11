@@ -64,7 +64,12 @@ public class Catalog {
                         attributes.add(new Attribute(typeName, attrType, primaryKey, notNull, unique, length));
                     }
                     try  {
-                        tableSchemas.put(tableName, new TableSchema(tableName, rootIndex, attributes));
+                        tableSchemas.put(tableName, new TableSchema(
+                                tableName,
+                                rootIndex,
+                                attributes,
+                                catalogFile.getParent() + File.separator)
+                        );
                     } catch (IllegalArgumentException e) {
                         System.err.println("Encountered error while creating table from catalog: " + e.getMessage());
                     }
@@ -90,6 +95,47 @@ public class Catalog {
     public String nextTempName() {
         currentTempID += 1;
         return String.valueOf(currentTempID);
+    }
+
+    /**
+     * Creates a TableSchema and automatically inserts it into the catalog
+     * @param name The name of the table
+     * @param attributeArrayList The list of attributes the table has
+     * @return The newly created TableSchema
+     * @throws IllegalArgumentException if a table with that name already exists
+     * @throws IOException if an error occurs while creating the Page file for the new table
+     */
+    public TableSchema createTableSchema(String name, ArrayList<Attribute> attributeArrayList) throws IOException, IllegalArgumentException {
+        // Make sure the table doesn't already exist
+        if (tableSchemas.containsKey(name)) {
+            throw new IllegalArgumentException("Table `" + name + "` already exists.");
+        }
+        // Create table
+        TableSchema newSchema = new TableSchema(
+                name,
+                -1,
+                attributeArrayList,
+                catalogFile.getParent() + File.separator
+        );
+        // Create a new Page file for the table and write it to disk
+        File tableFile = newSchema.tableFile();
+        if (!tableFile.createNewFile()) {
+            throw new IllegalArgumentException("File already exists for table '" + name +
+                    "' at '" + tableFile.getAbsolutePath() + "'");
+        }
+        try (FileOutputStream fs = new FileOutputStream(tableFile)) {
+            try (DataOutputStream out = new DataOutputStream(fs)) {
+                out.writeInt(0); // Initial page count is zero
+                save();
+            } catch (Exception e) {
+                throw new IOException("Encountered an error while creating table file:" + e.getMessage());
+            }
+        } catch (Exception e) {
+            throw new IOException("Encountered an error while creating table file:" + e.getMessage());
+        }
+        // Once everything has been successfully handled, add TableSchema to catalog
+        tableSchemas.put(name, newSchema);
+        return newSchema;
     }
 
     /**
@@ -170,15 +216,6 @@ public class Catalog {
      */
     public File getFilePath() {
         return catalogFile;
-    }
-
-    /**
-     * Returns a File object matching the path to the filename for a table with a given name
-     * @param tableName The name of the table
-     * @return The table's File object
-     */
-    public File getTableFile(String tableName){
-        return new File(catalogFile.getParent() + File.separator + tableName + ".bin");
     }
 
     public String toString() {

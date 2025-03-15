@@ -115,11 +115,11 @@ public class TestData {
                     random.nextBoolean(),
                     random.nextInt(24) + 1));
         }
-        return new TableSchema("Test Table",0, attrList);
+        return new TableSchema("Test Table",0, attrList, "");
     }
 
     public static TableSchema permaTable() {
-        TableSchema out = new TableSchema("The PermaTable", 0, new ArrayList<>());
+        TableSchema out = new TableSchema("The PermaTable", 0, new ArrayList<>(), "");
         out.attributes.add(new Attribute("id", AttributeType.INT, true, false, false, 4));
         out.attributes.add(new Attribute("motto", AttributeType.VARCHAR, false, false, false, 4));
         out.attributes.add(new Attribute("friends", AttributeType.DOUBLE, false, true, false, 4));

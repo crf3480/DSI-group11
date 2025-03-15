@@ -1,5 +1,6 @@
 package tableData;
 
+import java.io.File;
 import java.util.ArrayList;
 
 public class TableSchema {
@@ -8,11 +9,20 @@ public class TableSchema {
     public String primaryKey = null;
     public int rootIndex; // The location of page 0 in the table, as a number of pageSize chunks
     public ArrayList<Attribute> attributes;
+    private String fileDir;
 
-    public TableSchema(String name, int rootIndex, ArrayList<Attribute> attributeArrayList) {
+    /**
+     * Creates a TableSchema. This should not be directly called by any classes other than Catalog
+     * @param name The name of the table
+     * @param rootIndex The index of the first page in the table. `-1` if table has no pages
+     * @param attributeArrayList An ArrayList containing the table's attributes
+     * @param fileDir The directory which contains the table's Page file
+     */
+    public TableSchema(String name, int rootIndex, ArrayList<Attribute> attributeArrayList, String fileDir) {
         this.name = name;
         this.rootIndex = rootIndex;
         this.attributes = attributeArrayList;
+        this.fileDir = fileDir;
         // Verify the attribute names are distinct and there is at least one primary key
         ArrayList<String> attributeNames = new ArrayList<>();
         for (Attribute attribute : attributeArrayList) {
@@ -47,6 +57,14 @@ public class TableSchema {
     }
 
     /**
+     * Returns a File object matching the page file for this table
+     * @return The table's File object
+     */
+    public File tableFile(){
+        return new File(fileDir + name + ".bin");
+    }
+
+    /**
      * Returns the number of attributes in this table that are can be null
      * @return The number of nullable attributes
      */
@@ -66,7 +84,7 @@ public class TableSchema {
      */
     public TableSchema duplicate() {
         ArrayList<Attribute> duplicateAttributes = new ArrayList<>(attributes);
-        return new TableSchema(name, rootIndex, duplicateAttributes);
+        return new TableSchema(name, rootIndex, duplicateAttributes, fileDir);
     }
 
     @Override

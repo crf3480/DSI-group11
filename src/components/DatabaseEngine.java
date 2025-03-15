@@ -16,7 +16,7 @@ public class DatabaseEngine {
     private static final String CELL_DIVIDER = " | ";
     private static final char TRUCATION_CHAR = '…';
 
-    private StorageManager storageManager;
+    private final StorageManager storageManager;
 
     /**
      * Creates a Database engine
@@ -206,28 +206,29 @@ public class DatabaseEngine {
                 attributeLength,
                 defaultObj);
         // Create a temporary table to transfer the updated info into
-        String tempName = storageManager.getTempTableName();
+        String tempTable = storageManager.getTempTableName();
         TableSchema newSchmea = schema.duplicate();
         newSchmea.attributes.add(newAttribute);
         try {
-            storageManager.createTable(tempName, newSchmea.attributes);
+            storageManager.createTable(tempTable, newSchmea.attributes);
         } catch (IOException ioe) {
             System.err.println("Encountered error while cloning table: " + ioe + " : " + ioe.getMessage());
             return;
         }
-        // Iterate over all records, dropping the attribute and inserting it into the new table
+        // Iterate over all records, adding the attribute and inserting them into the new table
         Page currPage = storageManager.getPage(tableName, 0);
-        int currIndex = 0;
+        int currPageNum = 0;
         while (currPage != null) {
             for (Record r : currPage.records) {
                 Record updatedRec = r.duplicate();
                 updatedRec.rowData.add(defaultObj);
-                storageManager.insertRecord(tempName, updatedRec);
+                storageManager.insertRecord(tempTable, updatedRec);
             }
-            currIndex += 1;
-            currPage = storageManager.getPage(tableName, currIndex);
+            currPageNum += 1;
+            currPage = storageManager.getPage(tableName, currPageNum);
         }
-        storageManager.replaceTable(tempName, tableName);
+        // Once the all records have been updated, swap the temp table with the real one
+        storageManager.replaceTable(tempTable, tableName);
     }
 
     /**
@@ -261,9 +262,9 @@ public class DatabaseEngine {
     }
 
     /**
-     *
-     * @param where
-     * @return
+     * Parses the `where` clause for a given command
+     * @param where The sequence of tokens representing the where clause
+     * @return ?
      */
     private ArrayList<String> parseWhere(ArrayList<String> where) {
         ArrayList<String> out = new ArrayList<>();
@@ -389,7 +390,7 @@ public class DatabaseEngine {
                 }
                 case BOOLEAN -> {
                     if (value.charAt(0)=='\"' || value.charAt(value.length()-1)=='\"' ||    // avoid parseBoolean from incorrectly accepting "true"
-                            (!value.toLowerCase().equals("true") && !value.toLowerCase().equals("false"))   // booleans can only be true or false
+                            (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false"))   // booleans can only be true or false
                     ) {
                         throw new ClassCastException("Invalid BOOLEAN: '" + value + "' is not a boolean");
                     }
