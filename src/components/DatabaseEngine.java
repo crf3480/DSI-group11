@@ -182,9 +182,9 @@ public class DatabaseEngine {
                 System.err.println("Invalid attribute length `" + attributeLength +
                         "`. Length must be a positive integer");
                 return;
-            } else if (attributeLength > storageManager.pageSize) {
+            } else if (attributeLength > storageManager.pageSize()) {
                 System.err.println("Attribute length `" + attributeLength + "` exceeds page size (" +
-                        storageManager.pageSize + ").");
+                        storageManager.pageSize() + ").");
                 return;
             }
         }

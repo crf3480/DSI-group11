@@ -22,7 +22,7 @@ public class Catalog {
      */
     public Catalog(File file, int pageSize) throws IOException {
         this.catalogFile = file;
-        this.pageSize = pageSize;
+        this.pageSize = pageSize;  // Overwritten if catalog file exists
         tableSchemas = new HashMap<>();
         currentTempID = 0;
 
@@ -80,6 +80,14 @@ public class Catalog {
             }
             inputStream.close();
         }
+    }
+
+    /**
+     * Get the page size for the database
+     * @return The database's page size
+     */
+    public int pageSize() {
+        return pageSize;
     }
 
     /**

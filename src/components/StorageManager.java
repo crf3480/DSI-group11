@@ -16,8 +16,6 @@ public class StorageManager {
     Catalog catalog;
     int nextTempID;
 
-    int pageSize;
-
     /**
      * Creates a StorageManager object
      * @param databaseDir A File object pointing to the directory where the database files are stored
@@ -27,11 +25,18 @@ public class StorageManager {
      * @throws IOException If there are problems accessing or modifying the catalog and table files
      */
     public StorageManager(File databaseDir, int pageSize, int bufferSize) throws IOException {
-        buffer = new Buffer(bufferSize, pageSize);
         File catalogFile = new File(databaseDir, "catalog.bin");
         catalog = new Catalog(catalogFile, pageSize);
+        buffer = new Buffer(bufferSize, catalog.pageSize());
         nextTempID = 0;
-        this.pageSize = pageSize;
+    }
+
+    /**
+     * Get the page size for the database
+     * @return The database's page size
+     */
+    public int pageSize() {
+        return catalog.pageSize();
     }
 
     /**
@@ -92,7 +97,7 @@ public class StorageManager {
         }
         // If table has no pages, make a new page and insert it into the buffer
         if (tschema.rootIndex == -1) {
-            Page firstPage = new Page(0, 0, tschema, pageSize);
+            Page firstPage = new Page(0, 0, tschema, catalog.pageSize());
             try {
                 buffer.savePage(firstPage);
                 buffer.insertPage(firstPage);
@@ -129,7 +134,7 @@ public class StorageManager {
         // At this point, currPage is the page to insert into and recordIndex is the index to insert into
         currPage.records.add(recordIndex, record);
         // If the record is now oversize, split
-        if (currPage.pageDataSize() > pageSize) {
+        if (currPage.pageDataSize() > catalog.pageSize()) {
             int pageIndex;
             try {
                 pageIndex = expandTable(tableName);
@@ -321,7 +326,7 @@ public class StorageManager {
      */
     public void displaySchema() {
         System.out.println("Database location: " + catalog.getFilePath().getAbsolutePath());
-        System.out.println("Page size: " + pageSize);
+        System.out.println("Page size: " + catalog.pageSize());
         System.out.println("Buffer size: " + buffer.size());
         if (catalog.getTableNames().isEmpty()) {
             System.out.println("No Tables to Display");
@@ -352,10 +357,10 @@ public class StorageManager {
     private int expandTable(String tableName) throws IOException {
         TableSchema schema = catalog.getTableSchema(tableName);
         File tableFile = schema.tableFile();
-        int newIndex = (int) tableFile.length() / pageSize;  // Calculate index before expanding table
+        int newIndex = (int) tableFile.length() / catalog.pageSize();  // Calculate index before expanding table
         try (RandomAccessFile out = new RandomAccessFile(tableFile, "rw")) {
             out.seek(tableFile.length());
-            out.write(new byte[pageSize]);
+            out.write(new byte[catalog.pageSize()]);
         } catch (FileNotFoundException fnf) {
             throw new IOException("Could not locate table file for table `" + tableFile.getAbsolutePath() + "`");
         }
