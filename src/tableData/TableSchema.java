@@ -10,6 +10,8 @@ public class TableSchema {
     public int rootIndex; // The location of page 0 in the table, as a number of pageSize chunks
     public ArrayList<Attribute> attributes;
     private String fileDir;
+    private int recordCount;
+    private int pageCount;
 
     /**
      * Creates a TableSchema. This should not be directly called by any classes other than Catalog
@@ -18,11 +20,18 @@ public class TableSchema {
      * @param attributeArrayList An ArrayList containing the table's attributes
      * @param fileDir The directory which contains the table's Page file
      */
-    public TableSchema(String name, int rootIndex, ArrayList<Attribute> attributeArrayList, String fileDir) {
+    public TableSchema(String name,
+                       int rootIndex,
+                       ArrayList<Attribute> attributeArrayList,
+                       String fileDir,
+                       int pageCount,
+                       int recordCount) {
         this.name = name;
         this.rootIndex = rootIndex;
         this.attributes = attributeArrayList;
         this.fileDir = fileDir;
+        this.recordCount = recordCount;
+        this.pageCount = pageCount;
         // Verify the attribute names are distinct and there is at least one primary key
         ArrayList<String> attributeNames = new ArrayList<>();
         for (Attribute attribute : attributeArrayList) {
@@ -57,6 +66,70 @@ public class TableSchema {
     }
 
     /**
+     * Gets the number of records stored in this table
+     * @return The number of records
+     */
+    public int recordCount() {
+        return recordCount;
+    }
+
+    /**
+     * Increments the number of records by one<br>
+     * NOTE: Public access to recordCount or incrementing by more than 1 is <b>deliberately</b>
+     * forbidden. All modifications of a table's records occur one at a time, and should be
+     * tracked as such.
+     */
+    public void incrementRecordCount() {
+        recordCount++;
+    }
+
+    /**
+     * Increments the number of records by one<br>
+     * NOTE: Public access to recordCount or decrementing by more than 1 is <b>deliberately</b>
+     * forbidden. All modifications of a table's records occur one at a time, and should be
+     * tracked as such.
+     */
+    public void decrementRecordCount() {
+        if (recordCount <= 0) {
+            System.err.println("ERROR: Attempted to decrement record count of zero");
+            return;
+        }
+        recordCount--;
+    }
+
+    /**
+     * Gets the number of pages stored in this table
+     * @return The number of pages
+     */
+    public int pageCount() {
+        return pageCount;
+    }
+
+    /**
+     * Increments the number of pages by one<br>
+     * NOTE: Public access to pageCount or incrementing by more than 1 is <b>deliberately</b>
+     * forbidden. All modifications of a table's pages occur one at a time, and should be
+     * tracked as such.
+     */
+    public void incrementPageCount() {
+        pageCount++;
+    }
+
+    /**
+     * Increments the number of pages by one<br>
+     * NOTE: Public access to pageCount or decrementing by more than 1 is <b>deliberately</b>
+     * forbidden. All modifications of a table's pages occur one at a time, and should be
+     * tracked as such.
+     */
+    public void decrementPageCount() {
+        if (pageCount <= 0) {
+            System.err.println("ERROR: Attempted to decrement page count of zero");
+            return;
+        }
+        pageCount--;
+    }
+
+    /**
      * Returns a File object matching the page file for this table
      * @return The table's File object
      */
@@ -84,7 +157,7 @@ public class TableSchema {
      */
     public TableSchema duplicate() {
         ArrayList<Attribute> duplicateAttributes = new ArrayList<>(attributes);
-        return new TableSchema(name, rootIndex, duplicateAttributes, fileDir);
+        return new TableSchema(name, rootIndex, duplicateAttributes, fileDir, pageCount, recordCount);
     }
 
     @Override

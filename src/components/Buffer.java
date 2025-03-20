@@ -29,14 +29,6 @@ public class Buffer {
     }
 
     /**
-     * Returns the number of pages currently stored in the buffer
-     * @return The number of pages in the buffer
-     */
-    public int count() {
-        return buffer.size();
-    }
-
-    /**
      * The number of pages that the buffer can hold simultaneously
      * @return The buffer size
      */
@@ -177,10 +169,9 @@ public class Buffer {
      * @throws IOException if the popped page could not be written back to disk
      */
     public void insertPage(Page page) throws IOException {
-        Page old = null;
         // See if we need to make room in the buffer
         if (buffer.size() >= bufferSize) {
-            old = buffer.removeLast();
+            Page old = buffer.removeLast();
             savePage(old);
         }
         buffer.push(page);
