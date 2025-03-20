@@ -46,6 +46,8 @@ public class Catalog {
                     // Read table header data
                     String tableName = inputStream.readUTF();
                     ArrayList<Attribute> attributes = new ArrayList<>();
+                    int pageCount = inputStream.readInt();
+                    int recordCount = inputStream.readInt();
                     int rootIndex = inputStream.readInt();
                     int numAttributes = inputStream.readInt();
                     // Read attributes
@@ -68,7 +70,9 @@ public class Catalog {
                                 tableName,
                                 rootIndex,
                                 attributes,
-                                catalogFile.getParent() + File.separator)
+                                catalogFile.getParent() + File.separator,
+                                pageCount,
+                                recordCount)
                         );
                     } catch (IllegalArgumentException e) {
                         System.err.println("Encountered error while creating table from catalog: " + e.getMessage());
@@ -123,7 +127,9 @@ public class Catalog {
                 name,
                 -1,
                 attributeArrayList,
-                catalogFile.getParent() + File.separator
+                catalogFile.getParent() + File.separator,
+                0,
+                0
         );
         // Create a new Page file for the table and write it to disk
         File tableFile = newSchema.tableFile();
@@ -198,6 +204,8 @@ public class Catalog {
         List<AttributeType> attributeTypes = Arrays.stream(AttributeType.values()).toList();
         for (TableSchema tableSchema : tableSchemas.values()){
             outputStream.writeUTF(tableSchema.name);
+            outputStream.writeInt(tableSchema.pageCount());
+            outputStream.writeInt(tableSchema.recordCount());
             outputStream.writeInt(tableSchema.rootIndex);
             ArrayList<Attribute> attributes = tableSchema.attributes;
             outputStream.writeInt(attributes.size()); // Number of attributes

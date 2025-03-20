@@ -4,7 +4,6 @@ import tableData.*;
 import tableData.Record;
 import java.io.*;
 import java.util.ArrayList;
-import java.util.ArrayDeque;
 
 /**
  * StorageManager.java
@@ -133,6 +132,7 @@ public class StorageManager {
         }
         // At this point, currPage is the page to insert into and recordIndex is the index to insert into
         currPage.records.add(recordIndex, record);
+        tschema.incrementRecordCount();
         // If the record is now oversize, split
         if (currPage.pageDataSize() > catalog.pageSize()) {
             int pageIndex;
@@ -216,8 +216,8 @@ public class StorageManager {
      * @param attributes The list of attributes in each record of the table
      * @throws IOException If an error is encountered when creating the table file
      */
-    public void createTable(String tableName, ArrayList<Attribute> attributes) throws IOException {
-        catalog.createTableSchema(tableName, attributes);
+    public TableSchema createTable(String tableName, ArrayList<Attribute> attributes) throws IOException {
+        return catalog.createTableSchema(tableName, attributes);
     }
 
     /**
@@ -301,18 +301,8 @@ public class StorageManager {
         System.out.println("Table name: " + tableName);
         System.out.println("Table schema: ");
         System.out.println(schema);
-        int totalPages = 0;
-        int totalRecords = 0;
-        if (schema.rootIndex != -1) {
-            Page currPage = buffer.getPage(schema, 0);
-            while (currPage != null) {
-                totalRecords += currPage.recordCount();
-                totalPages += 1;
-                currPage = buffer.getPage(schema, totalPages);
-            }
-        }
-        System.out.println("Pages: " + totalPages);
-        System.out.println("Records: " + totalRecords);
+        System.out.println("Pages: " + schema.pageCount());
+        System.out.println("Records: " + schema.recordCount());
     }
 
     /**

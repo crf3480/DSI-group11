@@ -2,7 +2,6 @@ package tableData;
 
 import java.util.ArrayList;
 import java.io.*;
-import java.util.Arrays;
 import java.util.Collection;
 
 /**
@@ -18,7 +17,7 @@ public class Page {
             Integer.BYTES;                                 // Next page index
 
     private TableSchema tableSchema;
-    private int pageSize;
+    private final int pageSize;
     public int pageNumber;
     public int pageIndex;
 
@@ -165,28 +164,6 @@ public class Page {
     }
 
     /**
-     * Inserts a record into the page
-     * @param record The record being inserted into the page
-     * @return 'true' if the record was inserted. 'false' if the record could not be inserted because it is full
-     */
-    public boolean insertRecord(Record record) {
-        int recordSize = recordSize(record);
-        if (recordSize + pageDataSize() > pageSize) {
-            return false;
-        }
-        records.add(record);
-        return true;
-    }
-
-    /**
-     * Used in page splitting in order to add a new page number to a given page
-     * @param newPageNumber to be added
-     */
-    public void updatePageNumber(int newPageNumber) {
-        this.pageNumber = newPageNumber;
-    }
-
-    /**
      * Converts a binary array of data into a list of records
      * @param numRecords The number of records contained within the byte array
      * @param recordData The byte array containing the encoded record data
@@ -254,6 +231,7 @@ public class Page {
         childPage.nextPage = nextPage;
         nextPage = childPageIndex;
         childPage.prevPage = pageIndex;
+        tableSchema.incrementPageCount();
         return childPage;
     }
 
@@ -336,23 +314,8 @@ public class Page {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("Page ");
-        sb.append(tableSchema.name);
-        sb.append(".");
-        sb.append(pageNumber);
-        sb.append(" (index: ");
-        sb.append(pageIndex);
-        sb.append("), Prev: ");
-        sb.append(prevPage);
-        sb.append(", Next: ");
-        sb.append(nextPage);
-        sb.append(" | Records: ");
-        sb.append(recordCount());
-//        for (Record record : records) {
-//            sb.append(record.toString());
-//            sb.append("\n");
-//        }
-        return sb.toString();
+        return "Page " + tableSchema.name + "." + pageNumber +
+                " (index: " + pageIndex + "), Prev: " + prevPage + ", Next: " + nextPage +
+                " | Records: " + recordCount();
     }
 }
