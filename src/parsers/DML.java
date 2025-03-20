@@ -267,7 +267,7 @@ public class DML extends GeneralParser {
 
     /**
      * Performs a delete record command
-     * @param inputList The lsit of tokens representing the user's input
+     * @param inputList The list of tokens representing the user's input
      */
     public void delete(ArrayList<String> inputList) {
         if (!inputList.getFirst().equals("delete")) {
@@ -285,7 +285,8 @@ public class DML extends GeneralParser {
             System.err.println("Invalid delete statement: Invalid where clause");
         }
 
-        ArrayList<String> whereQueries = new ArrayList<>();
+        ArrayList<String> whereQueries = new ArrayList<>(inputList.subList(4, inputList.size()));
+        // TODO: send off whereQueries and tablename to the db engine
 
     }
 
