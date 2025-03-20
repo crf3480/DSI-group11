@@ -85,6 +85,16 @@ public class DatabaseEngine {
     }
 
     public void updateTable(String tableName, String columnName, String newValue, String condition ) {
+        if (storageManager.getTableSchema(tableName) == null) {
+                    System.err.println("Table '" + tableName + "' does not exist.");
+                    return;
+        }
+        TableSchema currTable = storageManager.getTableSchema(tableName);
+        if (currTable.getAttributeIndex(columnName) == -1) {
+            System.err.println("Table '" + tableName + "' does not contain column '" + columnName + "'.");
+            return;
+        }
+        //
 
     }
     /**
