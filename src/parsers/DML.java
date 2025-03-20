@@ -254,6 +254,25 @@ public class DML extends GeneralParser {
         engine.selectRecords(attributes, tables, where, orderby);
     }
 
+
+    /**
+     * Performs a update record command
+     * @param inputList The list of tokens representing the user's input
+     */
+    public void update(ArrayList<String> inputList) {
+        // TODO: Implement this
+    }
+
+
+    /**
+     * Performs a delete record command
+     * @param inputList The lsit of tokens representing the user's input
+     */
+    public void delete(ArrayList<String> inputList) {
+        // TODO: Implement this
+    }
+
+
     private int commaCount(ArrayList<String> set) {
         int count = 0;
         for (String s : set) {
