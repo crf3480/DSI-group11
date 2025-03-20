@@ -84,6 +84,9 @@ public class DatabaseEngine {
         }
     }
 
+    public void updateTable(String tableName, String columnName, String newValue, String condition ) {
+
+    }
     /**
      * Displays information about a table
      * @param tableName The table to display the details of

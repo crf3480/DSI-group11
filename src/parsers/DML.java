@@ -260,8 +260,24 @@ public class DML extends GeneralParser {
      * @param inputList The list of tokens representing the user's input
      */
     public void update(ArrayList<String> inputList) {
-        // TODO: Implement this
-
+        String name = inputList.get(1);
+        if (!inputList.get(2).equalsIgnoreCase("set")){
+            System.err.println("Invalid update statement: " + String.join(" ", inputList));
+        }
+        String column = inputList.get(3);
+        if (!inputList.get(4).equalsIgnoreCase("=")){
+            System.err.println("Invalid update statement: " + String.join(" ", inputList));
+        }
+        String value = inputList.get(5);
+        if (inputList.get(6).equalsIgnoreCase("where")){
+            System.err.println("Invalid update statement: " + String.join(" ", inputList));
+        }
+        String condition = " ";
+        for (int x = 7 ; x < inputList.size(); x++) {
+            condition += inputList.get(x);
+    }
+        //System.out.println("Name: " + name + " Column: " + column + " Value: " + value + " Condition: " + condition);
+        engine.updateTable(name, column, value, condition);
     }
 
 
