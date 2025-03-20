@@ -270,6 +270,16 @@ public class DML extends GeneralParser {
      */
     public void delete(ArrayList<String> inputList) {
         // TODO: Implement this
+        if (!inputList.getFirst().equals("delete")) {
+            System.err.println("Invalid delete statement: " + String.join(" ", inputList));
+            return;
+        }
+        if (!inputList.get(1).equals("from")) {
+            System.err.println("Invalid delete statement: delete from <name> where <condition>;");
+            return;
+        }
+
+
     }
 
 
