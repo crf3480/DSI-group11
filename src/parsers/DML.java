@@ -269,7 +269,6 @@ public class DML extends GeneralParser {
      * @param inputList The lsit of tokens representing the user's input
      */
     public void delete(ArrayList<String> inputList) {
-        // TODO: Implement this
         if (!inputList.getFirst().equals("delete")) {
             System.err.println("Invalid delete statement: " + String.join(" ", inputList));
             return;
@@ -279,6 +278,13 @@ public class DML extends GeneralParser {
             return;
         }
 
+        String tablename = inputList.get(2); // Validated in database engine
+
+        if (!inputList.get(3).equals("where")) {
+            System.err.println("Invalid delete statement: Invalid where clause");
+        }
+
+        ArrayList<String> whereQueries = new ArrayList<>();
 
     }
 
