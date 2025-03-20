@@ -283,6 +283,14 @@ public class DatabaseEngine {
     }
 
     /**
+     * Deletes records where clause is true
+     * @param tableName Given table name to delete record from
+     * @param whereClause Arraylist of strings in the where
+     */
+    public void deleteWhere(String tableName, ArrayList<String> whereClause) {
+        // TODO: implement this
+    }
+    /**
      * Converts a list of strings into their appropriate data objects and inserts the record into a given table.
      * Responsible for checking attribute counts match.
      * @param tableName The table to insert the record into

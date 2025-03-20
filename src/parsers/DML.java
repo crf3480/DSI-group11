@@ -302,8 +302,8 @@ public class DML extends GeneralParser {
         }
 
         ArrayList<String> whereQueries = new ArrayList<>(inputList.subList(4, inputList.size()));
-        // TODO: send off whereQueries and tablename to the db engine
 
+        engine.deleteWhere(tablename, whereQueries);
     }
 
 
