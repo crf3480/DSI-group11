@@ -64,6 +64,8 @@ public class Main {
                     case "insert" -> dml.insert(statement);
                     case "select" ->  dml.select(statement);
                     case "test" -> dml.test(statement);
+                    case "update" -> dml.update(statement);
+                    case "delete" -> dml.delete(statement);
                     default ->  System.err.println("Invalid command: '" + statement.getFirst() + "'");
                 }
             }
