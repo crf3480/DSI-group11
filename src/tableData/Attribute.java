@@ -86,6 +86,20 @@ public class Attribute {
     }
 
     /**
+     * Creates a deep copy of an Attribute
+     * @param attr The attribute copy
+     */
+    public Attribute(Attribute attr) {
+        this.name = attr.name;
+        this.type = attr.type;
+        this.primaryKey = attr.primaryKey;
+        this.notNull = attr.notNull;
+        this.unique = attr.unique;
+        this.length = attr.length;
+        this.defaultValue = attr.defaultValue;
+    }
+
+    /**
      * Checks if this attribute is allowed to be assigned null
      * @return 'true' if this attribute accepts a null assignment, 'false' otherwise
      */

@@ -6,10 +6,10 @@ import java.util.ArrayList;
 public class TableSchema {
 
     public String name;
-    public String primaryKey = null;
+    public int primaryKey = -1;
     public int rootIndex; // The location of page 0 in the table, as a number of pageSize chunks
     public ArrayList<Attribute> attributes;
-    private String fileDir;
+    private final String fileDir;
     private int recordCount;
     private int pageCount;
 
@@ -34,21 +34,16 @@ public class TableSchema {
         this.pageCount = pageCount;
         // Verify the attribute names are distinct and there is at least one primary key
         ArrayList<String> attributeNames = new ArrayList<>();
-        for (Attribute attribute : attributeArrayList) {
+        for (int i = 0; i < attributeArrayList.size(); i++) {
+            Attribute attribute = attributeArrayList.get(i);
             if (attributeNames.contains(attribute.name)) {
                 throw new IllegalArgumentException("Duplicate attribute name: '" + attribute.name + "'");
             }
             attributeNames.add(attribute.name);
             if (attribute.primaryKey) {
-                if (primaryKey != null) {
-                    throw new IllegalArgumentException("Multiple primary key attributes: '" +
-                            attribute.name + "' and '" + primaryKey + "'");
-                } else {
-                    primaryKey = attribute.name;
-                }
+                primaryKey = i;
             }
         }
-        if (primaryKey == null) { throw new IllegalArgumentException("No primary key defined"); }
     }
 
     /**
@@ -152,12 +147,23 @@ public class TableSchema {
     }
 
     /**
-     * Creates a shallow duplicate of this TableSchema
+     * Creates a deep copy of this TableSchema
      * @return The duplicated TableSchema
      */
     public TableSchema duplicate() {
-        ArrayList<Attribute> duplicateAttributes = new ArrayList<>(attributes);
-        return new TableSchema(name, rootIndex, duplicateAttributes, fileDir, pageCount, recordCount);
+        return this.duplicate(name);
+    }
+
+    /**
+     * Creates a deep copy of this TableSchema with a different name
+     * @return The duplicated TableSchema
+     */
+    public TableSchema duplicate(String tableName) {
+        ArrayList<Attribute> duplicateAttributes = new ArrayList<>();
+        for (Attribute attr : attributes) {
+            duplicateAttributes.add(new Attribute(attr));
+        }
+        return new TableSchema(tableName, rootIndex, duplicateAttributes, fileDir, pageCount, recordCount);
     }
 
     @Override

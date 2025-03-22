@@ -195,26 +195,13 @@ public class Buffer {
     }
 
     /**
-     * Replaces the TableSchema for all Pages belonging to a specific table
-     * @param tableName The name of table the pages being updated belong to
-     * @param newSchema The new TableSchema for those pages
-     */
-    public void updateSchema(String tableName, TableSchema newSchema) {
-        for (Page page : buffer) {
-            if (page.getTableSchema().name.equals(tableName)) {
-                page.updateSchema(newSchema);
-            }
-        }
-    }
-
-    /**
      * Increments the page numbers of all pages above a certain number
-     * @param tableName The name of the table the pages being updated belong to
+     * @param schema The TableSchema of the table the pages being updated belong to
      * @param above The threshold (inclusive) above which to increment the page numbers
      */
-    public void incrementPageNumbers(String tableName, int above) {
+    public void incrementPageNumbers(TableSchema schema, int above) {
         for (Page page : buffer) {
-            if (page.getTableName().equals(tableName) && page.pageNumber >= above) {
+            if (page.getTableName().equals(schema.name) && page.pageNumber >= above) {
                 page.pageNumber += 1;
             }
         }

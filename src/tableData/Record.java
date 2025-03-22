@@ -98,8 +98,8 @@ public class Record {
      */
     public int compareTo(Record other, TableSchema schema) {
         // Sorts based on primary key
-        int primaryIndex = schema.getAttributeIndex(schema.primaryKey);
-        switch (schema.attributes.get(primaryIndex).type) {
+        int primaryIndex = schema.primaryKey;
+        switch (schema.attributes.get(schema.primaryKey).type) {
             case INT:
                 return ((Integer)rowData.get(primaryIndex)).compareTo(((Integer) other.rowData.get(primaryIndex)));
             case DOUBLE:

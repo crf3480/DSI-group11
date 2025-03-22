@@ -48,12 +48,12 @@ public class StorageManager {
 
     /**
      * Returns a specific Page from a table
-     * @param tableName The name of the table to fetch the Page from
+     * @param schema The TableSchema of the table the Page belongs to
      * @param pageNumber The number of the Page being fetched
      * @return The fetched Page; `null` if no page exists with that number
      */
-    public Page getPage(String tableName, int pageNumber) {
-        return buffer.getPage(catalog.getTableSchema(tableName), pageNumber);
+    public Page getPage(TableSchema schema, int pageNumber) {
+        return buffer.getPage(schema, pageNumber);
     }
 
     /**
@@ -64,8 +64,6 @@ public class StorageManager {
      */
     public Record getByPrimaryKey(String tableName, String key)  {
         TableSchema tschema = catalog.getTableSchema(tableName);
-        //finding the attribute index with the primary key
-        int primIndex = tschema.getAttributeIndex(tschema.primaryKey);
         //looping through pages and records to find The One
         Page currPage;
         int pageNum = 0;
@@ -76,7 +74,7 @@ public class StorageManager {
                 return null;
             }
             for (Record r : currPage.getRecords()) {
-                if (r.get(primIndex).equals(key)) {
+                if (r.get(tschema.primaryKey).equals(key)) {
                     return r;
                 }
             }
@@ -85,18 +83,13 @@ public class StorageManager {
 
     /**
      * Inserts a record into a given table
-     * @param tableName The name of the table to insert the records into
+     * @param schema The TableSchema of the table the record is being inserted into
      * @param record The record to insert
      */
-    public void insertRecord(String tableName, Record record) {
-        // Get the pages for that table
-        TableSchema tschema = catalog.getTableSchema(tableName);
-        if (tschema == null) {
-            throw new IllegalArgumentException("Table '" + tableName + "' does not exist.");
-        }
+    public void insertRecord(TableSchema schema, Record record) {
         // If table has no pages, make a new page and insert it into the buffer
-        if (tschema.rootIndex == -1) {
-            Page firstPage = new Page(0, 0, tschema, catalog.pageSize());
+        if (schema.rootIndex == -1) {
+            Page firstPage = new Page(0, 0, schema, catalog.pageSize());
             try {
                 buffer.savePage(firstPage);
                 buffer.insertPage(firstPage);
@@ -107,7 +100,7 @@ public class StorageManager {
         }
         // Iterate over pages until you find the one where the record goes
         int currIndex = 0;
-        Page currPage = buffer.getPage(tschema, 0);
+        Page currPage = buffer.getPage(schema, 0);
         int recordIndex = 0;
         // Loop over all records and all pages until you find the insertion point
         pageLoop:
@@ -118,7 +111,7 @@ public class StorageManager {
                 recordIndex = i;
                 // If new record goes before pageRecord or you hit the end of the table,
                 // insert it into the page at that index
-                if (pageRecord.compareTo(record, tschema) >= 0) {
+                if (pageRecord.compareTo(record, schema) >= 0) {
                     break pageLoop;
                 }
             }
@@ -128,16 +121,16 @@ public class StorageManager {
                 break;
             }
             currIndex += 1;
-            currPage = buffer.getPage(tschema, currIndex);
+            currPage = buffer.getPage(schema, currIndex);
         }
         // At this point, currPage is the page to insert into and recordIndex is the index to insert into
         currPage.records.add(recordIndex, record);
-        tschema.incrementRecordCount();
+        schema.incrementRecordCount();
         // If the record is now oversize, split
         if (currPage.pageDataSize() > catalog.pageSize()) {
             int pageIndex;
             try {
-                pageIndex = expandTable(tableName);
+                pageIndex = expandTable(schema);
             } catch (IOException e) {
                 // If there was a failure, undo the record insert and abort
                 System.err.println(e.getMessage());
@@ -147,10 +140,10 @@ public class StorageManager {
             Page child = currPage.split(pageIndex);
             if (child.nextPage != -1) {
                 // Update the prevPage pointer for the page after this one, if one exists
-                Page afterChild = buffer.getPage(tschema, currPage.pageNumber + 1);
+                Page afterChild = buffer.getPage(schema, currPage.pageNumber + 1);
                 afterChild.prevPage = pageIndex;
                 // Increment the page number for every page that follows child
-                buffer.incrementPageNumbers(tableName, currPage.pageNumber);
+                buffer.incrementPageNumbers(schema, currPage.pageNumber);
             }
             // Insert the new page into the buffer
             try {
@@ -164,8 +157,6 @@ public class StorageManager {
 
     public boolean deleteByPrimaryKey(String tableName, String key){
         TableSchema tschema = catalog.getTableSchema(tableName);
-        //finding the attribute index with the primary key
-        int primIndex = tschema.getAttributeIndex(tschema.primaryKey);
         //looping through pages and records to find The One
         Page currPage;
         int pageNum = 0;
@@ -178,7 +169,7 @@ public class StorageManager {
             // Loop over the page, removing the record if you find it
             for (int i = 0; i < currPage.recordCount(); i++) {
                 Record r = currPage.records.get(i);
-                if (r.get(primIndex).equals(key)) {
+                if (r.get(tschema.primaryKey).equals(key)) {
                     currPage.records.remove(i);
                     return true;
                 }
@@ -188,8 +179,6 @@ public class StorageManager {
 
     public boolean updateByPrimaryKey(String tableName, String key, Record record){
         TableSchema tschema = catalog.getTableSchema(tableName);
-        //finding the attribute index with the primary key
-        int primIndex = tschema.getAttributeIndex(tschema.primaryKey);
         //looping through pages and records to find The One
         Page currPage;
         int pageNum = 0;
@@ -202,7 +191,7 @@ public class StorageManager {
             // Loop over the page, removing the record if you find it
             for (int i = 0; i < currPage.recordCount(); i++) {
                 Record r = currPage.records.get(i);
-                if (r.get(primIndex).equals(key)) {
+                if (r.get(tschema.primaryKey).equals(key)) {
                     currPage.records.set(i, record);
                     return true;
                 }
@@ -211,7 +200,8 @@ public class StorageManager {
     }
 
     /**
-     * Creates a table with a given name in the catalog and creates a file for it
+     * Creates a table with a given name in the catalog and creates a file for it. Primary key
+     * requirements are not checked
      * @param tableName The name of the table
      * @param attributes The list of attributes in each record of the table
      * @throws IOException If an error is encountered when creating the table file
@@ -245,21 +235,18 @@ public class StorageManager {
     /**
      * Replaces one table with another. The target table's data will be dropped, and the source
      * table will be renamed to the target's name.
-     * @param sourceName The name of the table whose data will be preserved
-     * @param targetName The name of the table that will be replaced by the source table
+     * @param targetSchema The TableSchema of the table that will be replaced by the source table
+     * @param sourceSchema The TableSchema of the table whose data will be preserved
      * @return `true` if the operation completed successfully; `false` otherwise
      */
-    public boolean replaceTable(String sourceName, String targetName) {
-        TableSchema sourceSchema = getTableSchema(sourceName);
-        TableSchema targetSchema = getTableSchema(targetName);
+    public boolean replaceTable(TableSchema targetSchema, TableSchema sourceSchema) {
         // Update the buffer, removing pages that belonged to the target and updating the schema for the source pages
-        buffer.removeTable(targetName);
-        buffer.updateSchema(sourceName, sourceSchema);  // TODO: Does this actually accomplish anything?
+        buffer.removeTable(targetSchema.name);
         // Update the schema in the catalog
         File oldSourceFile = sourceSchema.tableFile(); // This changes when you update the schema name
-        sourceSchema.name = targetName;
-        catalog.setTableSchema(targetName, sourceSchema);
-        catalog.removeTableSchema(sourceName);
+        catalog.removeTableSchema(sourceSchema.name);
+        sourceSchema.name = targetSchema.name;
+        catalog.setTableSchema(targetSchema.name, sourceSchema);
         // Verify both files exist before doing anything destructive
         File targetFile = targetSchema.tableFile();
         if (!targetFile.exists()) {
@@ -341,11 +328,10 @@ public class StorageManager {
     /**
      * Increases the size of a table file by a single page. Returns the index of the page
      * that would occupy the added space
-     * @param tableName The name of the table to expand
+     * @param schema The TableSchema for the table being expanded
      * @return The index of the added page
      */
-    private int expandTable(String tableName) throws IOException {
-        TableSchema schema = catalog.getTableSchema(tableName);
+    private int expandTable(TableSchema schema) throws IOException {
         File tableFile = schema.tableFile();
         int newIndex = (int) tableFile.length() / catalog.pageSize();  // Calculate index before expanding table
         try (RandomAccessFile out = new RandomAccessFile(tableFile, "rw")) {

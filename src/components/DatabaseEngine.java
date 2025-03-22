@@ -35,6 +35,7 @@ public class DatabaseEngine {
     public void createTable(String tableName, ArrayList<ArrayList<String>> attributeList) {
         //Building out attribute objects using constraints
         ArrayList<Attribute> allAttributes = new ArrayList<>();
+        boolean hasPrimaryKey = false;
         for (ArrayList<String> attributeTokens : attributeList) {
             String errorMessage = "Invalid attribute declaration: '" + String.join(" ", attributeTokens) + "'. ";
             if (attributeTokens.size() < 2) {
@@ -42,6 +43,13 @@ public class DatabaseEngine {
             }
             String name = attributeTokens.getFirst();
             boolean primaryKey = attributeTokens.contains("primarykey");
+            if (primaryKey) {
+                if (hasPrimaryKey) {
+                    System.err.println("ERROR: Cannot create a table with multiple primary keys.");
+                    return;
+                }
+                hasPrimaryKey = true;
+            }
             boolean unique = attributeTokens.contains("unique");
             boolean notNull = attributeTokens.contains("notnull");
             int length = 0;
@@ -62,6 +70,10 @@ public class DatabaseEngine {
                 }
             }
             allAttributes.add(new Attribute(name, attrType, primaryKey, notNull, unique, length));
+        }
+        if (!hasPrimaryKey) {
+            System.err.println("ERROR: Table has no primary key.");
+            return;
         }
         try {
             storageManager.createTable(tableName, allAttributes);
@@ -113,44 +125,50 @@ public class DatabaseEngine {
     }
 
     /**
-     * Drops an entire attribute Row from the table
-     * @param tableName The table to display the schema of
+     * Drops an attribute from a given table
+     * @param tableName The name of the table the attribute is dropped from
+     * @param attributeName The name of the attribute being dropped
      */
     //Storage manager
     public void dropAttribute(String tableName, String attributeName) {
         TableSchema schema = storageManager.getTableSchema(tableName);
+        if (schema == null) {
+            System.err.println("Table `" + tableName + "` does not exist.");
+            return;
+        }
         int dropIndex = schema.getAttributeIndex(attributeName);
         // Validate parameters
         if (dropIndex == -1) {
-            System.err.println("No attribute `" + attributeName + "` on table `" + tableName + "`");
+            System.err.println("No attribute `" + attributeName + "` on table `" + schema.name + "`");
             return;
         }
-        if (schema.primaryKey.equals(attributeName)) {
-            System.err.println("Cannot drop primary key `" + attributeName + "` from table `" + tableName + "`");
+        if (schema.getAttributeIndex(attributeName) == schema.primaryKey) {
+            System.err.println("Cannot drop primary key `" + attributeName + "` from table `" + schema.name + "`");
         }
         // Create a temporary table to transfer the updated info into
-        String tempName = storageManager.getTempTableName();
-        TableSchema newSchmea = schema.duplicate();
-        newSchmea.attributes.remove(dropIndex);
+        TableSchema newSchema;
         try {
-            storageManager.createTable(tempName, newSchmea.attributes);
+            String tempName = storageManager.getTempTableName();
+            ArrayList<Attribute> newAttrList = schema.attributes;
+            newAttrList.remove(dropIndex);
+            newSchema = storageManager.createTable(tempName, newAttrList);
         } catch (IOException ioe) {
             System.err.println("Encountered error while cloning table: " + ioe + " : " + ioe.getMessage());
             return;
         }
         // Iterate over all records, dropping the attribute and inserting it into the new table
-        Page currPage = storageManager.getPage(tableName, 0);
+        Page currPage = storageManager.getPage(schema, 0);
         int currIndex = 0;
         while (currPage != null) {
             for (Record r : currPage.records) {
                 Record updatedRec = r.duplicate();
                 updatedRec.rowData.remove(dropIndex);
-                storageManager.insertRecord(tempName, updatedRec);
+                storageManager.insertRecord(newSchema, updatedRec);
             }
             currIndex += 1;
-            currPage = storageManager.getPage(tableName, currIndex);
+            currPage = storageManager.getPage(schema, currIndex);
         }
-        storageManager.replaceTable(tempName, tableName);
+        storageManager.replaceTable(schema, newSchema);
     }
 
     /**
@@ -219,29 +237,30 @@ public class DatabaseEngine {
                 attributeLength,
                 defaultObj);
         // Create a temporary table to transfer the updated info into
-        String tempTable = storageManager.getTempTableName();
-        TableSchema newSchmea = schema.duplicate();
-        newSchmea.attributes.add(newAttribute);
+        TableSchema newSchema;
         try {
-            storageManager.createTable(tempTable, newSchmea.attributes);
+            String tempTable = storageManager.getTempTableName();
+            ArrayList<Attribute> newAttrList = schema.attributes;
+            newAttrList.add(newAttribute);
+            newSchema = storageManager.createTable(tempTable, newAttrList);
         } catch (IOException ioe) {
             System.err.println("Encountered error while cloning table: " + ioe + " : " + ioe.getMessage());
             return;
         }
         // Iterate over all records, adding the attribute and inserting them into the new table
-        Page currPage = storageManager.getPage(tableName, 0);
+        Page currPage = storageManager.getPage(schema, 0);
         int currPageNum = 0;
         while (currPage != null) {
             for (Record r : currPage.records) {
                 Record updatedRec = r.duplicate();
                 updatedRec.rowData.add(defaultObj);
-                storageManager.insertRecord(tempTable, updatedRec);
+                storageManager.insertRecord(newSchema, updatedRec);
             }
             currPageNum += 1;
-            currPage = storageManager.getPage(tableName, currPageNum);
+            currPage = storageManager.getPage(schema, currPageNum);
         }
         // Once the all records have been updated, swap the temp table with the real one
-        storageManager.replaceTable(tempTable, tableName);
+        storageManager.replaceTable(schema, newSchema);
     }
 
     /**
@@ -260,11 +279,11 @@ public class DatabaseEngine {
         System.out.println(headerToString(schema, 10));
         try {
             int pageIndex = 0;
-            Page currPage = storageManager.getPage(schema.name, pageIndex);
+            Page currPage = storageManager.getPage(schema, pageIndex);
             while (currPage != null) {
                 System.out.println(tableToString(currPage.records, 10));
                 pageIndex += 1;
-                currPage = storageManager.getPage(schema.name, pageIndex);
+                currPage = storageManager.getPage(schema, pageIndex);
             }
         }
         catch (Exception e) {
@@ -325,7 +344,7 @@ public class DatabaseEngine {
         try {
             Record record = parseData(schema, tupleValues);
             int pageIndex = 0;
-            Page currPage = schema.rootIndex == -1 ? null : storageManager.getPage(schema.name, pageIndex);
+            Page currPage = schema.rootIndex == -1 ? null : storageManager.getPage(schema, pageIndex);
             // Verify record is unique
             while (currPage != null) {
                 for (Record r : currPage.records) {
@@ -337,10 +356,10 @@ public class DatabaseEngine {
                     }
                 }
                 pageIndex += 1;
-                currPage = storageManager.getPage(schema.name, pageIndex);
+                currPage = storageManager.getPage(schema, pageIndex);
             }
             // Insert
-            storageManager.insertRecord(tableName, record);
+            storageManager.insertRecord(schema, record);
         } catch (Exception e) {
             System.err.println(e.getMessage());
             return false;
@@ -423,6 +442,105 @@ public class DatabaseEngine {
         }
         return new Record(data);
     }
+
+    // ====================================================================================
+    // =========== Joins ==================================================================
+    // ====================================================================================
+
+    /**
+     * Takes two TableSchemas and attributes so that any shared names are changed to
+     * "tableName.attributeName"
+     * @param schema1 The first schema
+     * @param schema2 The second schema
+     */
+    private void dedupeAttrNames(TableSchema schema1, TableSchema schema2) {
+        // Create the set of shared attr names
+        HashSet<String> schemaNames = new HashSet<>();
+        for (Attribute attr : schema1.attributes) {
+            schemaNames.add(attr.name);
+        }
+        HashSet<String> otherNames = new HashSet<>();
+        for (Attribute attr : schema2.attributes) {
+            otherNames.add(attr.name);
+        }
+        schemaNames.retainAll(otherNames);
+        if (schemaNames.isEmpty()) {
+            return;  // Don't bother if there are no shared attr
+        }
+        // Rename shared attrs
+        for (String attrName : schemaNames) {
+            schema1.attributes.get(schema1.getAttributeIndex(attrName)).name = schema1.name + "." + attrName;
+            schema2.attributes.get(schema2.getAttributeIndex(attrName)).name = schema2.name + "." + attrName;
+        }
+    }
+
+    /**
+     * Performs a cartesian join on two tables and returns the TableSchema pointing to the
+     * table which contains the resulting records
+     * @param table_1 The first table
+     * @param table_2 The second table
+     * @return The TableSchema of the resulting table. This should be dropped after use
+     * @throws IOException if an error occurs when creating the cartesian table
+     */
+    private TableSchema cartesianJoin(TableSchema table_1, TableSchema table_2) throws IOException {
+        TableSchema larger;
+        TableSchema smaller;
+        if (table_1.pageCount() > table_2.pageCount()) {
+            larger = table_1.duplicate();
+            smaller = table_2.duplicate();
+        } else {
+            larger = table_2.duplicate();
+            smaller = table_1.duplicate();
+        }
+        // Check for duplicate attr names
+        dedupeAttrNames(larger, smaller);
+        // Create the joined list of attributes
+        ArrayList<Attribute> concatAttr = new ArrayList<>();
+        for (Attribute attr : larger.attributes) {
+            attr.primaryKey = false;
+            concatAttr.add(attr);
+        }
+        for (Attribute attr : smaller.attributes) {
+            attr.primaryKey = false;
+            concatAttr.add(attr);
+        }
+        // Create the temp table
+        TableSchema combinedSchema = storageManager.createTable(storageManager.getTempTableName(), concatAttr);
+        // Block nested loop join
+        int largerIndex = 0;
+        Page largerPage = storageManager.getPage(larger, 0);
+        int smallerIndex = 0;
+        Page smallerPage = storageManager.getPage(smaller, 0);
+
+        while (largerPage != null) {
+            System.out.println("1");
+            while (smallerPage != null) {
+                System.out.println("2");
+                smallerPage = storageManager.getPage(smaller, smallerIndex);
+                for (Record lRec : largerPage.getRecords()) {
+                    System.out.println("3");
+                    for (Record rRec : smallerPage.getRecords()) {
+                        System.out.println("A");
+                        ArrayList<Object> rowData = new ArrayList<>(lRec.rowData);
+                        System.out.println("B");
+                        rowData.addAll(rRec.rowData);
+                        System.out.println("C");
+                        storageManager.insertRecord(combinedSchema, new Record(rowData));
+                        System.out.println("D");
+                    }
+                }
+                smallerIndex++;
+                smallerPage = storageManager.getPage(smaller, smallerIndex);
+            }
+            largerIndex++;
+            largerPage = storageManager.getPage(larger, largerIndex);
+        }
+        return combinedSchema;
+    }
+
+    // ====================================================================================
+    // =========== Printing ===============================================================
+    // ====================================================================================
 
     /**
      * Returns a string containing the properly formatted header to a table printout
@@ -520,6 +638,15 @@ public class DatabaseEngine {
     }
 
     public void test(ArrayList<String> args) {
-        storageManager.test(args);
+        TableSchema foo = storageManager.getTableSchema("foo");
+        TableSchema bar = storageManager.getTableSchema("bar");
+        try {
+            TableSchema returned = cartesianJoin(foo, bar);
+            System.out.println(returned.name);
+        } catch (IOException ioe) {
+            System.err.println(ioe + " | " + ioe.getMessage());
+        }
+
+
     }
 }
