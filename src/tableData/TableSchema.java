@@ -61,6 +61,17 @@ public class TableSchema {
     }
 
     /**
+     * returns a list of all attribute names in the table
+     */
+    public ArrayList<String> getAttributeNames() {
+        ArrayList<String> attributeNames = new ArrayList<>();
+        for (Attribute attribute : attributes) {
+            attributeNames.add(attribute.name);
+        }
+        return attributeNames;
+    }
+
+    /**
      * Gets the number of records stored in this table
      * @return The number of records
      */
