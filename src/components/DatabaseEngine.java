@@ -291,24 +291,7 @@ public class DatabaseEngine {
         }
         // Cap off with footer string
         System.out.println(footerString(schema, 10));
-    }
 
-    /**
-     * Parses the `where` clause for a given command
-     * @param where The sequence of tokens representing the where clause
-     * @return ?
-     */
-    private ArrayList<String> parseWhere(ArrayList<String> where) {
-        ArrayList<String> out = new ArrayList<>();
-        Stack<String> operators = new Stack<>();
-        Stack<String> operands = new Stack<>();
-
-        for (String s : where) {
-
-        }
-
-
-        return where;
     }
 
     /**
