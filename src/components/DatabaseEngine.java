@@ -317,7 +317,13 @@ public class DatabaseEngine {
      * @param whereClause Arraylist of strings in the where
      */
     public void deleteWhere(String tableName, ArrayList<String> whereClause) {
-        // TODO: implement this
+        TableSchema schema = storageManager.getTableSchema(tableName);
+        if (schema == null) {
+            System.err.println("Table `" + tableName + "` does not exist.");
+            return;
+        }
+
+        // TODO: implement this when we lock down whats happening with where
     }
     /**
      * Converts a list of strings into their appropriate data objects and inserts the record into a given table.
