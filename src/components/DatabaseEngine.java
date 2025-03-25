@@ -108,8 +108,20 @@ public class DatabaseEngine {
         }
 
         System.out.println(currTable.pageCount());
+        try{
+            TableSchema tempTable = storageManager.createTable("temptable", currTable.duplicate().attributes);
+
+        } catch (IOException e) {
+            System.err.println("Error while creating temporary table '" + tableName + "'.");
+
+        }
         for(int x = 0; x < currTable.pageCount(); x++) {
             Page currPage = storageManager.getPage(currTable, x);
+            for (Record record : currPage.getRecords()) {
+//                if (record.evaluate()){
+//                    storageManager.insertRecord(record, tempTable);
+//                }
+            }
             System.out.println(currPage.records);
         }
 
