@@ -60,7 +60,8 @@ public class Record {
         if (rowData.size() != other.size()) { return -1; }  // Records do not match
         for (int i = 0; i < rowData.size(); i++) {
             if ((schema.attributes.get(i).unique || schema.attributes.get(i).primaryKey)
-                    && rowData.get(i).equals(other.rowData.get(i))) {
+                    && (rowData.get(i) == other.rowData.get(i) ||
+                    (rowData.get(i) != null && rowData.get(i).equals(other.rowData.get(i))))) {
                 return i;
             }
         }

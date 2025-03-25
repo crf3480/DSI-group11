@@ -45,7 +45,6 @@ public class Main {
         DDL ddl = new DDL(databaseEngine);
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        String output;
         while (true) {
             System.out.print("Input ('<quit>' to quit): ");
             for (ArrayList<String> statement : getQuery(br)) {
@@ -92,7 +91,7 @@ public class Main {
      * @return The user's query, sanitized and split into a collection of statements made of substrings. If an
      * IOException is encountered, prints an error and returns an empty list
      */
-    private static ArrayList<ArrayList<String>> getQuery(BufferedReader reader) {
+    public static ArrayList<ArrayList<String>> getQuery(BufferedReader reader) {
         ArrayList<ArrayList<String>> statementList = new ArrayList<>();
         ArrayList<String> statement = new ArrayList<>();
         StringBuilder token = new StringBuilder();
