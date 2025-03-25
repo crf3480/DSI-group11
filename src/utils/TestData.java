@@ -134,7 +134,7 @@ public class TestData {
         out.attributes.add(new Attribute("id", AttributeType.INT, true, false, false, 4));
         out.attributes.add(new Attribute("motto", AttributeType.VARCHAR, false, false, false, 4));
         out.attributes.add(new Attribute("friends", AttributeType.DOUBLE, false, true, false, 4));
-        out.attributes.add(new Attribute("isGamer", AttributeType.BOOLEAN, false, true, false, 4));
+        out.attributes.add(new Attribute("isgamer", AttributeType.BOOLEAN, false, true, false, 4));
         out.attributes.add(new Attribute("name", AttributeType.CHAR, false, true, true, 13));
         return out;
     }
