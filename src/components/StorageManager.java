@@ -1,5 +1,4 @@
 package components;
-
 import tableData.*;
 import tableData.Record;
 import java.io.*;
@@ -200,8 +199,20 @@ public class StorageManager {
                 buffer.savePage(newPage);
             } catch (IOException ioe) {
                 System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
-            }
+            } finally {}
         }
+    }
+
+    public TableSchema where(ArrayList<String> whereClause, TableSchema t) {
+
+        System.out.println();
+
+        /*
+            TODO:   given a table schema and a where clause, create and return a new table that (depending on mode) is
+            TODO:   either the original table where the where is true, or the entire table where the where is false.
+         */
+
+        return null;
     }
 
     public boolean deleteByPrimaryKey(String tableName, String key){

@@ -1,6 +1,7 @@
 package parsers;
 import components.DatabaseEngine;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Parser for commands which modify relational data
@@ -262,22 +263,23 @@ public class DML extends GeneralParser {
     public void update(ArrayList<String> inputList) {
         String name = inputList.get(1);
         if (!inputList.get(2).equalsIgnoreCase("set")){
-            System.err.println("Invalid update statement: " + String.join(" ", inputList));
+            System.err.println("Invalid update statement: Must Contain \"set\" => " + String.join(" ", inputList));
         }
         String column = inputList.get(3);
         if (!inputList.get(4).equalsIgnoreCase("=")){
-            System.err.println("Invalid update statement: " + String.join(" ", inputList));
+            System.err.println("Invalid update statement: Must Contain \"column\" => " + String.join(" ", inputList));
         }
         String value = inputList.get(5);
-        if (inputList.get(6).equalsIgnoreCase("where")){
-            System.err.println("Invalid update statement: " + String.join(" ", inputList));
+        if (!inputList.get(6).equalsIgnoreCase("where")){
+            System.err.println("Invalid update statement: Must Contain \"where\" => " + String.join(" ", inputList));
         }
         String condition = " ";
         for (int x = 7 ; x < inputList.size(); x++) {
             condition += inputList.get(x);
     }
         //System.out.println("Name: " + name + " Column: " + column + " Value: " + value + " Condition: " + condition);
-        engine.updateTable(name, column, value, condition);
+        List<String> where = new ArrayList<>(inputList.subList(7, inputList.size()));
+        engine.updateTable(name, column, value, where);
     }
 
 

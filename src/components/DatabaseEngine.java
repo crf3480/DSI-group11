@@ -96,17 +96,22 @@ public class DatabaseEngine {
         }
     }
 
-    public void updateTable(String tableName, String columnName, String newValue, String condition ) {
-        if (storageManager.getTableSchema(tableName) == null) {
-                    System.err.println("Table '" + tableName + "' does not exist.");
-                    return;
-        }
+    public void updateTable(String tableName, String columnName, String newValue, List<String> condition ) {
         TableSchema currTable = storageManager.getTableSchema(tableName);
+        if (currTable == null) {
+            System.err.println("Table '" + tableName + "' does not exist.");
+            return;
+        }
         if (currTable.getAttributeIndex(columnName) == -1) {
             System.err.println("Table '" + tableName + "' does not contain column '" + columnName + "'.");
             return;
         }
-        //
+
+        System.out.println(currTable.pageCount());
+        for(int x = 0; x < currTable.pageCount(); x++) {
+            Page currPage = storageManager.getPage(currTable, x);
+            System.out.println(currPage.records);
+        }
 
     }
     /**
@@ -293,24 +298,7 @@ public class DatabaseEngine {
         }
         // Cap off with footer string
         System.out.println(footerString(schema, 10));
-    }
 
-    /**
-     * Parses the `where` clause for a given command
-     * @param where The sequence of tokens representing the where clause
-     * @return ?
-     */
-    private ArrayList<String> parseWhere(ArrayList<String> where) {
-        ArrayList<String> out = new ArrayList<>();
-        Stack<String> operators = new Stack<>();
-        Stack<String> operands = new Stack<>();
-
-        for (String s : where) {
-
-        }
-
-
-        return where;
     }
 
     /**
@@ -319,7 +307,13 @@ public class DatabaseEngine {
      * @param whereClause Arraylist of strings in the where
      */
     public void deleteWhere(String tableName, ArrayList<String> whereClause) {
-        // TODO: implement this
+        TableSchema schema = storageManager.getTableSchema(tableName);
+        if (schema == null) {
+            System.err.println("Table `" + tableName + "` does not exist.");
+            return;
+        }
+
+        // TODO: implement this when we lock down whats happening with where
     }
     /**
      * Converts a list of strings into their appropriate data objects and inserts the record into a given table.
