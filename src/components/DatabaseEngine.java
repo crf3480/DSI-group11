@@ -154,7 +154,7 @@ public class DatabaseEngine {
         TableSchema newSchema;
         try {
             String tempName = storageManager.getTempTableName();
-            ArrayList<Attribute> newAttrList = schema.attributes;
+            ArrayList<Attribute> newAttrList = new ArrayList<>(schema.attributes);
             newAttrList.remove(dropIndex);
             newSchema = storageManager.createTable(tempName, newAttrList);
         } catch (IOException ioe) {
@@ -168,7 +168,7 @@ public class DatabaseEngine {
             for (Record r : currPage.records) {
                 Record updatedRec = r.duplicate();
                 updatedRec.rowData.remove(dropIndex);
-                storageManager.insertRecord(newSchema, updatedRec);
+                storageManager.fastInsert(newSchema, updatedRec);
             }
             currIndex += 1;
             currPage = storageManager.getPage(schema, currIndex);
@@ -184,6 +184,7 @@ public class DatabaseEngine {
      * @param defaultValue The default value of the new attribute
      */
     public void addAttribute(String tableName, String attributeName, String attributeType, String defaultValue) {
+        long start = System.nanoTime();
         TableSchema schema = storageManager.getTableSchema(tableName);
         // Validate parameters
         if (schema == null) {
@@ -245,7 +246,7 @@ public class DatabaseEngine {
         TableSchema newSchema;
         try {
             String tempTable = storageManager.getTempTableName();
-            ArrayList<Attribute> newAttrList = schema.attributes;
+            ArrayList<Attribute> newAttrList = new ArrayList<>(schema.attributes);
             newAttrList.add(newAttribute);
             newSchema = storageManager.createTable(tempTable, newAttrList);
         } catch (IOException ioe) {
@@ -259,13 +260,14 @@ public class DatabaseEngine {
             for (Record r : currPage.records) {
                 Record updatedRec = r.duplicate();
                 updatedRec.rowData.add(defaultObj);
-                storageManager.insertRecord(newSchema, updatedRec);
+                storageManager.fastInsert(newSchema, updatedRec);
             }
             currPageNum += 1;
             currPage = storageManager.getPage(schema, currPageNum);
         }
         // Once the all records have been updated, swap the temp table with the real one
         storageManager.replaceTable(schema, newSchema);
+        System.out.println("Elapsed ns: " + (System.nanoTime() - start));
     }
 
     /**
@@ -503,24 +505,18 @@ public class DatabaseEngine {
         // Block nested loop join
         int largerIndex = 0;
         Page largerPage = storageManager.getPage(larger, 0);
-        int smallerIndex = 0;
-        Page smallerPage = storageManager.getPage(smaller, 0);
 
         while (largerPage != null) {
-            System.out.println("1");
+            int smallerIndex = 0;
+            Page smallerPage = storageManager.getPage(smaller, 0);
             while (smallerPage != null) {
-                System.out.println("2");
                 smallerPage = storageManager.getPage(smaller, smallerIndex);
                 for (Record lRec : largerPage.getRecords()) {
-                    System.out.println("3");
                     for (Record rRec : smallerPage.getRecords()) {
-                        System.out.println("A");
                         ArrayList<Object> rowData = new ArrayList<>(lRec.rowData);
-                        System.out.println("B");
                         rowData.addAll(rRec.rowData);
-                        System.out.println("C");
-                        storageManager.insertRecord(combinedSchema, new Record(rowData));
-                        System.out.println("D");
+                        System.out.println(rowData);
+                        storageManager.fastInsert(combinedSchema, new Record(rowData));
                     }
                 }
                 smallerIndex++;
@@ -636,11 +632,9 @@ public class DatabaseEngine {
         TableSchema bar = storageManager.getTableSchema("bar");
         try {
             TableSchema returned = cartesianJoin(foo, bar);
-            System.out.println(returned.name);
+            System.out.println(returned);
         } catch (IOException ioe) {
             System.err.println(ioe + " | " + ioe.getMessage());
         }
-
-
     }
 }

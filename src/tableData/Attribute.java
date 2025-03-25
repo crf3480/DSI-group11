@@ -8,6 +8,7 @@ public class Attribute {
     public boolean unique;
     public Object defaultValue;
 
+    /// The number of bytes this attribute takes up
     public int length;
 
     /**

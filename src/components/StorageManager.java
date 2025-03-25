@@ -154,6 +154,55 @@ public class StorageManager {
         }
     }
 
+    /**
+     * Inserts a record at the end of the table, regardless of key ordering
+     * @param schema The TableSchema of the table the record is being inserted into
+     * @param record The record to insert
+     */
+    public void fastInsert(TableSchema schema, Record record) {
+        // If table has no pages, make a new page and insert it into the buffer
+        if (schema.rootIndex == -1) {
+            Page firstPage = new Page(0, 0, schema, catalog.pageSize());
+            try {
+                buffer.savePage(firstPage);
+                buffer.insertPage(firstPage);
+            } catch (IOException ioe) {
+                System.err.println("Encountered exception while adding new page to table file: " + ioe.getMessage());
+                return;
+            }
+        }
+        // Get last page and insert record
+        Page lastPage = getPage(schema, schema.pageCount() - 1);
+
+        lastPage.records.add(record);
+        schema.incrementRecordCount();
+
+        // If the record is now oversize, remove and insert into a new page
+        if (lastPage.pageDataSize() > catalog.pageSize()) {
+            lastPage.records.removeLast();
+            int pageIndex;
+            try {
+                pageIndex = expandTable(schema);
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+                return;
+            }
+            // Create Page with new record and link it with prev
+            ArrayList<Record> recordList = new ArrayList<>();
+            recordList.add(record);
+            Page newPage = new Page(pageIndex, lastPage.pageNumber + 1, recordList, pageSize(), schema);
+            newPage.prevPage = lastPage.pageIndex;
+            lastPage.nextPage = newPage.pageIndex;
+            // Insert the new page into the buffer
+            try {
+                buffer.insertPage(newPage);
+                buffer.savePage(newPage);
+            } catch (IOException ioe) {
+                System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
+            } finally {}
+        }
+    }
+
     public TableSchema where(ArrayList<String> whereClause, TableSchema t) {
 
         System.out.println();

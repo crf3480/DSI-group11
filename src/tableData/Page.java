@@ -51,7 +51,7 @@ public class Page {
     }
 
     /**
-     * Creates a Page from a pre-existing list of Records
+     * Creates a Page from a pre-existing list of Records. Page count for TableSchema is automatically updated
      * @param pageIndex The index into the table file where this page is located
      * @param pageNumber The number of the Page
      * @param records The list of records in the Page
@@ -66,10 +66,11 @@ public class Page {
         this.nextPage = -1; //default next page value
         this.prevPage = -1; //default prev page value
         this.records = records;
+        tableSchema.incrementPageCount();
     }
 
     /**
-     * Creates an empty page with a given page number
+     * Creates an empty page with a given page number.  Page count for TableSchema is automatically updated
      * @param pageIndex The index into the table file where this page is located
      * @param pageNumber The number of the page
      * @param tableSchema The schema of the records stored in this page
@@ -88,6 +89,7 @@ public class Page {
         if (pageNumber == 0) {
             tableSchema.rootIndex = pageIndex;
         }
+        tableSchema.incrementPageCount();
     }
 
     /**
@@ -231,7 +233,6 @@ public class Page {
         childPage.nextPage = nextPage;
         nextPage = childPageIndex;
         childPage.prevPage = pageIndex;
-        tableSchema.incrementPageCount();
         return childPage;
     }
 
