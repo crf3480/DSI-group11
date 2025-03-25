@@ -118,6 +118,17 @@ public class TestData {
         return new TableSchema("Test Table",0, attrList, "", 0, 0);
     }
 
+    public static Record permaRecord(){
+        ArrayList<Object> recordData = new ArrayList<>();
+        recordData.add(47);
+        recordData.add("gaming!");
+        recordData.add(5);
+        recordData.add(true);
+        recordData.add("CamLikesCow");
+        Record record = new Record(recordData);
+        return record;
+    }
+
     public static TableSchema permaTable() {
         TableSchema out = new TableSchema("The PermaTable", 0, new ArrayList<>(), "", 0, 0);
         out.attributes.add(new Attribute("id", AttributeType.INT, true, false, false, 4));
