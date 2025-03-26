@@ -1,6 +1,7 @@
 package components;
 import tableData.*;
 import tableData.Record;
+import where.Evaluator;
 
 import java.io.IOException;
 import java.util.*;
@@ -425,7 +426,7 @@ public class DatabaseEngine {
             larger = table_2.duplicate();
             smaller = table_1.duplicate();
         }
-        selectRecords();
+        // selectRecords();
         // Check for duplicate attr names
         dedupeAttrNames(larger, smaller);
         Page tempPage = storageManager.getPage(larger, 0);
@@ -659,13 +660,30 @@ public class DatabaseEngine {
     //endregion
 
     public void test(ArrayList<String> args) {
-        TableSchema foo = storageManager.getTableSchema("foo");
+//        TableSchema foo = storageManager.getTableSchema("foo");
+//        TableSchema bar = storageManager.getTableSchema("bar");
+//        try {
+//            TableSchema returned = cartesianJoin(foo, bar);
+//            System.out.println(returned);
+//        } catch (IOException ioe) {
+//            System.err.println(ioe + " | " + ioe.getMessage());
+//        }
+
         TableSchema bar = storageManager.getTableSchema("bar");
-        try {
-            TableSchema returned = cartesianJoin(foo, bar);
-            System.out.println(returned);
-        } catch (IOException ioe) {
-            System.err.println(ioe + " | " + ioe.getMessage());
+        args.removeFirst();
+        Evaluator eval = new Evaluator(args, bar);
+        int pageIndex = 0;
+        Page page = storageManager.getPage(bar, 0);
+        while (page != null) {
+            for (Record r : page.records) {
+                if (eval.evaluateRecord(r)) {
+                    System.out.println(r + " : ================================ (TRUE)");
+                } else {
+                    System.out.println(r + " : (false)");
+                }
+            }
+            pageIndex++;
+            page = storageManager.getPage(bar, pageIndex);
         }
     }
 }
