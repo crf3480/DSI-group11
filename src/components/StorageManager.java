@@ -199,7 +199,7 @@ public class StorageManager {
                 buffer.savePage(newPage);
             } catch (IOException ioe) {
                 System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
-            } finally {}
+            }
         }
     }
 

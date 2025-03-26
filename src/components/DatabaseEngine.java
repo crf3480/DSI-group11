@@ -10,12 +10,6 @@ import java.util.*;
  */
 public class DatabaseEngine {
 
-    /// Output constants
-    private static final String LEFT_WALL = "| ";
-    private static final String RIGHT_WALL = " |";
-    private static final String CELL_DIVIDER = " | ";
-    private static final char TRUCATION_CHAR = '…';
-
     private final StorageManager storageManager;
 
     /**
@@ -25,6 +19,10 @@ public class DatabaseEngine {
     public DatabaseEngine(StorageManager storageManager) {
         this.storageManager = storageManager;
     }
+
+    // ====================================================================================
+    //region Commands =====================================================================
+    // ====================================================================================
 
     /**
      * Creates a table from a sequence of strings
@@ -327,6 +325,7 @@ public class DatabaseEngine {
 
         // TODO: implement this when we lock down whats happening with where
     }
+    
     /**
      * Converts a list of strings into their appropriate data objects and inserts the record into a given table.
      * Responsible for checking attribute counts match.
@@ -374,6 +373,106 @@ public class DatabaseEngine {
         }
         return true;
     }
+
+    //endregion
+
+    // ====================================================================================
+    //region Joins ========================================================================
+    // ====================================================================================
+
+    /**
+     * Takes two TableSchemas and attributes so that any shared names are changed to
+     * "tableName.attributeName"
+     * @param schema1 The first schema
+     * @param schema2 The second schema
+     */
+    private void dedupeAttrNames(TableSchema schema1, TableSchema schema2) {
+        // Create the set of shared attr names
+        HashSet<String> schemaNames = new HashSet<>();
+        for (Attribute attr : schema1.attributes) {
+            schemaNames.add(attr.name);
+        }
+        HashSet<String> otherNames = new HashSet<>();
+        for (Attribute attr : schema2.attributes) {
+            otherNames.add(attr.name);
+        }
+        schemaNames.retainAll(otherNames);
+        if (schemaNames.isEmpty()) {
+            return;  // Don't bother if there are no shared attr
+        }
+        // Rename shared attrs
+        for (String attrName : schemaNames) {
+            schema1.attributes.get(schema1.getAttributeIndex(attrName)).name = schema1.name + "." + attrName;
+            schema2.attributes.get(schema2.getAttributeIndex(attrName)).name = schema2.name + "." + attrName;
+        }
+    }
+
+    /**
+     * Performs a cartesian join on two tables and returns the TableSchema pointing to the
+     * table which contains the resulting records
+     * @param table_1 The first table
+     * @param table_2 The second table
+     * @return The TableSchema of the resulting table. This should be dropped after use
+     * @throws IOException if an error occurs when creating the cartesian table
+     */
+    private TableSchema cartesianJoin(TableSchema table_1, TableSchema table_2) throws IOException {
+        TableSchema larger;
+        TableSchema smaller;
+        if (table_1.pageCount() >= table_2.pageCount()) {
+            larger = table_1.duplicate();
+            smaller = table_2.duplicate();
+        } else {
+            larger = table_2.duplicate();
+            smaller = table_1.duplicate();
+        }
+        selectRecords();
+        // Check for duplicate attr names
+        dedupeAttrNames(larger, smaller);
+        Page tempPage = storageManager.getPage(larger, 0);
+        System.out.println(tempPage);
+        // Create the joined list of attributes
+        ArrayList<Attribute> concatAttr = new ArrayList<>();
+        for (Attribute attr : larger.attributes) {
+            attr.primaryKey = false;
+            concatAttr.add(attr);
+        }
+        for (Attribute attr : smaller.attributes) {
+            attr.primaryKey = false;
+            concatAttr.add(attr);
+        }
+        // Create the temp table
+        TableSchema combinedSchema = storageManager.createTable(storageManager.getTempTableName(), concatAttr);
+        // Block nested loop join
+        int largerIndex = 0;
+        Page largerPage = storageManager.getPage(larger, 0);
+        System.out.println(largerPage.records);
+        while (largerPage != null) {
+            int smallerIndex = 0;
+            Page smallerPage = storageManager.getPage(smaller, 0);
+            while (smallerPage != null) {
+                smallerPage = storageManager.getPage(smaller, smallerIndex);
+                for (Record lRec : largerPage.getRecords()) {
+                    for (Record rRec : smallerPage.getRecords()) {
+                        ArrayList<Object> rowData = new ArrayList<>(lRec.rowData);
+                        rowData.addAll(rRec.rowData);
+                        System.out.println(rowData);
+                        storageManager.fastInsert(combinedSchema, new Record(rowData));
+                    }
+                }
+                smallerIndex++;
+                smallerPage = storageManager.getPage(smaller, smallerIndex);
+            }
+            largerIndex++;
+            largerPage = storageManager.getPage(larger, largerIndex);
+        }
+        return combinedSchema;
+    }
+
+    //endregion
+
+    // ====================================================================================
+    //region Parsing ======================================================================
+    // ====================================================================================
 
     /**
      * Converts a sequence of strings into a Record with a given schema
@@ -450,99 +549,17 @@ public class DatabaseEngine {
         }
         return new Record(data);
     }
+    //endregion
 
     // ====================================================================================
-    // =========== Joins ==================================================================
+    //region Printing =====================================================================
     // ====================================================================================
 
-    /**
-     * Takes two TableSchemas and attributes so that any shared names are changed to
-     * "tableName.attributeName"
-     * @param schema1 The first schema
-     * @param schema2 The second schema
-     */
-    private void dedupeAttrNames(TableSchema schema1, TableSchema schema2) {
-        // Create the set of shared attr names
-        HashSet<String> schemaNames = new HashSet<>();
-        for (Attribute attr : schema1.attributes) {
-            schemaNames.add(attr.name);
-        }
-        HashSet<String> otherNames = new HashSet<>();
-        for (Attribute attr : schema2.attributes) {
-            otherNames.add(attr.name);
-        }
-        schemaNames.retainAll(otherNames);
-        if (schemaNames.isEmpty()) {
-            return;  // Don't bother if there are no shared attr
-        }
-        // Rename shared attrs
-        for (String attrName : schemaNames) {
-            schema1.attributes.get(schema1.getAttributeIndex(attrName)).name = schema1.name + "." + attrName;
-            schema2.attributes.get(schema2.getAttributeIndex(attrName)).name = schema2.name + "." + attrName;
-        }
-    }
-
-    /**
-     * Performs a cartesian join on two tables and returns the TableSchema pointing to the
-     * table which contains the resulting records
-     * @param table_1 The first table
-     * @param table_2 The second table
-     * @return The TableSchema of the resulting table. This should be dropped after use
-     * @throws IOException if an error occurs when creating the cartesian table
-     */
-    private TableSchema cartesianJoin(TableSchema table_1, TableSchema table_2) throws IOException {
-        TableSchema larger;
-        TableSchema smaller;
-        if (table_1.pageCount() > table_2.pageCount()) {
-            larger = table_1.duplicate();
-            smaller = table_2.duplicate();
-        } else {
-            larger = table_2.duplicate();
-            smaller = table_1.duplicate();
-        }
-        // Check for duplicate attr names
-        dedupeAttrNames(larger, smaller);
-        // Create the joined list of attributes
-        ArrayList<Attribute> concatAttr = new ArrayList<>();
-        for (Attribute attr : larger.attributes) {
-            attr.primaryKey = false;
-            concatAttr.add(attr);
-        }
-        for (Attribute attr : smaller.attributes) {
-            attr.primaryKey = false;
-            concatAttr.add(attr);
-        }
-        // Create the temp table
-        TableSchema combinedSchema = storageManager.createTable(storageManager.getTempTableName(), concatAttr);
-        // Block nested loop join
-        int largerIndex = 0;
-        Page largerPage = storageManager.getPage(larger, 0);
-
-        while (largerPage != null) {
-            int smallerIndex = 0;
-            Page smallerPage = storageManager.getPage(smaller, 0);
-            while (smallerPage != null) {
-                smallerPage = storageManager.getPage(smaller, smallerIndex);
-                for (Record lRec : largerPage.getRecords()) {
-                    for (Record rRec : smallerPage.getRecords()) {
-                        ArrayList<Object> rowData = new ArrayList<>(lRec.rowData);
-                        rowData.addAll(rRec.rowData);
-                        System.out.println(rowData);
-                        storageManager.fastInsert(combinedSchema, new Record(rowData));
-                    }
-                }
-                smallerIndex++;
-                smallerPage = storageManager.getPage(smaller, smallerIndex);
-            }
-            largerIndex++;
-            largerPage = storageManager.getPage(larger, largerIndex);
-        }
-        return combinedSchema;
-    }
-
-    // ====================================================================================
-    // =========== Printing ===============================================================
-    // ====================================================================================
+    /// Output constants
+    private static final String LEFT_WALL = "| ";
+    private static final String RIGHT_WALL = " |";
+    private static final String CELL_DIVIDER = " | ";
+    private static final char TRUCATION_CHAR = '…';
 
     /**
      * Returns a string containing the properly formatted header to a table printout
@@ -638,6 +655,8 @@ public class DatabaseEngine {
         }
         return text + " ".repeat(width - text.length());
     }
+
+    //endregion
 
     public void test(ArrayList<String> args) {
         TableSchema foo = storageManager.getTableSchema("foo");
