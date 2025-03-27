@@ -126,7 +126,7 @@ public class DatabaseEngine {
                     page.records.remove(i);
                     schema.decrementRecordCount();
 
-                    updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute.type));
+                    updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute));
                     storageManager.insertRecord(schema, updatedRecord, schema.primaryKey);
                 }
                 i += 1;
@@ -460,7 +460,7 @@ public class DatabaseEngine {
     //endregion
 
     // ====================================================================================
-    //region Joins/Projections ============================================================
+    //region Mapping ======================================================================
     // ====================================================================================
 
     /**
@@ -706,10 +706,16 @@ public class DatabaseEngine {
      * typecasts a string value to an attribute's type
      *
      * @param newValue string value to be cast
-     * @param attrType index in the attribute (column)
+     * @param attr The attribute whose type the value is being cast to
      */
-    private Object castToAttrType(String newValue, AttributeType attrType) {
-        return switch (attrType) {
+    private Object castToAttrType(String newValue, Attribute attr) {
+        if (newValue.equals("null")) {
+            if (attr.notNull) {
+                throw new IllegalArgumentException("Attribute `" + attr.name + "` cannot be null");
+            }
+            return null;
+        }
+        return switch (attr.type) {
             case INT -> Integer.parseInt(newValue);
             case DOUBLE -> Double.parseDouble(newValue);
             case BOOLEAN -> Boolean.parseBoolean(newValue);
