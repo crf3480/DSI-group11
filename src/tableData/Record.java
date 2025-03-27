@@ -109,4 +109,24 @@ public class Record {
                     ((Boolean) rowData.get(primaryIndex)).compareTo(((Boolean) other.rowData.get(primaryIndex)));
         };
     }
+
+    /**
+     * Determines whether this record should come before or after another when sorted by a specified attribute
+     * @param other The other record to compare to
+     * @param schema The schema of the records
+     * @param attribute The name of the attribute to order by
+     * @return a negative integer, zero, or a positive integer as this object is less than, equal to,
+     * or greater than the other Record.
+     */
+    public int compareByAttribute(Record other, TableSchema schema, String attribute) {
+        int primaryIndex = schema.getAttributeIndex(attribute);
+        return switch (schema.attributes.get(schema.primaryKey).type) {
+            case INT -> ((Integer) rowData.get(primaryIndex)).compareTo(((Integer) other.rowData.get(primaryIndex)));
+            case DOUBLE -> ((Double) rowData.get(primaryIndex)).compareTo(((Double) other.rowData.get(primaryIndex)));
+            case CHAR, VARCHAR ->
+                    ((String) rowData.get(primaryIndex)).compareTo(((String) other.rowData.get(primaryIndex)));
+            case BOOLEAN ->
+                    ((Boolean) rowData.get(primaryIndex)).compareTo(((Boolean) other.rowData.get(primaryIndex)));
+        };
+    }
 }
