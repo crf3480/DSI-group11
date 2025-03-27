@@ -83,10 +83,10 @@ public class DatabaseEngine {
     }
 
     /**
-     * deletes a table
+     * Drops a table from the database
      * @param tableName The name of the table
      */
-    public void deleteTable(String tableName) {
+    public void dropTable(String tableName) {
         try {
             if (!storageManager.dropTable(tableName)) {
                 System.err.println("Table '" + tableName + "' does not exist.");

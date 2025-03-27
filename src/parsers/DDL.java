@@ -131,7 +131,7 @@ public class DDL {
         String tableName = inputList.get(2);
         if (queryType.equals("drop table")) {
             //delete the table
-            engine.deleteTable(tableName);
+            engine.dropTable(tableName);
             return null;
         } else {
             System.err.println("Incorrect Drop Statement");
