@@ -353,6 +353,9 @@ public class DatabaseEngine {
                         if (orderby.equals("")){
                             storageManager.fastInsert(temp, r);
                         }
+                        else{
+                            storageManager.orderedInsert(temp, r, orderby);
+                        }
 
                     }
                 }
