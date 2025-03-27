@@ -336,6 +336,7 @@ public class DatabaseEngine {
      * @param orderby       Attribute to order by in ascending order.
      */
     public void selectRecords(ArrayList<String> attributes, ArrayList<String> tables, ArrayList<String> whereClause, String orderby) {
+        boolean dropSelectedTable = false;
         for (String table: tables) {    // make sure all given tables exist
             if (storageManager.getTableSchema(table) == null) {
                 System.err.println("Table " + table + " does not exist.");
@@ -358,7 +359,9 @@ public class DatabaseEngine {
                 return;
             }
         }
-        if(!attributes.contains("*")) {
+
+        if(!attributes.contains("*") || tables.size() > 1) {
+            dropSelectedTable = true;
             schema = projection(schema, attributes);
             if (schema == null) {
                 return;
@@ -381,8 +384,7 @@ public class DatabaseEngine {
         }
         // Cap off with footer string
         System.out.println(footerString(schema, 10));
-
-        if (false){
+        if (dropSelectedTable) {
             try{
                 storageManager.deleteTable(schema.name);
             } catch (IOException e) {
@@ -591,7 +593,8 @@ public class DatabaseEngine {
             }
             attrIndices[i] = schema.getAttributeIndex(attrs.get(i));
             if (attrIndices[i] == -1) {
-                throw new InvalidAttributeException("Unknown attribute `" + attrs.get(i) + "`");
+                System.err.println("Unknown attribute '" + attrs.get(i) + "'");
+                return null;
             }
         }
         // Create projection schema
@@ -706,7 +709,7 @@ public class DatabaseEngine {
         return new Record(data);
     }
     /**
-     *
+      * @return true if every object of an arraylist is unique, false if there is a duplicate
      */
     private boolean allUnique(ArrayList<String> row) {
         for (int i = 0; i < row.size(); i++) {
