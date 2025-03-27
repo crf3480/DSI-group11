@@ -155,6 +155,82 @@ public class StorageManager {
     }
 
     /**
+     * Inserts a record into the table, ordered by the specified attribute
+     * @param schema The TableSchema of the table the record is being inserted into
+     * @param record The record to insert
+     * @param orderby The attribute the table will be sorted by
+     */
+    public void orderedInsert(TableSchema schema, Record record, String orderby) {
+// If table has no pages, make a new page and insert it into the buffer
+        if (schema.rootIndex == -1) {
+            Page firstPage = new Page(0, 0, schema, catalog.pageSize());
+            try {
+                buffer.savePage(firstPage);
+                buffer.insertPage(firstPage);
+            } catch (IOException ioe) {
+                System.err.println("Encountered exception while adding new page to table file: " + ioe.getMessage());
+                return;
+            }
+        }
+        // Iterate over pages until you find the one where the record goes
+        int currIndex = 0;
+        Page currPage = buffer.getPage(schema, 0);
+        int recordIndex = 0;
+        // Loop over all records and all pages until you find the insertion point
+        pageLoop:
+        while (true) {
+            // Iterate over the records until you find the one that comes after the new record in order
+            for (int i = 0; i < currPage.recordCount(); i++) {
+                Record pageRecord = currPage.records.get(i);
+                recordIndex = i;
+                // If new record goes before pageRecord or you hit the end of the table,
+                // insert it into the page at that index
+                System.out.println(pageRecord.compareByAttribute(record, schema, orderby));
+                if (pageRecord.compareByAttribute(record, schema, orderby) <= 0) {
+                    break pageLoop;
+                }
+            }
+            // If there is no page after this one, break and insert into the last page
+            if (currPage.nextPage == -1) {
+                recordIndex = currPage.recordCount();
+                break;
+            }
+            currIndex += 1;
+            currPage = buffer.getPage(schema, currIndex);
+        }
+        // At this point, currPage is the page to insert into and recordIndex is the index to insert into
+        currPage.records.add(recordIndex, record);
+        schema.incrementRecordCount();
+        // If the record is now oversize, split
+        if (currPage.pageDataSize() > catalog.pageSize()) {
+            int pageIndex;
+            try {
+                pageIndex = expandTable(schema);
+            } catch (IOException e) {
+                // If there was a failure, undo the record insert and abort
+                System.err.println(e.getMessage());
+                currPage.records.remove(recordIndex);
+                return;
+            }
+            Page child = currPage.split(pageIndex);
+            if (child.nextPage != -1) {
+                // Update the prevPage pointer for the page after this one, if one exists
+                Page afterChild = buffer.getPage(schema, currPage.pageNumber + 1);
+                afterChild.prevPage = pageIndex;
+                // Increment the page number for every page that follows child
+                buffer.incrementPageNumbers(schema, currPage.pageNumber);
+            }
+            // Insert the new page into the buffer
+            try {
+                buffer.insertPage(child);
+                buffer.savePage(child);
+            } catch (IOException ioe) {
+                System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
+            }
+        }
+    }
+
+    /**
      * Inserts a record at the end of the table, regardless of key ordering
      * @param schema The TableSchema of the table the record is being inserted into
      * @param record The record to insert

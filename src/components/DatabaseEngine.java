@@ -345,7 +345,6 @@ public class DatabaseEngine {
             return;
         }
 
-
         // Join all tables together
         TableSchema schema = storageManager.getTableSchema(tables.get(0));
         for (String table: tables.subList(1, tables.size())) {
@@ -364,7 +363,8 @@ public class DatabaseEngine {
             we only need to look at the record data if there's a where clause or an orderby attribute
             if so, we make another temp table and run the necessary checks on all records
         */
-        if (!whereClause.isEmpty() || !orderby.isEmpty()){
+        if (!whereClause.isEmpty() || !orderby.equals("")){
+            dropSelectedTable = true;
             Evaluator eval = new Evaluator(whereClause, schema);
             int pageIndex = 0;
             Page page = storageManager.getPage(schema, 0);
@@ -381,7 +381,7 @@ public class DatabaseEngine {
             while (page != null) {
                 for (Record r : page.records) {
                     if (eval.evaluateRecord(r)) {
-                        if (orderby.isEmpty()){
+                        if (orderby.equals("")){
                             storageManager.fastInsert(temp, r);
                         }
 
