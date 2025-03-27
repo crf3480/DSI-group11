@@ -19,61 +19,49 @@ public class Evaluator {
      * @param schema The schema for the table being evaluated
      */
     public Evaluator(ArrayList<String> clause, TableSchema schema) {
+        // If the where clause is empty, do nothing
+        if (clause.isEmpty()) {
+            root = null;
+            return;
+        }
         // Shunting yard algorithm for parsing
         ArrayList<EvaluatorOperator> operatorStack = new ArrayList<>();
         ArrayList<EvaluatorNode> valueStack = new ArrayList<>();
-        if (clause.isEmpty()) {
-            this.root = null;
-        }
-        else {
-            // Shunt the yard, me boy
-            while (!clause.isEmpty()) {
-                String token = clause.removeFirst();
-                // Check if it's a non-operator
-                if (token.startsWith("\"") && token.endsWith("\"")) {  // String constant
-                    valueStack.add(new EvaluatorValueNode(token.substring(1, token.length() - 1)));
-                    continue;
-                } else if (isDouble(token)) {  // Numeric constants
-                    valueStack.add(new EvaluatorValueNode(Double.valueOf(token)));
-                    continue;
-                } else if (isInteger(token)) {
-                    valueStack.add(new EvaluatorValueNode(Integer.valueOf(token)));
-                    continue;
-                } else if (token.equals("true") || token.equals("false")) {
-                    valueStack.add(new EvaluatorValueNode(Boolean.valueOf(token)));
-                    continue;
-                }
-
-                // Check if it's an attribute
-                int index = schema.getAttributeIndex(token);
-                if (index != -1) {
-                    valueStack.add(new EvaluatorAttributeNode(index));
-                    continue;
-                }
-
-                // Must be an operator then
-                EvaluatorOperator oper;
-                try {
-                    oper = EvaluatorOperator.fromString(token);
-                } catch (InvalidOperatorException ioe) {
-                    throw new InvalidAttributeException("Invalid attribute '" + token +
-                            "'. Did you mean '\"" + token + "\"'?");
-                }
-                // Pop from the operator stack until you find one of lower precedence (or the bottom)
-                while (!operatorStack.isEmpty() && operatorStack.getLast().precedence() >= oper.precedence()) {
-                    EvaluatorOperator popped = operatorStack.removeLast();
-                    if (valueStack.size() < 2) {
-                        throw new WhereSyntaxError("Operator " + popped + " has insufficient operands");
-                    }
-                    EvaluatorNode rightOperand = valueStack.removeLast();
-                    EvaluatorNode leftOperand = valueStack.removeLast();
-                    valueStack.add(new EvaluatorOperatorNode(leftOperand, rightOperand, popped));
-                }
-                operatorStack.add(oper);
+        // Shunt the yard, me boy
+        while (!clause.isEmpty()) {
+            String token = clause.removeFirst();
+            // Check if it's a non-operator
+            if (token.startsWith("\"") && token.endsWith("\"")) {  // String constant
+                valueStack.add(new EvaluatorValueNode(token.substring(1, token.length() - 1)));
+                continue;
+            } else if (isDouble(token)) {  // Numeric constants
+                valueStack.add(new EvaluatorValueNode(Double.valueOf(token)));
+                continue;
+            } else if (isInteger(token)) {
+                valueStack.add(new EvaluatorValueNode(Integer.valueOf(token)));
+                continue;
+            } else if (token.equals("true") || token.equals("false")) {
+                valueStack.add(new EvaluatorValueNode(Boolean.valueOf(token)));
+                continue;
             }
 
-            // Compile the remaining operators
-            while (!operatorStack.isEmpty()) {
+            // Check if it's an attribute
+            int index = schema.getAttributeIndex(token);
+            if (index != -1) {
+                valueStack.add(new EvaluatorAttributeNode(index));
+                continue;
+            }
+
+            // Must be an operator then
+            EvaluatorOperator oper;
+            try {
+                oper = EvaluatorOperator.fromString(token);
+            } catch (InvalidOperatorException ioe) {
+                throw new InvalidAttributeException("Invalid attribute '" + token +
+                        "'. Did you mean '\"" + token + "\"'?");
+            }
+            // Pop from the operator stack until you find one of lower precedence (or the bottom)
+            while (!operatorStack.isEmpty() && operatorStack.getLast().precedence() >= oper.precedence()) {
                 EvaluatorOperator popped = operatorStack.removeLast();
                 if (valueStack.size() < 2) {
                     throw new WhereSyntaxError("Operator " + popped + " has insufficient operands");
@@ -82,12 +70,24 @@ public class Evaluator {
                 EvaluatorNode leftOperand = valueStack.removeLast();
                 valueStack.add(new EvaluatorOperatorNode(leftOperand, rightOperand, popped));
             }
-            // Make sure all arguments are accounted for
-            if (valueStack.size() > 1) {
-                throw new WhereSyntaxError("Dangling argument in where clause (" + valueStack.size() + ")");
-            }
-            root = valueStack.removeFirst();
+            operatorStack.add(oper);
         }
+
+        // Compile the remaining operators
+        while (!operatorStack.isEmpty()) {
+            EvaluatorOperator popped = operatorStack.removeLast();
+            if (valueStack.size() < 2) {
+                throw new WhereSyntaxError("Operator " + popped + " has insufficient operands");
+            }
+            EvaluatorNode rightOperand = valueStack.removeLast();
+            EvaluatorNode leftOperand = valueStack.removeLast();
+            valueStack.add(new EvaluatorOperatorNode(leftOperand, rightOperand, popped));
+        }
+        // Make sure all arguments are accounted for
+        if (valueStack.size() > 1) {
+            throw new WhereSyntaxError("Dangling argument in where clause (" + valueStack.size() + ")");
+        }
+        root = valueStack.removeFirst();
     }
 
     /**
@@ -96,7 +96,7 @@ public class Evaluator {
      * @return `true` if the record matches the where clause this object evaluates, or true if there is no where clause
      */
     public boolean evaluateRecord(Record r) {
-        return (this.root!=null) ? (boolean) root.evaluate(r) : true;
+        return this.root == null || (boolean) root.evaluate(r);
     }
 
     /**

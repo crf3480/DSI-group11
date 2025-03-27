@@ -127,11 +127,11 @@ public class DatabaseEngine {
                     schema.decrementRecordCount();
 
                     updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute.type));
-                    storageManager.insertRecord(schema, updatedRecord);
+                    storageManager.insertRecord(schema, updatedRecord, schema.primaryKey);
                 }
                 i += 1;
             }
-
+            // If only record in page delete the page
             if (page.recordCount() == 0) {
                 storageManager.dropPage(page);
             }
@@ -321,6 +321,9 @@ public class DatabaseEngine {
         TableSchema schema = storageManager.getTableSchema(tables.get(0));
         for (String table: tables.subList(1, tables.size())) {
             schema = cartesianJoin(schema, storageManager.getTableSchema(table));
+            if (schema == null) {
+                return;
+            }
         }
 
         if(!attributes.contains("*") || tables.size() > 1) {
@@ -335,11 +338,10 @@ public class DatabaseEngine {
             we only need to look at the record data if there's a where clause or an orderby attribute
             if so, we make another temp table and run the necessary checks on all records
         */
-        if (!whereClause.isEmpty() || !orderby.equals("")){
+        if (!whereClause.isEmpty() || !orderby.isEmpty()){
             dropSelectedTable = true;
             Evaluator eval = new Evaluator(whereClause, schema);
-            int pageIndex = 0;
-            Page page = storageManager.getPage(schema, 0);
+            int orderIndex = schema.getAttributeIndex(orderby);
 
             // Create temp table
             TableSchema temp;
@@ -350,14 +352,16 @@ public class DatabaseEngine {
                 return;
             }
             // Fill the temp table only with where-passing values (empty where makes eval.evaluate always return true)
+            int pageIndex = 0;
+            Page page = storageManager.getPage(schema, 0);
             while (page != null) {
                 for (Record r : page.records) {
                     if (eval.evaluateRecord(r)) {
-                        if (orderby.equals("")){
+                        if (orderby.isEmpty()){
                             storageManager.fastInsert(temp, r);
                         }
                         else{
-                            storageManager.orderedInsert(temp, r, orderby);
+                            storageManager.insertRecord(temp, r, orderIndex);
                         }
 
                     }
@@ -467,7 +471,7 @@ public class DatabaseEngine {
                 currPage = storageManager.getPage(schema, pageIndex);
             }
             // Insert
-            storageManager.insertRecord(schema, record);
+            storageManager.insertRecord(schema, record, schema.primaryKey);
         } catch (Exception e) {
             System.err.println(e.getMessage());
             return false;
