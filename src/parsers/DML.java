@@ -287,7 +287,7 @@ public class DML extends GeneralParser {
     }
         //System.out.println("Name: " + name + " Column: " + column + " Value: " + value + " Condition: " + condition);
         ArrayList<String> where = new ArrayList<>(inputList.subList(7, inputList.size()));
-        engine.updateTable(name, column, value, where);
+        engine.updateWhere(name, column, value, where);
     }
 
 
