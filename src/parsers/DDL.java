@@ -123,7 +123,7 @@ public class DDL {
     public String drop(ArrayList<String> inputList) {
         //Error handling
         if (inputList.size() < 3){
-            System.err.println("Incorrect Create Statement");
+            System.err.println("Incorrect Drop Statement");
             return null;
         }
         //Split string into query
