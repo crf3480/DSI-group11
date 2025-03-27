@@ -1,5 +1,7 @@
 package parsers;
 import components.DatabaseEngine;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -260,7 +262,7 @@ public class DML extends GeneralParser {
      * Performs a update record command
      * @param inputList The list of tokens representing the user's input
      */
-    public void update(ArrayList<String> inputList) {
+    public void update(ArrayList<String> inputList) throws IOException {
         String name = inputList.get(1);
         if (!inputList.get(2).equalsIgnoreCase("set")){
             System.err.println("Invalid update statement: Must Contain \"set\" => " + String.join(" ", inputList));
@@ -278,7 +280,7 @@ public class DML extends GeneralParser {
             condition += inputList.get(x);
     }
         //System.out.println("Name: " + name + " Column: " + column + " Value: " + value + " Condition: " + condition);
-        List<String> where = new ArrayList<>(inputList.subList(7, inputList.size()));
+        ArrayList<String> where = new ArrayList<>(inputList.subList(7, inputList.size()));
         engine.updateTable(name, column, value, where);
     }
 

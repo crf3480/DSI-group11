@@ -97,35 +97,36 @@ public class DatabaseEngine {
         }
     }
 
-    public void updateTable(String tableName, String columnName, String newValue, List<String> condition ) {
+    public void updateTable(String tableName, String columnName, String newValue, ArrayList<String> condition ) throws IOException {
         TableSchema currTable = storageManager.getTableSchema(tableName);
+        int attributeIndex = currTable.getAttributeIndex(columnName);
         if (currTable == null) {
             System.err.println("Table '" + tableName + "' does not exist.");
             return;
         }
-        if (currTable.getAttributeIndex(columnName) == -1) {
+        if (attributeIndex == -1) {
             System.err.println("Table '" + tableName + "' does not contain column '" + columnName + "'.");
             return;
         }
-
-        System.out.println(currTable.pageCount());
-        try{
-            TableSchema tempTable = storageManager.createTable("temptable", currTable.duplicate().attributes);
-
-        } catch (IOException e) {
-            System.err.println("Error while creating temporary table '" + tableName + "'.");
-
-        }
+        ArrayList<Record> updatedRecords = new ArrayList<>();
+        String tempTableName =storageManager.getTempTableName();
+        TableSchema tempTable = storageManager.createTable(tempTableName, currTable.attributes);
+        Evaluator eval = new Evaluator(condition, currTable);
         for(int x = 0; x < currTable.pageCount(); x++) {
             Page currPage = storageManager.getPage(currTable, x);
             for (Record record : currPage.getRecords()) {
-//                if (record.evaluate()){
-//                    storageManager.insertRecord(record, tempTable);
-//                }
-            }
-            System.out.println(currPage.records);
-        }
+                if (eval.evaluateRecord(record)) {
+                    record.update(attributeIndex, newValue);
 
+                }
+                updatedRecords.add(record);
+            }
+        }
+        storageManager.deleteTable(tableName);
+        for (Record record : updatedRecords) {
+            storageManager.fastInsert(tempTable, record);
+        }
+        storageManager.replaceTable(currTable,tempTable);
     }
     /**
      * Displays information about a table
@@ -313,7 +314,7 @@ public class DatabaseEngine {
     }
 
     /**
-     * Deletes records where clause is true
+     * fs records where clause is true
      * @param tableName Given table name to delete record from
      * @param whereClause Arraylist of strings in the where
      */
