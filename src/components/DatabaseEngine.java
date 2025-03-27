@@ -120,7 +120,7 @@ public class DatabaseEngine {
                     // Decrement record count
                     schema.decrementRecordCount();
                     // If only record in page delete the page
-                    if (schema.recordCount() = 0){
+                    if (schema.recordCount() == 0){
                         storageManager.deletePage(schema, currPage.pageNumber);
                     }
                     // reinsert record into the table
