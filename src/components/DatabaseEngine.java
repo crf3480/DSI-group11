@@ -349,12 +349,16 @@ public class DatabaseEngine {
         boolean dropSelectedTable = false;
         for (String table: tables) {    // make sure all given tables exist
             if (storageManager.getTableSchema(table) == null) {
-                System.err.println("Table " + table + " does not exist.");
+                System.err.println("Invalid select: Table " + table + " does not exist.");
                 return;
             }
         }
+        if (!allUnique(tables)){
+            System.err.println("Invalid select: Cannot join a table with itself.");
+            return;
+        }
         if (attributes.contains("*") && attributes.size() > 1) {    // * can only be used if it's the only one
-            System.err.println("Invalid select statement: '*' cannot be used while also specifying attributes.");
+            System.err.println("Invalid select: '*' cannot be used while also specifying attributes.");
             return;
         }
 
@@ -362,12 +366,7 @@ public class DatabaseEngine {
         // Join all tables together
         TableSchema schema = storageManager.getTableSchema(tables.get(0));
         for (String table: tables.subList(1, tables.size())) {
-            try {
-                schema = cartesianJoin(schema, storageManager.getTableSchema(table));
-            } catch (IOException e) {
-                System.err.println("Encountered " + e + " while joining tables.");
-                return;
-            }
+            schema = cartesianJoin(schema, storageManager.getTableSchema(table));
         }
 
         if(!attributes.contains("*") || tables.size() > 1) {
@@ -535,7 +534,7 @@ public class DatabaseEngine {
      * @return The TableSchema of the resulting table. This should be dropped after use
      * @throws IOException if an error occurs when creating the cartesian table
      */
-    private TableSchema cartesianJoin(TableSchema table_1, TableSchema table_2) throws IOException {
+    private TableSchema cartesianJoin(TableSchema table_1, TableSchema table_2)  {
         TableSchema larger;
         TableSchema smaller;
         if (table_1.pageCount() >= table_2.pageCount()) {
@@ -558,27 +557,35 @@ public class DatabaseEngine {
             }
         }
         // Create the temp table
-        TableSchema combinedSchema = storageManager.createTable(storageManager.getTempTableName(), concatAttr);
-        // Block nested loop join
-        int largerIndex = 0;
-        Page largerPage = storageManager.getPage(larger, 0);
-        while (largerPage != null) {
-            int smallerIndex = 0;
-            Page smallerPage = storageManager.getPage(smaller, 0);
-            while (smallerPage != null) {
-                smallerPage = storageManager.getPage(smaller, smallerIndex);
-                for (Record lRec : largerPage.getRecords()) {
-                    for (Record rRec : smallerPage.getRecords()) {
-                        ArrayList<Object> rowData = new ArrayList<>(lRec.rowData);
-                        rowData.addAll(rRec.rowData);
-                        storageManager.fastInsert(combinedSchema, new Record(rowData));
+        TableSchema combinedSchema = null;
+        try {
+            combinedSchema = storageManager.createTable(storageManager.getTempTableName(), concatAttr);
+        } catch (IOException e) {
+            System.err.println("Encountered error while creating temp table: " + e);
+            return null;
+        }
+        if (combinedSchema != null) {
+            // Block nested loop join
+            int largerIndex = 0;
+            Page largerPage = storageManager.getPage(larger, 0);
+            while (largerPage != null) {
+                int smallerIndex = 0;
+                Page smallerPage = storageManager.getPage(smaller, 0);
+                while (smallerPage != null) {
+                    smallerPage = storageManager.getPage(smaller, smallerIndex);
+                    for (Record lRec : largerPage.getRecords()) {
+                        for (Record rRec : smallerPage.getRecords()) {
+                            ArrayList<Object> rowData = new ArrayList<>(lRec.rowData);
+                            rowData.addAll(rRec.rowData);
+                            storageManager.fastInsert(combinedSchema, new Record(rowData));
+                        }
                     }
+                    smallerIndex++;
+                    smallerPage = storageManager.getPage(smaller, smallerIndex);
                 }
-                smallerIndex++;
-                smallerPage = storageManager.getPage(smaller, smallerIndex);
+                largerIndex++;
+                largerPage = storageManager.getPage(larger, largerIndex);
             }
-            largerIndex++;
-            largerPage = storageManager.getPage(larger, largerIndex);
         }
         return combinedSchema;
     }
