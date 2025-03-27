@@ -120,7 +120,8 @@ public class DatabaseEngine {
             Page currPage = storageManager.getPage(currTable, x);
             for (Record record : currPage.getRecords()) {
                 if (eval.evaluateRecord(record)) {
-                    // Check PrimaryKey
+                    // TODO: Run a quick if statement for non-null
+                    // TODO: Add checks for non duplicate
                     if (attribute.primaryKey) {
                         boolean duplicatePrimaryKey = false;
                         Page checkPage = storageManager.getPage(currTable, 0);
