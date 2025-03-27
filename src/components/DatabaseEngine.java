@@ -283,18 +283,40 @@ public class DatabaseEngine {
     }
 
     /**
-     * @param attributes    Names of all attributes to be selected from the tables. Comma separated.
-     * @param tables        Names of all tables that the attributes will be selected from. Comma separated.
+     * @param attributes    Names of all attributes to be selected from the tables
+     * @param tables        Names of all tables that the attributes will be selected from
      * @param whereClause   The entirety of the where clause.
      * @param orderby       Attribute to order by in ascending order.
      */
     public void selectRecords(ArrayList<String> attributes, ArrayList<String> tables, ArrayList<String> whereClause, String orderby) {
-        //TODO: (IN PHASE 2) this only implements select * from a single table
-        TableSchema schema = storageManager.getTableSchema(tables.getFirst());
-        if (schema == null) {
-            System.err.println("Table `" + tables.getFirst() + "` does not exist.");
+        for (String table: tables) {    // make sure all given tables exist
+            if (storageManager.getTableSchema(table) == null) {
+                System.err.println("Table " + table + " does not exist.");
+                return;
+            }
+        }
+        if (attributes.contains("*") && attributes.size() > 1) {    // * can only be used if it's the only one
+            System.err.println("Invalid select statement: '*' cannot be used while also specifying attributes.");
             return;
         }
+
+
+        // Join all tables together
+        TableSchema schema = storageManager.getTableSchema(tables.get(0));
+        for (String table: tables.subList(1, tables.size())) {
+            try {
+                schema = cartesianJoin(schema, storageManager.getTableSchema(table));
+            } catch (IOException e) {
+                System.err.println("Encountered " + e + " while joining tables.");
+                return;
+            }
+        }
+        schema = projection(schema, attributes);
+        if (schema == null) {
+            return;
+        }
+
+        // Print temp table
         System.out.println(headerToString(schema, 10));
         try {
             int pageIndex = 0;
@@ -311,6 +333,13 @@ public class DatabaseEngine {
         // Cap off with footer string
         System.out.println(footerString(schema, 10));
 
+        if (false){
+            try{
+                storageManager.deleteTable(schema.name);
+            } catch (IOException e) {
+                System.err.println("Encountered error while deleting table: " + e);
+            }
+        }
     }
 
     /**
@@ -502,8 +531,15 @@ public class DatabaseEngine {
      */
     private TableSchema projection(TableSchema schema, ArrayList<String> attrs) {
         // Translate and validate parameters
+        if (!allUnique(attrs)) {
+            System.err.println("Invalid select: duplicate attribute names found in "+String.join(", ", attrs));
+            return null;
+        }
         int[] attrIndices = new int[attrs.size()];
         for (int i = 0; i < attrs.size(); i++) {
+            if (attrs.get(i).equals(",")) {
+                continue;
+            }
             attrIndices[i] = schema.getAttributeIndex(attrs.get(i));
             if (attrIndices[i] == -1) {
                 throw new InvalidAttributeException("Unknown attribute `" + attrs.get(i) + "`");
@@ -620,6 +656,20 @@ public class DatabaseEngine {
         }
         return new Record(data);
     }
+    /**
+     *
+     */
+    private boolean allUnique(ArrayList<String> row) {
+        for (int i = 0; i < row.size(); i++) {
+            for (int j = i + 1; j < row.size(); j++) {
+                if (row.get(i).equals(row.get(j))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
     //endregion
 
     // ====================================================================================
