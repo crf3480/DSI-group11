@@ -118,15 +118,14 @@ public class Record {
      * @return a negative integer, zero, or a positive integer as this object is less than, equal to,
      * or greater than the other Record.
      */
-    public int compareByAttribute(Record other, TableSchema schema, String attribute) {
-        int primaryIndex = schema.getAttributeIndex(attribute);
-        return switch (schema.attributes.get(schema.primaryKey).type) {
-            case INT -> ((Integer) rowData.get(primaryIndex)).compareTo(((Integer) other.rowData.get(primaryIndex)));
-            case DOUBLE -> ((Double) rowData.get(primaryIndex)).compareTo(((Double) other.rowData.get(primaryIndex)));
+    public int compareByAttribute(Record other, TableSchema schema, int index) {
+        return switch (schema.attributes.get(index).type) {
+            case INT -> ((Integer) rowData.get(index)).compareTo(((Integer) other.rowData.get(index)));
+            case DOUBLE -> ((Double) rowData.get(index)).compareTo(((Double) other.rowData.get(index)));
             case CHAR, VARCHAR ->
-                    ((String) rowData.get(primaryIndex)).compareTo(((String) other.rowData.get(primaryIndex)));
+                    ((String) rowData.get(index)).compareTo(((String) other.rowData.get(index)));
             case BOOLEAN ->
-                    ((Boolean) rowData.get(primaryIndex)).compareTo(((Boolean) other.rowData.get(primaryIndex)));
+                    ((Boolean) rowData.get(index)).compareTo(((Boolean) other.rowData.get(index)));
         };
     }
 }
