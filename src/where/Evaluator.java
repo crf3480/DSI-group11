@@ -1,4 +1,5 @@
 package where;
+import exceptions.InvalidAttributeException;
 import tableData.TableSchema;
 import tableData.Record;
 

@@ -1,7 +1,7 @@
 package components;
+import exceptions.InvalidAttributeException;
 import tableData.*;
 import tableData.Record;
-import where.Evaluator;
 
 import java.io.IOException;
 import java.util.*;
@@ -195,7 +195,6 @@ public class DatabaseEngine {
      * @param defaultValue The default value of the new attribute
      */
     public void addAttribute(String tableName, String attributeName, String attributeType, String defaultValue) {
-        long start = System.nanoTime();
         TableSchema schema = storageManager.getTableSchema(tableName);
         // Validate parameters
         if (schema == null) {
@@ -278,7 +277,6 @@ public class DatabaseEngine {
         }
         // Once the all records have been updated, swap the temp table with the real one
         storageManager.replaceTable(schema, newSchema);
-        System.out.println("Elapsed ns: " + (System.nanoTime() - start));
     }
 
     /**
@@ -378,7 +376,7 @@ public class DatabaseEngine {
     //endregion
 
     // ====================================================================================
-    //region Joins ========================================================================
+    //region Joins/Projections ============================================================
     // ====================================================================================
 
     /**
@@ -467,6 +465,51 @@ public class DatabaseEngine {
             largerPage = storageManager.getPage(larger, largerIndex);
         }
         return combinedSchema;
+    }
+
+    /**
+     * Takes in the schema of a table and returns a TableSchema containing a subset of its columns
+     * @param schema The TableSchema of the table being projected
+     * @param attrs The attributes to include in the projection
+     * @return The TableSchema of the projection
+     */
+    private TableSchema projection(TableSchema schema, ArrayList<String> attrs) {
+        // Translate and validate parameters
+        int[] attrIndices = new int[attrs.size()];
+        for (int i = 0; i < attrs.size(); i++) {
+            attrIndices[i] = schema.getAttributeIndex(attrs.get(i));
+            if (attrIndices[i] == -1) {
+                throw new InvalidAttributeException("Unknown attribute `" + attrs.get(i) + "`");
+            }
+        }
+        // Create projection schema
+        TableSchema projSchema;
+        try {
+            String projName = storageManager.getTempTableName();
+            ArrayList<Attribute> projAttrList = new ArrayList<>();
+            for (int i : attrIndices) {
+                projAttrList.add(new Attribute(schema.attributes.get(i)));
+            }
+            projSchema = storageManager.createTable(projName, projAttrList);
+        } catch (IOException ioe) {
+            System.err.println("Encountered error while cloning table: " + ioe + " : " + ioe.getMessage());
+            return null;
+        }
+        // Fill projection table
+        Page currPage = storageManager.getPage(schema, 0);
+        int currIndex = 0;
+        while (currPage != null) {
+            for (Record r : currPage.records) {
+                Record projRec = new Record();
+                for (int index : attrIndices) {
+                    projRec.rowData.add(r.rowData.get(index));
+                }
+                storageManager.fastInsert(projSchema, projRec);
+            }
+            currIndex += 1;
+            currPage = storageManager.getPage(schema, currIndex);
+        }
+        return projSchema;
     }
 
     //endregion
@@ -669,21 +712,19 @@ public class DatabaseEngine {
 //            System.err.println(ioe + " | " + ioe.getMessage());
 //        }
 
-        TableSchema bar = storageManager.getTableSchema("bar");
         args.removeFirst();
-        Evaluator eval = new Evaluator(args, bar);
+
+        TableSchema bar = storageManager.getTableSchema("bar");
+        TableSchema projBar = projection(bar, args);
+
         int pageIndex = 0;
-        Page page = storageManager.getPage(bar, 0);
+        Page page = storageManager.getPage(projBar, 0);
         while (page != null) {
             for (Record r : page.records) {
-                if (eval.evaluateRecord(r)) {
-                    System.out.println(r + " : ================================ (TRUE)");
-                } else {
-                    System.out.println(r + " : (false)");
-                }
+                System.out.println(r);
             }
             pageIndex++;
-            page = storageManager.getPage(bar, pageIndex);
+            page = storageManager.getPage(projBar, pageIndex);
         }
     }
 }
