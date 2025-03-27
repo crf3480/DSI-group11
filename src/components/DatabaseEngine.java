@@ -97,7 +97,14 @@ public class DatabaseEngine {
         }
     }
 
-    public void updateWhere(String tableName, String columnName, String newValue, ArrayList<String> condition ) throws IOException {
+    /**
+     * Updates records where a given condition is met
+     * @param tableName stringified table name from DML
+     * @param columnName column name for given column to update
+     * @param newValue new value to be put in place
+     * @param condition where conditional
+     */
+    public void updateWhere(String tableName, String columnName, String newValue, ArrayList<String> condition ){
         TableSchema schema = storageManager.getTableSchema(tableName);
         if (schema == null) {
             System.err.println("Table '" + tableName + "' does not exist.");
@@ -121,7 +128,7 @@ public class DatabaseEngine {
                     schema.decrementRecordCount();
                     // If only record in page delete the page
                     if (schema.recordCount() = 0){
-                        storageManager.deletePage(schema, currPage.pageNumber);
+                        storageManager.dropPage(schema, currPage.pageNumber);
                     }
                     // reinsert record into the table
                     updateAndTypeCast(newValue, attributeIndex, attribute, record);
