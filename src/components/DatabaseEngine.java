@@ -99,31 +99,30 @@ public class DatabaseEngine {
 
     public void updateTable(String tableName, String columnName, String newValue, ArrayList<String> condition ) throws IOException {
         TableSchema currTable = storageManager.getTableSchema(tableName);
-        int attributeIndex = currTable.getAttributeIndex(columnName);
         if (currTable == null) {
             System.err.println("Table '" + tableName + "' does not exist.");
             return;
         }
+        int attributeIndex = currTable.getAttributeIndex(columnName);
         if (attributeIndex == -1) {
             System.err.println("Table '" + tableName + "' does not contain column '" + columnName + "'.");
             return;
         }
-        ArrayList<Record> updatedRecords = new ArrayList<>();
-        String tempTableName =storageManager.getTempTableName();
+
+        String tempTableName = storageManager.getTempTableName();
         TableSchema tempTable = storageManager.createTable(tempTableName, currTable.attributes);
         Evaluator eval = new Evaluator(condition, currTable);
-        System.out.print(attributeIndex);
+//        System.out.print(attributeIndex);
+
         for(int x = 0; x < currTable.pageCount(); x++) {
             Page currPage = storageManager.getPage(currTable, x);
             for (Record record : currPage.getRecords()) {
                 if (eval.evaluateRecord(record)) {
-                    record.update(attributeIndex, newValue);
-
+                    record.update(attributeIndex, (Object) newValue);
                 }
                 storageManager.fastInsert(tempTable, record);
             }
         }
-
         storageManager.replaceTable(currTable,tempTable);
     }
     /**
