@@ -254,8 +254,12 @@ public class DML extends GeneralParser {
         System.out.println("WHERE "+where);
         System.out.println("ORDER BY "+orderby);
         */
-        attributes.remove(",");
-        tables.remove(",");
+        while (attributes.contains(",")){
+            attributes.remove(",");
+        }
+        while (tables.contains(",")){
+            tables.remove(",");
+        }
         engine.selectRecords(attributes, tables, where, orderby);
     }
 
