@@ -83,12 +83,12 @@ public class DatabaseEngine {
     }
 
     /**
-     * Drops a table
+     * deletes a table
      * @param tableName The name of the table
      */
-    public void dropTable(String tableName) {
+    public void deleteTable(String tableName) {
         try {
-            if (!storageManager.dropTable(tableName)) {
+            if (!storageManager.deleteTable(tableName)) {
                 System.err.println("Table '" + tableName + "' does not exist.");
             }
         } catch (Exception e) {
@@ -127,7 +127,7 @@ public class DatabaseEngine {
                     schema.decrementRecordCount();
                     // If only record in page delete the page
                     if (schema.recordCount() == 0){
-                        storageManager.dropPage(schema, currPage.pageNumber);
+                        storageManager.dropPage(currPage);
                     }
                     // reinsert record into the table
                     updateAndTypeCast(newValue, attributeIndex, attribute, record);
@@ -142,13 +142,14 @@ public class DatabaseEngine {
     }
 
     /**
-     * typecasts an the attribute and calls the update method
-     * @param newValue string value to be casted
+     * typecasts the attribute and calls the update method
+     *
+     * @param newValue       string value to be casted
      * @param attributeIndex index in the attribute (column)
-     * @param attribute used for getting the type
-     * @param record given record to be updated
+     * @param attribute      used for getting the type
+     * @param record         given record to be updated
      */
-    private Record updateAndTypeCast(String newValue, int attributeIndex, Attribute attribute, Record record) {
+    private void updateAndTypeCast(String newValue, int attributeIndex, Attribute attribute, Record record) {
         switch (attribute.type){
             case INT:
                 record.update(attributeIndex, Integer.parseInt(newValue));
@@ -410,7 +411,7 @@ public class DatabaseEngine {
         System.out.println(footerString(schema, 10));
         if (dropSelectedTable) {
             try{
-                storageManager.dropTable(schema.name);
+                storageManager.deleteTable(schema.name);
             } catch (IOException e) {
                 System.err.println("Encountered error while deleting table: " + e);
             }
