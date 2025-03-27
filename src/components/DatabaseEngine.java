@@ -377,6 +377,39 @@ public class DatabaseEngine {
             }
         }
 
+        /*
+            we only need to look at the record data if there's a where clause or an orderby attribute
+            if so, we make another temp table and run the necessary checks on all records
+        */
+        if (!whereClause.isEmpty() || !orderby.isEmpty()){
+            Evaluator eval = new Evaluator(whereClause, schema);
+            int pageIndex = 0;
+            Page page = storageManager.getPage(schema, 0);
+
+            // Create temp table
+            TableSchema temp;
+            try{
+                temp = storageManager.createTable(storageManager.getTempTableName(), schema.attributes);
+            } catch (IOException e) {
+                System.err.println("Encountered error while creating temp table: " + e);
+                return;
+            }
+            // Fill the temp table only with where-passing values (empty where makes eval.evaluate always return true)
+            while (page != null) {
+                for (Record r : page.records) {
+                    if (eval.evaluateRecord(r)) {
+                        if (orderby.isEmpty()){
+                            storageManager.fastInsert(temp, r);
+                        }
+
+                    }
+                }
+                pageIndex++;
+                page = storageManager.getPage(schema, pageIndex);
+            }
+            storageManager.replaceTable(schema, temp);
+        }
+
         // Print temp table
         System.out.println(headerToString(schema, 10));
         try {
