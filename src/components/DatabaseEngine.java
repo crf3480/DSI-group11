@@ -116,24 +116,27 @@ public class DatabaseEngine {
         }
         Attribute attribute = schema.attributes.get(attributeIndex);
         Evaluator eval = new Evaluator(condition, schema);
-
-        for(int x = 0; x < schema.pageCount(); x++) {
-            Page currPage = storageManager.getPage(schema, x);
-            for (Record record : currPage.getRecords()) {
-                if (eval.evaluateRecord(record)) {
-                    // Delete record from the arraylist
-                    currPage.getRecords().remove(record);
-                    // Decrement record count
+        int pageIndex = 0;
+        Page page = storageManager.getPage(schema, pageIndex);
+        while (page != null) {
+            int i = 0;
+            while (i < page.recordCount()){
+                Record updatedRecord = page.records.get(i);
+                if (eval.evaluateRecord(updatedRecord)) {
+                    page.records.remove(i);
                     schema.decrementRecordCount();
-                    // If only record in page delete the page
-                    if (schema.recordCount() == 0){
-                        storageManager.dropPage(currPage);
-                    }
-                    // reinsert record into the table
-                    record.update(attributeIndex, castToAttrType(newValue, attribute.type));
-                    storageManager.insertRecord(schema, record);
+
+                    updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute.type));
+                    storageManager.insertRecord(schema, updatedRecord);
                 }
+                i += 1;
             }
+
+            if (page.recordCount() == 0) {
+                storageManager.dropPage(page);
+            }
+            pageIndex += 1;
+            page = storageManager.getPage(schema, pageIndex);
         }
     }
 
