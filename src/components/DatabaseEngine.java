@@ -112,6 +112,7 @@ public class DatabaseEngine {
         String tempTableName =storageManager.getTempTableName();
         TableSchema tempTable = storageManager.createTable(tempTableName, currTable.attributes);
         Evaluator eval = new Evaluator(condition, currTable);
+        System.out.print(attributeIndex);
         for(int x = 0; x < currTable.pageCount(); x++) {
             Page currPage = storageManager.getPage(currTable, x);
             for (Record record : currPage.getRecords()) {
@@ -119,13 +120,10 @@ public class DatabaseEngine {
                     record.update(attributeIndex, newValue);
 
                 }
-                updatedRecords.add(record);
+                storageManager.fastInsert(tempTable, record);
             }
         }
-        storageManager.deleteTable(tableName);
-        for (Record record : updatedRecords) {
-            storageManager.fastInsert(tempTable, record);
-        }
+
         storageManager.replaceTable(currTable,tempTable);
     }
     /**
