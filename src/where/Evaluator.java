@@ -27,7 +27,7 @@ public class Evaluator {
         while (!clause.isEmpty()) {
             String token = clause.removeFirst();
             // Check if it's a non-operator
-            if (token.startsWith("\"")) {  // String constant
+            if (token.startsWith("\"") && token.endsWith("\"")) {  // String constant
                 valueStack.add(new EvaluatorValueNode(token.substring(1, token.length() - 1)));
                 continue;
             } else if (isDouble(token)) {  // Numeric constants
@@ -81,7 +81,7 @@ public class Evaluator {
         }
         // Make sure all arguments are accounted for
         if (valueStack.size() > 1) {
-            throw new WhereSyntaxError("Danging argument in where clause (" + valueStack.size() + ")");
+            throw new WhereSyntaxError("Dangling argument in where clause (" + valueStack.size() + ")");
         }
         root = valueStack.removeFirst();
     }
