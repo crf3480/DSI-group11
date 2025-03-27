@@ -203,50 +203,6 @@ public class StorageManager {
         }
     }
 
-    public boolean deleteByPrimaryKey(String tableName, String key){
-        TableSchema tschema = catalog.getTableSchema(tableName);
-        //looping through pages and records to find The One
-        Page currPage;
-        int pageNum = 0;
-        while (true) {
-            currPage = buffer.getPage(tschema, pageNum);
-            pageNum += 1;
-            if (currPage == null) {  // Reached end of table without finding the record
-                return false;
-            }
-            // Loop over the page, removing the record if you find it
-            for (int i = 0; i < currPage.recordCount(); i++) {
-                Record r = currPage.records.get(i);
-                if (r.get(tschema.primaryKey).equals(key)) {
-                    currPage.records.remove(i);
-                    return true;
-                }
-            }
-        }
-    }
-
-    public boolean updateByPrimaryKey(String tableName, String key, Record record){
-        TableSchema tschema = catalog.getTableSchema(tableName);
-        //looping through pages and records to find The One
-        Page currPage;
-        int pageNum = 0;
-        while (true) {
-            currPage = buffer.getPage(tschema, pageNum);
-            pageNum += 1;
-            if (currPage == null) {  // Reached end of table without finding the record
-                return false;
-            }
-            // Loop over the page, removing the record if you find it
-            for (int i = 0; i < currPage.recordCount(); i++) {
-                Record r = currPage.records.get(i);
-                if (r.get(tschema.primaryKey).equals(key)) {
-                    currPage.records.set(i, record);
-                    return true;
-                }
-            }
-        }
-    }
-
     /**
      * Creates a table with a given name in the catalog and creates a file for it. Primary key
      * requirements are not checked
@@ -263,7 +219,7 @@ public class StorageManager {
      * @param tableName The name of the table to drop
      * @return 'true' if the table exists and was deleted
      */
-    public boolean deleteTable(String tableName) throws IOException {
+    public boolean dropTable(String tableName) throws IOException {
         if (catalog.getTableSchema(tableName) == null) {
             System.err.println("Table '" + tableName + "' does not exist.");
         }
@@ -278,6 +234,31 @@ public class StorageManager {
         catalog.removeTableSchema(tableName);
         catalog.save();
         return true;
+    }
+
+    /**
+     * Removes a page from a table
+     * @param page The page object being removed
+     */
+    public void dropPage(Page page) {
+        TableSchema schema = page.getTableSchema();
+        int pageNum = page.pageNumber;
+        // Remove page
+        buffer.removePage(page);
+        schema.decrementPageCount();
+        // Link adjacent pages
+        Page prevPage = getPage(schema, pageNum - 1);
+        Page nextPage = getPage(schema, pageNum + 1);
+        // If prev page exists, set its next, otherwise make the next page root
+        if (prevPage != null) {
+            prevPage.nextPage = page.nextPage;
+        } else {
+            schema.rootIndex = page.nextPage;
+        }
+        // If next page exists, set its prev page (if next page is null, do nothing)
+        if (nextPage != null) {
+            nextPage.prevPage = page.prevPage;
+        }
     }
 
     /**

@@ -1,5 +1,4 @@
 package components;
-import exceptions.InvalidAttributeException;
 import tableData.*;
 import tableData.Record;
 
@@ -84,12 +83,12 @@ public class DatabaseEngine {
     }
 
     /**
-     * deletes a table
+     * Drops a table
      * @param tableName The name of the table
      */
-    public void deleteTable(String tableName) {
+    public void dropTable(String tableName) {
         try {
-            if (!storageManager.deleteTable(tableName)) {
+            if (!storageManager.dropTable(tableName)) {
                 System.err.println("Table '" + tableName + "' does not exist.");
             }
         } catch (Exception e) {
@@ -411,7 +410,7 @@ public class DatabaseEngine {
         System.out.println(footerString(schema, 10));
         if (dropSelectedTable) {
             try{
-                storageManager.deleteTable(schema.name);
+                storageManager.dropTable(schema.name);
             } catch (IOException e) {
                 System.err.println("Encountered error while deleting table: " + e);
             }
@@ -433,6 +432,24 @@ public class DatabaseEngine {
         Evaluator eval = new Evaluator(whereClause, schema);
         int pageIndex = 0;
         Page page = storageManager.getPage(schema, 0);
+        while (page != null) {
+            int i = 0;
+            // Iterate over all records. If a record matches the evaluator, remove it
+            while (i < page.recordCount()) {
+                if (eval.evaluateRecord(page.records.get(i))) {
+                    page.records.remove(i);
+                    schema.decrementRecordCount();
+                }
+                i += 1;
+            }
+            // If the page is now empty, remove it
+            if (page.recordCount() == 0) {
+
+            }
+            pageIndex += 1;
+            page = storageManager.getPage(schema, pageIndex);
+        }
+
 
         // Create temp table
         TableSchema updatedSchema = null;

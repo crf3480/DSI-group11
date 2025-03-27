@@ -41,11 +41,11 @@ public class Buffer {
      * unless the page isn't present, in which case it will be fetched from storage
      * @param schema The schema of the table to fetch the page from
      * @param pageNum The number of the page to fetch
-     * @return The requested Page. `null` if page number exceeds the number of pages in the table
+     * @return The requested Page. `null` if page number is outside the range of page numbers for the table
      */
     public Page getPage(TableSchema schema, int pageNum) {
-        // If table has no pages, return null
-        if (schema.rootIndex == -1) {
+        // If number is outside the bounds of page numbers
+        if (pageNum >= schema.pageCount() || pageNum < 0) {
             return null;
         }
         // Search the buffer for the page and return it
@@ -192,6 +192,14 @@ public class Buffer {
             newBuffer.push(currPage);
         }
         buffer = newBuffer;
+    }
+
+    /**
+     * Removes a Page from the buffer
+     * @param page The page to remove
+     */
+    public void removePage(Page page) {
+        buffer.remove(page);  // Page objects are passed by reference, so this *should* work?
     }
 
     /**
