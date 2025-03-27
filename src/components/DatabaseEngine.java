@@ -88,7 +88,7 @@ public class DatabaseEngine {
      */
     public void deleteTable(String tableName) {
         try {
-            if (!storageManager.deleteTable(tableName)) {
+            if (!storageManager.dropTable(tableName)) {
                 System.err.println("Table '" + tableName + "' does not exist.");
             }
         } catch (Exception e) {
@@ -411,7 +411,7 @@ public class DatabaseEngine {
         System.out.println(footerString(schema, 10));
         if (dropSelectedTable) {
             try{
-                storageManager.deleteTable(schema.name);
+                storageManager.dropTable(schema.name);
             } catch (IOException e) {
                 System.err.println("Encountered error while deleting table: " + e);
             }
