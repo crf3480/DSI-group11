@@ -43,10 +43,9 @@ public class Record {
      * Updates the value of an attribute at a given index
      * @param index The index of the attribute to replace
      * @param value The value to replace the specified index with
-     * @return The value previously stored at that index
      */
-    public Object update(int index, Object value) {
-        return rowData.set(index, value);
+    public void update(int index, Object value) {
+        rowData.set(index, value);
     }
 
     /**
@@ -59,6 +58,8 @@ public class Record {
     public int isEquivalent(Record other, TableSchema schema) {
         if (rowData.size() != other.size()) { return -1; }  // Records do not match
         for (int i = 0; i < rowData.size(); i++) {
+            // If the attribute is unique or a PK and the two records are equal on
+            // that attribute, either by == or .equals()
             if ((schema.attributes.get(i).unique || schema.attributes.get(i).primaryKey)
                     && (rowData.get(i) == other.rowData.get(i) ||
                     (rowData.get(i) != null && rowData.get(i).equals(other.rowData.get(i))))) {
@@ -91,21 +92,23 @@ public class Record {
     }
 
     /**
-     * Determines whether this record should come before or after another when sorted by a specified attribute
+     * Determines whether this record should come before or after another when sorted by a specified attribute.
+     * If this < other, returns a positive number
      * @param other The other record to compare to
      * @param schema The schema of the records
      * @param attrIndex The index of the attribute to order by
-     * @return a negative integer, zero, or a positive integer as this object is less than, equal to,
-     * or greater than the other Record.
+     * @return the value 0 if this record is equal to the argument on the selected attribute; a value less than
+     * 0 if this record is numerically less than the argument; and a value greater than 0 if this record is
+     * numerically greater than the argument record (signed comparison)
      */
-    public int compareByAttribute(Record other, TableSchema schema, int attrIndex) {
-        return switch (schema.attributes.get(schema.primaryKey).type) {
-            case INT -> ((Integer) rowData.get(attrIndex)).compareTo(((Integer) other.rowData.get(attrIndex)));
-            case DOUBLE -> ((Double) rowData.get(attrIndex)).compareTo(((Double) other.rowData.get(attrIndex)));
+    public boolean greaterThan(Record other, TableSchema schema, int attrIndex) {
+        return switch (schema.attributes.get(attrIndex).type) {
+            case INT -> ((Integer) rowData.get(attrIndex)).compareTo(((Integer) other.rowData.get(attrIndex))) > 0;
+            case DOUBLE -> ((Double) rowData.get(attrIndex)).compareTo(((Double) other.rowData.get(attrIndex))) > 0;
             case CHAR, VARCHAR ->
-                    ((String) rowData.get(attrIndex)).compareTo(((String) other.rowData.get(attrIndex)));
+                    ((String) rowData.get(attrIndex)).compareTo(((String) other.rowData.get(attrIndex))) > 0;
             case BOOLEAN ->
-                    ((Boolean) rowData.get(attrIndex)).compareTo(((Boolean) other.rowData.get(attrIndex)));
+                    ((Boolean) rowData.get(attrIndex)).compareTo(((Boolean) other.rowData.get(attrIndex))) > 0;
         };
     }
 }

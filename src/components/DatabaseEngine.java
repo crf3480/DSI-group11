@@ -98,7 +98,7 @@ public class DatabaseEngine {
 
     /**
      * Updates records where a given condition is met
-     * @param tableName stringified table name from DML
+     * @param tableName table name from DML
      * @param columnName column name for given column to update
      * @param newValue new value to be put in place
      * @param condition where conditional
@@ -295,20 +295,22 @@ public class DatabaseEngine {
     }
 
     /**
+     * Selects a group of records from one or more tables
+     *
      * @param attributes    Names of all attributes to be selected from the tables
      * @param tables        Names of all tables that the attributes will be selected from
      * @param whereClause   The entirety of the where clause.
-     * @param orderby       Attribute to order by in ascending order.
+     * @param orderBy       Attribute to order by in ascending order.
      */
-    public void selectRecords(ArrayList<String> attributes, ArrayList<String> tables, ArrayList<String> whereClause, String orderby) {
-        boolean dropSelectedTable = false;
+    public void selectRecords(ArrayList<String> attributes, ArrayList<String> tables, ArrayList<String> whereClause, String orderBy) {
+        ArrayList<String> tableDropList = new ArrayList<>();
         for (String table: tables) {    // make sure all given tables exist
             if (storageManager.getTableSchema(table) == null) {
                 System.err.println("Invalid select: Table " + table + " does not exist.");
                 return;
             }
         }
-        if (!allUnique(tables)){
+        if (containsDuplicates(tables)){
             System.err.println("Invalid select: Cannot join a table with itself.");
             return;
         }
@@ -318,7 +320,7 @@ public class DatabaseEngine {
         }
 
         // Join all tables together
-        TableSchema schema = storageManager.getTableSchema(tables.get(0));
+        TableSchema schema = storageManager.getTableSchema(tables.getFirst());
         for (String table: tables.subList(1, tables.size())) {
             schema = cartesianJoin(schema, storageManager.getTableSchema(table));
             if (schema == null) {
@@ -326,53 +328,54 @@ public class DatabaseEngine {
             }
         }
 
-        if(!attributes.contains("*") || tables.size() > 1) {
-            dropSelectedTable = true;
+        // If attributes list is not '*', create a projection
+        if(tables.size() > 1 || !attributes.contains("*")) {
             schema = projection(schema, attributes);
             if (schema == null) {
                 return;
             }
+            tableDropList.add(schema.name);  // Flag the projection for deletion after completing the command
         }
 
         /*
-            we only need to look at the record data if there's a where clause or an orderby attribute
+            we only need to look at the record data if there's a where clause or an orderBy attribute
             if so, we make another temp table and run the necessary checks on all records
         */
-        if (!whereClause.isEmpty() || !orderby.isEmpty()){
-            dropSelectedTable = true;
+        if (!whereClause.isEmpty() || !orderBy.isEmpty()){
             Evaluator eval = new Evaluator(whereClause, schema);
-            int orderIndex = schema.getAttributeIndex(orderby);
+            int orderIndex = schema.getAttributeIndex(orderBy);
 
             // Create temp table
             TableSchema temp;
             try{
                 temp = storageManager.createTable(storageManager.getTempTableName(), schema.attributes);
+                tableDropList.add(temp.name);  // Flag the temp table for deletion
             } catch (IOException e) {
                 System.err.println("Encountered error while creating temp table: " + e);
+                dropAll(tableDropList);
                 return;
             }
-            // Fill the temp table only with where-passing values (empty where makes eval.evaluate always return true)
+            // Fill the temp table only with where-passing values (empty `where` makes eval.evaluate always return true)
             int pageIndex = 0;
             Page page = storageManager.getPage(schema, 0);
             while (page != null) {
                 for (Record r : page.records) {
                     if (eval.evaluateRecord(r)) {
-                        if (orderby.isEmpty()){
+                        if (orderBy.isEmpty()){
                             storageManager.fastInsert(temp, r);
                         }
                         else{
                             storageManager.insertRecord(temp, r, orderIndex);
                         }
-
                     }
                 }
                 pageIndex++;
                 page = storageManager.getPage(schema, pageIndex);
             }
-            storageManager.replaceTable(schema, temp);
+            schema = temp;
         }
 
-        // Print temp table
+        // Print table
         System.out.println(headerToString(schema, 10));
         try {
             int pageIndex = 0;
@@ -388,13 +391,7 @@ public class DatabaseEngine {
         }
         // Cap off with footer string
         System.out.println(footerString(schema, 10));
-        if (dropSelectedTable) {
-            try{
-                storageManager.dropTable(schema.name);
-            } catch (IOException e) {
-                System.err.println("Encountered error while deleting table: " + e);
-            }
-        }
+        dropAll(tableDropList);
     }
 
     /**
@@ -496,7 +493,6 @@ public class DatabaseEngine {
      * @param table_1 The first table
      * @param table_2 The second table
      * @return The TableSchema of the resulting table. This should be dropped after use
-     * @throws IOException if an error occurs when creating the cartesian table
      */
     private TableSchema cartesianJoin(TableSchema table_1, TableSchema table_2)  {
         TableSchema larger;
@@ -521,7 +517,7 @@ public class DatabaseEngine {
             }
         }
         // Create the temp table
-        TableSchema combinedSchema = null;
+        TableSchema combinedSchema;
         try {
             combinedSchema = storageManager.createTable(storageManager.getTempTableName(), concatAttr);
         } catch (IOException e) {
@@ -562,7 +558,7 @@ public class DatabaseEngine {
      */
     private TableSchema projection(TableSchema schema, ArrayList<String> attrs) {
         // Translate and validate parameters
-        if (!allUnique(attrs)) {
+        if (containsDuplicates(attrs)) {
             System.err.println("Invalid select: duplicate attribute names found - "+String.join(", ", attrs));
             return null;
         }
@@ -691,15 +687,15 @@ public class DatabaseEngine {
     /**
       * @return true if every object of an arraylist is unique, false if there is a duplicate
      */
-    private boolean allUnique(ArrayList<String> row) {
+    private boolean containsDuplicates(ArrayList<String> row) {
         for (int i = 0; i < row.size(); i++) {
             for (int j = i + 1; j < row.size(); j++) {
                 if (row.get(i).equals(row.get(j))) {
-                    return false;
+                    return true;
                 }
             }
         }
-        return true;
+        return false;
     }
 
     /**
@@ -723,6 +719,21 @@ public class DatabaseEngine {
         };
     }
 
+    /**
+     * Drops a list of tables. Useful for cleaning up temp tables at the end of a command
+     * @param tableNames The list of table names
+     */
+    private void dropAll(ArrayList<String> tableNames) {
+        for (String table : tableNames) {
+            try {
+                storageManager.dropTable(table);
+            } catch (IOException ioe) {
+                System.err.println("Encountered I/O error while dropping temporary table " +
+                        table + "- " + ioe);
+            }
+        }
+    }
+
     //endregion
 
     // ====================================================================================
@@ -733,7 +744,7 @@ public class DatabaseEngine {
     private static final String LEFT_WALL = "| ";
     private static final String RIGHT_WALL = " |";
     private static final String CELL_DIVIDER = " | ";
-    private static final char TRUCATION_CHAR = '…';
+    private static final char TRUNCATION_CHAR = '…';
 
     /**
      * Returns a string containing the properly formatted header to a table printout
@@ -825,7 +836,7 @@ public class DatabaseEngine {
         if (text.length() == width) {
             return text;
         } else if (text.length() > width) {
-            return text.substring(0, width - 1) + TRUCATION_CHAR;
+            return text.substring(0, width - 1) + TRUNCATION_CHAR;
         }
         return text + " ".repeat(width - text.length());
     }
@@ -834,20 +845,23 @@ public class DatabaseEngine {
 
     public void test(ArrayList<String> args) {
         args.removeFirst();
-        TableSchema ts = storageManager.getTableSchema("bar");
-        Evaluator e = new Evaluator(args, ts);
+        TableSchema ts = storageManager.getTableSchema("baz");
+        ArrayList<String> attrs = new ArrayList<>();
+        attrs.add("name");
+        ts = projection(ts, attrs);
+        if (ts == null) {
+            System.err.println("Found null after projection");
+            return;
+        }
         int index = 0;
         Page p = storageManager.getPage(ts, 0);
         while (p != null) {
             for (Record r : p.records) {
-                if (e.evaluateRecord(r)) {
-                    System.out.println(r + " =================================== (TRUE)");
-                } else {
-                    System.out.println(r);
-                }
+                System.out.println(r);
             }
             index += 1;
             p = storageManager.getPage(ts, index);
         }
+        dropTable(ts.name);
     }
 }

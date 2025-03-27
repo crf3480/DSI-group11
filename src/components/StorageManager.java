@@ -10,7 +10,7 @@ import java.util.ArrayList;
  */
 public class StorageManager {
 
-    private Buffer buffer;
+    private final Buffer buffer;
     Catalog catalog;
     int nextTempID;
 
@@ -56,31 +56,6 @@ public class StorageManager {
     }
 
     /**
-     * Gets record from a particular table by primary key
-     * @param tableName name of table
-     * @param key string of key to search
-     * @return record with matching key (or null if no matches)
-     */
-    public Record getByPrimaryKey(String tableName, String key)  {
-        TableSchema tschema = catalog.getTableSchema(tableName);
-        //looping through pages and records to find The One
-        Page currPage;
-        int pageNum = 0;
-        while (true) {
-            currPage = buffer.getPage(tschema, pageNum);
-            pageNum += 1;
-            if (currPage == null) {  // Reached end of table without finding the list
-                return null;
-            }
-            for (Record r : currPage.getRecords()) {
-                if (r.get(tschema.primaryKey).equals(key)) {
-                    return r;
-                }
-            }
-        }
-    }
-
-    /**
      * Inserts a record into the table, ordered by the specified attribute
      * @param schema The TableSchema of the table the record is being inserted into
      * @param record The record to insert
@@ -106,16 +81,16 @@ public class StorageManager {
         Page currPage = schema.rootIndex == -1 ? null : getPage(schema, pageIndex);
         while (currPage != null) {
             for (int i = 0; i < currPage.recordCount(); i++) {
-                Record r = currPage.records.get(i);
+                Record existingRec = currPage.records.get(i);
                 // Check for duplicate
-                int matchAttr = record.isEquivalent(r, schema);
+                int matchAttr = record.isEquivalent(existingRec, schema);
                 if (matchAttr != -1) {
                     System.err.println("Invalid tuple: a record with the value '" + record.get(matchAttr) +
                             "' already exists for column '" + schema.attributes.get(matchAttr).name + "'.");
                     return false;
                 }
                 // Check for insertion point
-                if (targetPageNum == -1 && record.compareByAttribute(r, schema, attrIndex) < 0) {
+                if (targetPageNum == -1 && !record.greaterThan(existingRec, schema, attrIndex)) {
                     targetPageNum = pageIndex;
                     targetRecordIndex = i;
                 }
@@ -123,14 +98,18 @@ public class StorageManager {
             pageIndex += 1;
             currPage = getPage(schema, pageIndex);
         }
-        // If targetPageNum was never updated, record goes at the end of the table, so just call fastInsert()
+        // If targetPageNum was never updated, record goes at the end of the table
         if (targetPageNum == -1) {
-            fastInsert(schema, record);
-            return true;
+            targetPageNum = schema.pageCount() - 1;
+
         }
         // Insert record into target page/index
         Page targetPage = getPage(schema, targetPageNum);
-        targetPage.records.add(targetRecordIndex, record);
+        if (targetRecordIndex == -1) {
+            targetPage.records.add(record);
+        } else {
+            targetPage.records.add(targetRecordIndex, record);
+        }
         schema.incrementRecordCount();
 
         // If the page is now oversize, split
@@ -143,13 +122,14 @@ public class StorageManager {
                 targetPage.records.remove(targetRecordIndex);
                 return false;
             }
+            Page afterChild = buffer.getPage(schema, targetPage.pageNumber + 1); // Get this BEFORE you mess with root's nextIndex
             Page child = targetPage.split(pageIndex);
+            assert (child.nextPage == -1) == (afterChild == null);
             if (child.nextPage != -1) {
                 // Update the prevPage pointer for the page after this one, if one exists
-                Page afterChild = buffer.getPage(schema, targetPage.pageNumber + 1);
                 afterChild.prevPage = pageIndex;
                 // Increment the page number for every page that follows child
-                buffer.incrementPageNumbers(schema, targetPage.pageNumber);
+                buffer.incrementPageNumbers(schema, child.pageNumber);
             }
             // Insert the new page into the buffer
             try {
@@ -181,7 +161,6 @@ public class StorageManager {
         }
         // Get last page and insert record
         Page lastPage = getPage(schema, schema.pageCount() - 1);
-
         lastPage.records.add(record);
         schema.incrementRecordCount();
 
@@ -274,9 +253,8 @@ public class StorageManager {
      * table will be renamed to the target's name.
      * @param targetSchema The TableSchema of the table that will be replaced by the source table
      * @param sourceSchema The TableSchema of the table whose data will be preserved
-     * @return `true` if the operation completed successfully; `false` otherwise
      */
-    public boolean replaceTable(TableSchema targetSchema, TableSchema sourceSchema) {
+    public void replaceTable(TableSchema targetSchema, TableSchema sourceSchema) {
         // Update the buffer, removing pages that belonged to the target and updating the schema for the source pages
         buffer.removeTable(targetSchema.name);
         // Update the schema in the catalog
@@ -288,22 +266,21 @@ public class StorageManager {
         File targetFile = targetSchema.tableFile();
         if (!targetFile.exists()) {
             System.err.println("Could not locate table file `" + targetFile.getAbsolutePath() + "`");
-            return false;
+            return;
         }
         if (!oldSourceFile.exists()) {
             System.err.println("Could not locate table file `" + oldSourceFile.getAbsolutePath() + "`");
-            return false;
+            return;
         }
         // Delete target file and rename source file
         if (!targetFile.delete()) {
             System.err.println("Failed to delete table file `" + targetFile.getAbsolutePath() + "`");
-            return false;
+            return;
         }
         if (!oldSourceFile.renameTo(targetFile)) {
             System.err.println("Failed to rename table file `" + oldSourceFile.getAbsolutePath() +
                     "` to `" + targetFile.getAbsolutePath() + "'");
         }
-        return true;
     }
 
     /**
@@ -393,41 +370,6 @@ public class StorageManager {
             buffer.save();
         } catch (IOException ioe) {
             System.err.println(ioe.getMessage());
-        }
-    }
-
-    public void test(ArrayList<String> args) {
-        TableSchema table = catalog.getTableSchema(args.get(1));
-        String cmd = args.get(2);
-        String val = args.get(3);
-        int num;
-        Page page;
-        switch (cmd) {
-            case "save":
-                num = Integer.parseInt(val);
-                page = buffer.getPage(table, num);
-                try {
-                    buffer.savePage(page);
-                } catch (IOException ioe) {
-                    System.err.println("Failed to save page: " + ioe.getMessage());
-                }
-                break;
-            case "load":
-                num = Integer.parseInt(val);
-                buffer.loadPage(table, num, num);
-                break;
-            case "print":
-                num = Integer.parseInt(val);
-                page = buffer.getPage(table, num);
-                System.out.println(page);
-                break;
-            case "flush":
-                try {
-                    buffer.save();
-                } catch (IOException ioe) {
-                    System.err.println("Failed to save buffer: " + ioe.getMessage());
-                }
-                break;
         }
     }
 }

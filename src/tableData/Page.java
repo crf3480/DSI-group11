@@ -16,7 +16,7 @@ public class Page {
             Integer.BYTES +                                // Previous page index
             Integer.BYTES;                                 // Next page index
 
-    private TableSchema tableSchema;
+    private final TableSchema tableSchema;
     private final int pageSize;
     public int pageNumber;
     public int pageIndex;
@@ -117,14 +117,6 @@ public class Page {
     }
 
     /**
-     * Updates the schema associated with this page
-     * @param newSchema The new table name
-     */
-    public void updateSchema(TableSchema newSchema) {
-        tableSchema = newSchema;
-    }
-
-    /**
      * Returns the number of bytes taken up by all records in this Page
      * @return The number of bytes
      */
@@ -147,7 +139,7 @@ public class Page {
             Attribute attr = tableSchema.attributes.get(i);
             // Null values are not recorded and thus take up no space
             if (record.rowData.get(i) == null) { continue; }
-            // CHARs and VARCHARs need their length read directly for each value
+            // CHAR and VARCHAR need their length read directly for each value
             if (attr.type == AttributeType.VARCHAR || attr.type == AttributeType.CHAR) {
                 size += 2 * ((String) record.rowData.get(i)).length();
             } else {
@@ -209,6 +201,8 @@ public class Page {
     /**
      * Splits the data of this page in half, transferring half to a new Page which is then returned. This new
      * Page will be given a default page number of -1. 'Half' is determined by data size, not record count.
+     * This Page and the child will have their prev/next indices updated, but updating child.next() will still
+     * be required.
      * @param childPageIndex The page index that will be assigned to the child page
      * @return The new page containing half the records that were in this Page
      */
@@ -230,8 +224,8 @@ public class Page {
         }
         Page childPage = new Page(childPageIndex, pageNumber + 1, splitRecords, pageSize, tableSchema);
         // Update page pointers
-        childPage.nextPage = nextPage;
-        nextPage = childPageIndex;
+        childPage.nextPage = this.nextPage;
+        this.nextPage = childPageIndex;
         childPage.prevPage = pageIndex;
         return childPage;
     }
