@@ -308,9 +308,11 @@ public class DatabaseEngine {
                 return;
             }
         }
-        schema = projection(schema, attributes);
-        if (schema == null) {
-            return;
+        if(!attributes.contains("*")) {
+            schema = projection(schema, attributes);
+            if (schema == null) {
+                return;
+            }
         }
 
         // Print temp table
@@ -529,7 +531,7 @@ public class DatabaseEngine {
     private TableSchema projection(TableSchema schema, ArrayList<String> attrs) {
         // Translate and validate parameters
         if (!allUnique(attrs)) {
-            System.err.println("Invalid select: duplicate attribute names found in "+String.join(", ", attrs));
+            System.err.println("Invalid select: duplicate attribute names found - "+String.join(", ", attrs));
             return null;
         }
         int[] attrIndices = new int[attrs.size()];
