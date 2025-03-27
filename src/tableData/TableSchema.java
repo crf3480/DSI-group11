@@ -52,10 +52,15 @@ public class TableSchema {
      * @return The index of the attribute within the schema. If an attribute with that name does not exist, '-1';
      */
     public int getAttributeIndex(String attributeName) {
+        // Fetch attribute with the exact name
         for (int i = 0; i < attributes.size(); i++) {
             if (attributes.get(i).name.equals(attributeName)) {
                 return i;
             }
+        }
+        // If none found, check for search by <tableName>.<attrName>
+        if (attributeName.startsWith(name + ".")) {
+            return getAttributeIndex(attributeName.substring(name.length() + 1));
         }
         return -1;
     }

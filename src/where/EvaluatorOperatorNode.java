@@ -29,14 +29,6 @@ public class EvaluatorOperatorNode extends EvaluatorNode {
         }
     }
 
-    /**
-     * Returns the precedence of the operator in this node
-     * @return This node's precedence
-     */
-    public int precedence() {
-        return operator.precedence();
-    }
-
     @Override
     public Object evaluate(Record r) {
         Object leftResult = left.evaluate(r);
@@ -102,30 +94,6 @@ public class EvaluatorOperatorNode extends EvaluatorNode {
             throw new IncompatibleTypeComparisonException("Cannot compare values of different types (" +
                     leftResult.getClass() + " and " + rightResult.getClass() + ")");
         }
-
-        // This is more in depth, but apparently unnecessary
-
-//        switch (leftResult.getClass().getName()) {
-//            case "Boolean":
-//                if (rightResult.getClass() != Boolean.class) {
-//                    throw new IncompatibleTypeComparisonException("Tried to compare bool with " +
-//                            rightResult.getClass());
-//                }
-//                break;
-//            case "String":
-//                if (rightResult.getClass() != String.class) {
-//                    throw new IncompatibleTypeComparisonException("Tried to compare character sequence with " +
-//                            rightResult.getClass());
-//                }
-//                break;
-//            case "Integer":
-//            case "Double":
-//                if (rightResult.getClass() != Integer.class && rightResult.getClass() != Double.class) {
-//                    throw new IncompatibleTypeComparisonException("Tried to compare numeric type " +
-//                            leftResult.getClass() + " with non-numeric type " + rightResult.getClass());
-//                }
-//                break;
-//        }
 
         // Validate operator compatibility
         switch (operator) {

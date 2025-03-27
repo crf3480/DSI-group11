@@ -100,18 +100,13 @@ public class Record {
     public int compareTo(Record other, TableSchema schema) {
         // Sorts based on primary key
         int primaryIndex = schema.primaryKey;
-        switch (schema.attributes.get(schema.primaryKey).type) {
-            case INT:
-                return ((Integer)rowData.get(primaryIndex)).compareTo(((Integer) other.rowData.get(primaryIndex)));
-            case DOUBLE:
-                return ((Double)rowData.get(primaryIndex)).compareTo(((Double) other.rowData.get(primaryIndex)));
-            case CHAR:
-            case VARCHAR:
-                return ((String)rowData.get(primaryIndex)).compareTo(((String) other.rowData.get(primaryIndex)));
-            case BOOLEAN:
-                return ((Boolean)rowData.get(primaryIndex)).compareTo(((Boolean) other.rowData.get(primaryIndex)));
-            default:
-                return 0;
-        }
+        return switch (schema.attributes.get(schema.primaryKey).type) {
+            case INT -> ((Integer) rowData.get(primaryIndex)).compareTo(((Integer) other.rowData.get(primaryIndex)));
+            case DOUBLE -> ((Double) rowData.get(primaryIndex)).compareTo(((Double) other.rowData.get(primaryIndex)));
+            case CHAR, VARCHAR ->
+                    ((String) rowData.get(primaryIndex)).compareTo(((String) other.rowData.get(primaryIndex)));
+            case BOOLEAN ->
+                    ((Boolean) rowData.get(primaryIndex)).compareTo(((Boolean) other.rowData.get(primaryIndex)));
+        };
     }
 }
