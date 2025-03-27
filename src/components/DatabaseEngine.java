@@ -461,27 +461,23 @@ public class DatabaseEngine {
             larger = table_2.duplicate();
             smaller = table_1.duplicate();
         }
-        // selectRecords();
         // Check for duplicate attr names
         dedupeAttrNames(larger, smaller);
-        Page tempPage = storageManager.getPage(larger, 0);
-        System.out.println(tempPage);
         // Create the joined list of attributes
         ArrayList<Attribute> concatAttr = new ArrayList<>();
-        for (Attribute attr : larger.attributes) {
-            attr.primaryKey = false;
-            concatAttr.add(attr);
-        }
-        for (Attribute attr : smaller.attributes) {
-            attr.primaryKey = false;
-            concatAttr.add(attr);
+        concatAttr.addAll(larger.attributes);
+        concatAttr.addAll(smaller.attributes);
+        for (Attribute attr : concatAttr) {
+            if (attr.primaryKey) {
+                attr.primaryKey = false;
+                attr.notNull = true;
+            }
         }
         // Create the temp table
         TableSchema combinedSchema = storageManager.createTable(storageManager.getTempTableName(), concatAttr);
         // Block nested loop join
         int largerIndex = 0;
         Page largerPage = storageManager.getPage(larger, 0);
-        System.out.println(largerPage.records);
         while (largerPage != null) {
             int smallerIndex = 0;
             Page smallerPage = storageManager.getPage(smaller, 0);
@@ -491,7 +487,6 @@ public class DatabaseEngine {
                     for (Record rRec : smallerPage.getRecords()) {
                         ArrayList<Object> rowData = new ArrayList<>(lRec.rowData);
                         rowData.addAll(rRec.rowData);
-                        System.out.println(rowData);
                         storageManager.fastInsert(combinedSchema, new Record(rowData));
                     }
                 }
@@ -740,28 +735,13 @@ public class DatabaseEngine {
     //endregion
 
     public void test(ArrayList<String> args) {
-//        TableSchema foo = storageManager.getTableSchema("foo");
-//        TableSchema bar = storageManager.getTableSchema("bar");
-//        try {
-//            TableSchema returned = cartesianJoin(foo, bar);
-//            System.out.println(returned);
-//        } catch (IOException ioe) {
-//            System.err.println(ioe + " | " + ioe.getMessage());
-//        }
-
         args.removeFirst();
-
-        TableSchema bar = storageManager.getTableSchema("bar");
-        TableSchema projBar = projection(bar, args);
-
-        int pageIndex = 0;
-        Page page = storageManager.getPage(projBar, 0);
-        while (page != null) {
-            for (Record r : page.records) {
-                System.out.println(r);
-            }
-            pageIndex++;
-            page = storageManager.getPage(projBar, pageIndex);
+        TableSchema foo = storageManager.getTableSchema(args.get(0));
+        TableSchema bar = storageManager.getTableSchema(args.get(1));
+        try {
+            TableSchema returned = cartesianJoin(foo, bar);
+        } catch (IOException ioe) {
+            System.err.println(ioe + " | " + ioe.getMessage());
         }
     }
 }

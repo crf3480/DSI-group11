@@ -71,8 +71,8 @@ public class Buffer {
             return loadPage(schema, schema.rootIndex, 0);
         }
         // Otherwise, find page offset by hunting from the closest page.
-        // If no page from this table was in the buffer, start from the beginning
-        if (currClosest == null) {
+        // If no page from this table was in the buffer or the beginning is closer, start from the beginning
+        if (currClosest == null || Math.abs(currClosest.pageNumber - pageNum) > pageNum) {
             currClosest = loadPage(schema, schema.rootIndex, 0);
             if (currClosest == null) {
                 // If the first page cannot be loaded, table must have zero pages

@@ -30,10 +30,10 @@ public class Attribute {
 
         switch(type){
             case DOUBLE:
-                this.length = 8;
+                this.length = Double.BYTES;
                 break;
             case INT:
-                this.length = 4;
+                this.length = Integer.BYTES;
                 break;
             case BOOLEAN:
                 this.length = 1;
@@ -59,12 +59,13 @@ public class Attribute {
         this.name = name;
         this.type = type;
         this.primaryKey = primaryKey;
-        this.notNull = notNull;
+        this.notNull = notNull || primaryKey;
         this.unique = unique;
 
         // Throw an error if defaultValue is null and attribute cannot be null
         if (defaultValue == null && notNull){
             System.err.print("Warning: Attribute is not null but default value is null");
+            //TODO: Actually throw an error
         }
 
         this.defaultValue = defaultValue;
