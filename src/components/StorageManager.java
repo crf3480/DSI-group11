@@ -85,8 +85,9 @@ public class StorageManager {
      * @param schema The TableSchema of the table the record is being inserted into
      * @param record The record to insert
      * @param attrIndex The index of the attribute the table will be sorted by
+     * @return `true` if the record was successfully inserted; `false` otherwise
      */
-    public void insertRecord(TableSchema schema, Record record, int attrIndex) {
+    public boolean insertRecord(TableSchema schema, Record record, int attrIndex) {
         // If table has no pages, make a new page and insert it into the buffer
         if (schema.rootIndex == -1) {
             Page firstPage = new Page(0, 0, schema, catalog.pageSize());
@@ -95,56 +96,60 @@ public class StorageManager {
                 buffer.insertPage(firstPage);
             } catch (IOException ioe) {
                 System.err.println("Encountered exception while adding new page to table file: " + ioe.getMessage());
-                return;
+                return false;
             }
         }
-        // Iterate over pages until you find the one where the record goes
-        int currIndex = 0;
-        Page currPage = buffer.getPage(schema, 0);
-        int recordIndex = 0;
-        // Loop over all records and all pages until you find the insertion point
-        pageLoop:
-        while (true) {
-            // Iterate over the records until you find the one that comes after the new record in order
+        // Verify record is unique. While looping, find and remember the insertion point
+        int targetPageNum = -1;
+        int targetRecordIndex = -1;
+        int pageIndex = 0;
+        Page currPage = schema.rootIndex == -1 ? null : getPage(schema, pageIndex);
+        while (currPage != null) {
             for (int i = 0; i < currPage.recordCount(); i++) {
-                Record pageRecord = currPage.records.get(i);
-                recordIndex = i;
-                // If new record goes before pageRecord or you hit the end of the table,
-                // insert it into the page at that index
-                System.out.println(pageRecord.compareByAttribute(record, schema, attrIndex));
-                if (pageRecord.compareByAttribute(record, schema, attrIndex) <= 0) {
-                    break pageLoop;
+                Record r = currPage.records.get(i);
+                // Check for duplicate
+                int matchAttr = record.isEquivalent(r, schema);
+                if (matchAttr != -1) {
+                    System.err.println("Invalid tuple: a record with the value '" + record.get(matchAttr) +
+                            "' already exists for column '" + schema.attributes.get(matchAttr).name + "'.");
+                    return false;
+                }
+                // Check for insertion point
+                if (targetPageNum == -1 && record.compareByAttribute(r, schema, attrIndex) < 0) {
+                    targetPageNum = pageIndex;
+                    targetRecordIndex = i;
                 }
             }
-            // If there is no page after this one, break and insert into the last page
-            if (currPage.nextPage == -1) {
-                recordIndex = currPage.recordCount();
-                break;
-            }
-            currIndex += 1;
-            currPage = buffer.getPage(schema, currIndex);
+            pageIndex += 1;
+            currPage = getPage(schema, pageIndex);
         }
-        // At this point, currPage is the page to insert into and recordIndex is the index to insert into
-        currPage.records.add(recordIndex, record);
+        // If targetPageNum was never updated, record goes at the end of the table, so just call fastInsert()
+        if (targetPageNum == -1) {
+            fastInsert(schema, record);
+            return true;
+        }
+        // Insert record into target page/index
+        Page targetPage = getPage(schema, targetPageNum);
+        targetPage.records.add(targetRecordIndex, record);
         schema.incrementRecordCount();
-        // If the record is now oversize, split
-        if (currPage.pageDataSize() > catalog.pageSize()) {
-            int pageIndex;
+
+        // If the page is now oversize, split
+        if (targetPage.pageDataSize() > catalog.pageSize()) {
             try {
                 pageIndex = expandTable(schema);
             } catch (IOException e) {
                 // If there was a failure, undo the record insert and abort
                 System.err.println(e.getMessage());
-                currPage.records.remove(recordIndex);
-                return;
+                targetPage.records.remove(targetRecordIndex);
+                return false;
             }
-            Page child = currPage.split(pageIndex);
+            Page child = targetPage.split(pageIndex);
             if (child.nextPage != -1) {
                 // Update the prevPage pointer for the page after this one, if one exists
-                Page afterChild = buffer.getPage(schema, currPage.pageNumber + 1);
+                Page afterChild = buffer.getPage(schema, targetPage.pageNumber + 1);
                 afterChild.prevPage = pageIndex;
                 // Increment the page number for every page that follows child
-                buffer.incrementPageNumbers(schema, currPage.pageNumber);
+                buffer.incrementPageNumbers(schema, targetPage.pageNumber);
             }
             // Insert the new page into the buffer
             try {
@@ -154,6 +159,7 @@ public class StorageManager {
                 System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
             }
         }
+        return true;
     }
 
     /**

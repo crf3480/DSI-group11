@@ -453,30 +453,8 @@ public class DatabaseEngine {
             return false;
         }
         // Parse and insert record
-        try {
-            Record record = parseData(schema, tupleValues);
-            int pageIndex = 0;
-            Page currPage = schema.rootIndex == -1 ? null : storageManager.getPage(schema, pageIndex);
-            // Verify record is unique
-            while (currPage != null) {
-                for (Record r : currPage.records) {
-                    int matchAttr = record.isEquivalent(r, schema);
-                    if (matchAttr != -1) {
-                        System.err.println("Invalid tuple: a record with the value '" + record.get(matchAttr) +
-                                "' already exists for column '" + schema.attributes.get(matchAttr).name + "'.");
-                        return false;
-                    }
-                }
-                pageIndex += 1;
-                currPage = storageManager.getPage(schema, pageIndex);
-            }
-            // Insert
-            storageManager.insertRecord(schema, record, schema.primaryKey);
-        } catch (Exception e) {
-            System.err.println(e.getMessage());
-            return false;
-        }
-        return true;
+        Record record = parseData(schema, tupleValues);
+        return storageManager.insertRecord(schema, record, schema.primaryKey);
     }
 
     //endregion
