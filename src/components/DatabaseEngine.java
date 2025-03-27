@@ -332,10 +332,7 @@ public class DatabaseEngine {
 
         while (page != null) {
             for (Record r : page.records) {
-                if (eval.evaluateRecord(r)) {
-                    System.out.println("Deleting `" + r.toString() + "`");
-                } else {
-                    // TODO: Add to temp record list
+                if (!eval.evaluateRecord(r)) {
                     updatedRecords.add(r);
                 }
             }
