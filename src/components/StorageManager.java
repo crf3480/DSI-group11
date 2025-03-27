@@ -203,18 +203,6 @@ public class StorageManager {
         }
     }
 
-    public TableSchema where(ArrayList<String> whereClause, TableSchema t) {
-
-        System.out.println();
-
-        /*
-            TODO:   given a table schema and a where clause, create and return a new table that (depending on mode) is
-            TODO:   either the original table where the where is true, or the entire table where the where is false.
-         */
-
-        return null;
-    }
-
     public boolean deleteByPrimaryKey(String tableName, String key){
         TableSchema tschema = catalog.getTableSchema(tableName);
         //looping through pages and records to find The One
