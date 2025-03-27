@@ -109,6 +109,8 @@ public class DatabaseEngine {
             return;
         }
 
+        Attribute attribute = currTable.attributes.get(attributeIndex);
+
         String tempTableName = storageManager.getTempTableName();
         TableSchema tempTable = storageManager.createTable(tempTableName, currTable.attributes);
         Evaluator eval = new Evaluator(condition, currTable);
@@ -118,13 +120,61 @@ public class DatabaseEngine {
             Page currPage = storageManager.getPage(currTable, x);
             for (Record record : currPage.getRecords()) {
                 if (eval.evaluateRecord(record)) {
-                    record.update(attributeIndex, (Object) newValue);
+                    // Check PrimaryKey
+                    if (attribute.primaryKey) {
+                        boolean duplicatePrimaryKey = false;
+                        Page checkPage = storageManager.getPage(currTable, 0);
+                        int pageIndex = 0;
+                        while (checkPage != null) {
+                            for (Record r : checkPage.records) {
+                                if (r.rowData.get(attributeIndex).equals(record.rowData.get(attributeIndex))) {
+                                    duplicatePrimaryKey = true;
+                                    System.err.println("Duplicate primary key found for column '" + columnName + "'.");
+                                    break;
+                                }
+                            }
+                            pageIndex++;
+                            checkPage = storageManager.getPage(currTable, pageIndex);
+                        }
+                        if (!duplicatePrimaryKey){
+                            updateAndTypeCast(newValue, attributeIndex, attribute, record);
+                        }
+                    } else {
+                        updateAndTypeCast(newValue, attributeIndex, attribute, record);
+                    }
                 }
                 storageManager.fastInsert(tempTable, record);
             }
         }
         storageManager.replaceTable(currTable,tempTable);
     }
+
+    /**
+     * typecasts an the attribute and calls the update method
+     * @param newValue string value to be casted
+     * @param attributeIndex index in the attribute (column)
+     * @param attribute used for getting the type
+     * @param record given record to be updated
+     */
+    private void updateAndTypeCast(String newValue, int attributeIndex, Attribute attribute, Record record) {
+        switch (attribute.type){
+            case INT:
+                record.update(attributeIndex, Integer.parseInt(newValue));
+                break;
+            case DOUBLE:
+                record.update(attributeIndex, Double.parseDouble(newValue));
+                break;
+            case BOOLEAN:
+                record.update(attributeIndex, Boolean.parseBoolean(newValue));
+                break;
+            case CHAR:
+            case VARCHAR:
+                record.update(attributeIndex, newValue);
+            default:
+                System.err.println("ERROR: Unsupported attribute type '" + attribute.type + "'.");
+        }
+    }
+
     /**
      * Displays information about a table
      * @param tableName The table to display the details of
