@@ -130,41 +130,10 @@ public class DatabaseEngine {
                         storageManager.dropPage(currPage);
                     }
                     // reinsert record into the table
-                    updateAndTypeCast(newValue, attributeIndex, attribute, record);
-                    if (record != null){
-                        storageManager.insertRecord(schema, record);
-                    } else {
-                        System.err.println("Record '" + record + "' does not exist, error while inserting");
-                    }
+                    record.update(attributeIndex, castToAttrType(newValue, attribute.type));
+                    storageManager.insertRecord(schema, record);
                 }
             }
-        }
-    }
-
-    /**
-     * typecasts the attribute and calls the update method
-     *
-     * @param newValue       string value to be casted
-     * @param attributeIndex index in the attribute (column)
-     * @param attribute      used for getting the type
-     * @param record         given record to be updated
-     */
-    private void updateAndTypeCast(String newValue, int attributeIndex, Attribute attribute, Record record) {
-        switch (attribute.type){
-            case INT:
-                record.update(attributeIndex, Integer.parseInt(newValue));
-                break;
-            case DOUBLE:
-                record.update(attributeIndex, Double.parseDouble(newValue));
-                break;
-            case BOOLEAN:
-                record.update(attributeIndex, Boolean.parseBoolean(newValue));
-                break;
-            case CHAR:
-            case VARCHAR:
-                record.update(attributeIndex, newValue);
-            default:
-                System.err.println("ERROR: Unsupported attribute type '" + attribute.type + "'.");
         }
     }
 
@@ -445,38 +414,11 @@ public class DatabaseEngine {
             }
             // If the page is now empty, remove it
             if (page.recordCount() == 0) {
-
+                storageManager.dropPage(page);
             }
             pageIndex += 1;
             page = storageManager.getPage(schema, pageIndex);
         }
-
-
-        // Create temp table
-        TableSchema updatedSchema = null;
-        String tempName = storageManager.getTempTableName();
-        try{
-            updatedSchema = storageManager.createTable(
-                    tempName,
-                    schema.attributes);
-        } catch (IOException e) {
-            System.err.println("Encountered error while creating temp table: " + e);
-            return;
-        }
-
-        // Iter through each record and insert into temp table if condition not met
-        while (page != null) {
-            for (Record r : page.records) {
-                if (!eval.evaluateRecord(r)) {
-                    storageManager.fastInsert(updatedSchema, r);
-                }
-            }
-            pageIndex++;
-            page = storageManager.getPage(schema, pageIndex);
-        }
-        // Replace the old record list with the new record list
-        storageManager.replaceTable(schema, updatedSchema);
-
     }
     
     /**
@@ -770,6 +712,21 @@ public class DatabaseEngine {
             }
         }
         return true;
+    }
+
+    /**
+     * typecasts a string value to an attribute's type
+     *
+     * @param newValue string value to be cast
+     * @param attrType index in the attribute (column)
+     */
+    private Object castToAttrType(String newValue, AttributeType attrType) {
+        return switch (attrType) {
+            case INT -> Integer.parseInt(newValue);
+            case DOUBLE -> Double.parseDouble(newValue);
+            case BOOLEAN -> Boolean.parseBoolean(newValue);
+            case CHAR, VARCHAR -> newValue;
+        };
     }
 
     //endregion
