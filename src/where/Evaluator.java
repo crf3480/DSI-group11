@@ -36,6 +36,9 @@ public class Evaluator {
             } else if (isInteger(token)) {
                 valueStack.add(new EvaluatorValueNode(Integer.valueOf(token)));
                 continue;
+            } else if (token.equals("true") || token.equals("false")) {
+                valueStack.add(new EvaluatorValueNode(Boolean.valueOf(token)));
+                continue;
             }
 
             // Check if it's an attribute
