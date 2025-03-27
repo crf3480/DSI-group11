@@ -329,33 +329,30 @@ public class DatabaseEngine {
         int pageIndex = 0;
         Page page = storageManager.getPage(schema, 0);
 
-        ArrayList<Record> updatedRecords = new ArrayList<>();
-
-        while (page != null) {
-            for (Record r : page.records) {
-                if (!eval.evaluateRecord(r)) {
-                    updatedRecords.add(r);
-                }
-            }
-            pageIndex++;
-            page = storageManager.getPage(schema, pageIndex);
-        }
         // Create temp table
         TableSchema updatedSchema = null;
         String tempName = storageManager.getTempTableName();
         try{
-             updatedSchema = storageManager.createTable(
-                     tempName,
-                     schema.attributes);
+            updatedSchema = storageManager.createTable(
+                    tempName,
+                    schema.attributes);
         } catch (IOException e) {
             System.err.println("Encountered error while creating temp table: " + e);
             return;
         }
 
-        // Iter through each record and insert into temp table
-        for (Record r : updatedRecords) {
-            storageManager.fastInsert(updatedSchema, r);
+        // Iter through each record and insert into temp table if condition not met
+        while (page != null) {
+            for (Record r : page.records) {
+                if (!eval.evaluateRecord(r)) {
+                    storageManager.fastInsert(updatedSchema, r);
+                }
+            }
+            pageIndex++;
+            page = storageManager.getPage(schema, pageIndex);
         }
+
+        // Replace the old record list with the new record list
         storageManager.replaceTable(schema, updatedSchema);
 
     }
