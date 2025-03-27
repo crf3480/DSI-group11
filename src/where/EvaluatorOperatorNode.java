@@ -23,6 +23,10 @@ public class EvaluatorOperatorNode extends EvaluatorNode {
         this.left = left;
         this.right = right;
         this.operator = operator;
+
+        if (operator != EvaluatorOperator.AND && operator != EvaluatorOperator.OR && left.getClass() != EvaluatorAttributeNode.class) {
+            throw new WhereSyntaxError("Left side of comparison operator (" + operator + ") must be an attribute");
+        }
     }
 
     /**
@@ -44,20 +48,22 @@ public class EvaluatorOperatorNode extends EvaluatorNode {
             validated = true;
         }
 
-        // Simple operators
-        switch (operator) {
-            case AND:
-                // Short-circuiting
-                if (!(boolean) leftResult) { return false; }
-                return rightResult;
-            case OR:
-                // Short-circuiting
-                if ((boolean) leftResult) { return true; }
-                return rightResult;
-            case EQUALS:
-                return leftResult.equals(rightResult);
-            case NOT_EQUAL:
-                return !leftResult.equals(rightResult);
+        // Boolean operators
+        if (operator == EvaluatorOperator.AND) {
+            // Short-circuiting
+            if (!(boolean) leftResult) { return false; }
+            return rightResult;
+        } else if (operator == EvaluatorOperator.OR) {
+            // Short-circuiting
+            if ((boolean) leftResult) { return true; }
+            return rightResult;
+        }
+
+        // Equality operators
+        if (operator == EvaluatorOperator.EQUALS) {
+            return leftResult.equals(rightResult);
+        } else if (operator == EvaluatorOperator.NOT_EQUAL) {
+            return !leftResult.equals(rightResult);
         }
 
         // Numeric only operators

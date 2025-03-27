@@ -736,12 +736,20 @@ public class DatabaseEngine {
 
     public void test(ArrayList<String> args) {
         args.removeFirst();
-        TableSchema foo = storageManager.getTableSchema(args.get(0));
-        TableSchema bar = storageManager.getTableSchema(args.get(1));
-        try {
-            TableSchema returned = cartesianJoin(foo, bar);
-        } catch (IOException ioe) {
-            System.err.println(ioe + " | " + ioe.getMessage());
+        TableSchema ts = storageManager.getTableSchema("bar");
+        Evaluator e = new Evaluator(args, ts);
+        int index = 0;
+        Page p = storageManager.getPage(ts, 0);
+        while (p != null) {
+            for (Record r : p.records) {
+                if (e.evaluateRecord(r)) {
+                    System.out.println(r + " =================================== (TRUE)");
+                } else {
+                    System.out.println(r);
+                }
+            }
+            index += 1;
+            p = storageManager.getPage(ts, index);
         }
     }
 }
