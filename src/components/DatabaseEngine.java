@@ -3,6 +3,8 @@ import exceptions.InvalidAttributeException;
 import tableData.*;
 import tableData.Record;
 
+import where.Evaluator;
+
 import java.io.IOException;
 import java.util.*;
 
@@ -322,7 +324,42 @@ public class DatabaseEngine {
             return;
         }
 
-        // TODO: implement this when we lock down whats happening with where
+        Evaluator eval = new Evaluator(whereClause, schema);
+        int pageIndex = 0;
+        Page page = storageManager.getPage(schema, 0);
+
+        ArrayList<Record> updatedRecords = new ArrayList<>();
+
+        while (page != null) {
+            for (Record r : page.records) {
+                if (eval.evaluateRecord(r)) {
+                    System.out.println("Deleting `" + r.toString() + "`");
+                } else {
+                    // TODO: Add to temp record list
+                    updatedRecords.add(r);
+                }
+            }
+            pageIndex++;
+            page = storageManager.getPage(schema, pageIndex);
+        }
+        // Create temp table
+        TableSchema updatedSchema = null;
+        String tempName = storageManager.getTempTableName();
+        try{
+             updatedSchema = storageManager.createTable(
+                     tempName,
+                     schema.attributes);
+        } catch (IOException e) {
+            System.err.println("Encountered error while creating temp table: " + e);
+            return;
+        }
+
+        // Iter through each record and insert into temp table
+        for (Record r : updatedRecords) {
+            storageManager.fastInsert(updatedSchema, r);
+        }
+        storageManager.replaceTable(schema, updatedSchema);
+
     }
     
     /**
