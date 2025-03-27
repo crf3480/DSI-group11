@@ -81,7 +81,7 @@ public class Evaluator {
         }
         // Make sure all arguments are accounted for
         if (valueStack.size() > 1) {
-            throw new WhereSyntaxError("Danging argument in where clause (" + valueStack.size() + ")");
+            throw new WhereSyntaxError("Dangling argument in where clause (" + valueStack.size() + ")");
         }
         root = valueStack.removeFirst();
     }
