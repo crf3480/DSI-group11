@@ -53,8 +53,8 @@ public class Evaluator {
             try {
                 oper = EvaluatorOperator.fromString(token);
             } catch (InvalidOperatorException ioe) {
-                throw new InvalidAttributeException("Invalid attribute `" + token +
-                        "`. Did you mean `\"" + token + "\"`?");
+                throw new InvalidAttributeException("Invalid attribute '" + token +
+                        "'. Did you mean '\"" + token + "\"'?");
             }
             // Pop from the operator stack until you find one of lower precedence (or the bottom)
             while (!operatorStack.isEmpty() && operatorStack.getLast().precedence() >= oper.precedence()) {
