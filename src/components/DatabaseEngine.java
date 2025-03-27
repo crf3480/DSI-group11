@@ -115,10 +115,16 @@ public class DatabaseEngine {
         TableSchema tempTable = storageManager.createTable(tempTableName, currTable.attributes);
         Evaluator eval = new Evaluator(condition, currTable);
 //        System.out.print(attributeIndex);
-
+        Boolean stopUpdate = false;
         for(int x = 0; x < currTable.pageCount(); x++) {
+            if (stopUpdate) {
+                break;
+            }
             Page currPage = storageManager.getPage(currTable, x);
             for (Record record : currPage.getRecords()) {
+                if (stopUpdate) {
+                    break;
+                }
                 if (eval.evaluateRecord(record)) {
                     // TODO: Run a quick if statement for non-null
                     // TODO: Add checks for non duplicate
@@ -131,6 +137,7 @@ public class DatabaseEngine {
                                 if (r.rowData.get(attributeIndex).equals(record.rowData.get(attributeIndex))) {
                                     duplicatePrimaryKey = true;
                                     System.err.println("Duplicate primary key found for column '" + columnName + "'.");
+                                    stopUpdate = true;
                                     break;
                                 }
                             }
