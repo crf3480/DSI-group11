@@ -142,8 +142,10 @@ public class DatabaseEngine {
                     } else {
                         updateAndTypeCast(newValue, attributeIndex, attribute, record);
                     }
+                    storageManager.insertRecord(tempTable, record);
+                } else {
+                    storageManager.fastInsert(tempTable, record);
                 }
-                storageManager.fastInsert(tempTable, record);
             }
         }
         storageManager.replaceTable(currTable,tempTable);
@@ -431,7 +433,6 @@ public class DatabaseEngine {
             pageIndex++;
             page = storageManager.getPage(schema, pageIndex);
         }
-
         // Replace the old record list with the new record list
         storageManager.replaceTable(schema, updatedSchema);
 
