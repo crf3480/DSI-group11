@@ -97,66 +97,42 @@ public class DatabaseEngine {
         }
     }
 
-    public void updateTable(String tableName, String columnName, String newValue, ArrayList<String> condition ) throws IOException {
-        TableSchema currTable = storageManager.getTableSchema(tableName);
-        if (currTable == null) {
+    public void updateWhere(String tableName, String columnName, String newValue, ArrayList<String> condition ) throws IOException {
+        TableSchema schema = storageManager.getTableSchema(tableName);
+        if (schema == null) {
             System.err.println("Table '" + tableName + "' does not exist.");
             return;
         }
-        int attributeIndex = currTable.getAttributeIndex(columnName);
+        int attributeIndex = schema.getAttributeIndex(columnName);
         if (attributeIndex == -1) {
             System.err.println("Table '" + tableName + "' does not contain column '" + columnName + "'.");
             return;
         }
+        Attribute attribute = schema.attributes.get(attributeIndex);
+        Evaluator eval = new Evaluator(condition, schema);
 
-        Attribute attribute = currTable.attributes.get(attributeIndex);
-
-        String tempTableName = storageManager.getTempTableName();
-        TableSchema tempTable = storageManager.createTable(tempTableName, currTable.attributes);
-        Evaluator eval = new Evaluator(condition, currTable);
-//        System.out.print(attributeIndex);
-        Boolean stopUpdate = false;
-        for(int x = 0; x < currTable.pageCount(); x++) {
-            if (stopUpdate) {
-                break;
-            }
-            Page currPage = storageManager.getPage(currTable, x);
+        for(int x = 0; x < schema.pageCount(); x++) {
+            Page currPage = storageManager.getPage(schema, x);
             for (Record record : currPage.getRecords()) {
-                if (stopUpdate) {
-                    break;
-                }
                 if (eval.evaluateRecord(record)) {
-                    // TODO: Run a quick if statement for non-null
-                    // TODO: Add checks for non duplicate
-                    if (attribute.primaryKey) {
-                        boolean duplicatePrimaryKey = false;
-                        Page checkPage = storageManager.getPage(currTable, 0);
-                        int pageIndex = 0;
-                        while (checkPage != null) {
-                            for (Record r : checkPage.records) {
-                                if (r.rowData.get(attributeIndex).equals(record.rowData.get(attributeIndex))) {
-                                    duplicatePrimaryKey = true;
-                                    System.err.println("Duplicate primary key found for column '" + columnName + "'.");
-                                    stopUpdate = true;
-                                    break;
-                                }
-                            }
-                            pageIndex++;
-                            checkPage = storageManager.getPage(currTable, pageIndex);
-                        }
-                        if (!duplicatePrimaryKey){
-                            updateAndTypeCast(newValue, attributeIndex, attribute, record);
-                        }
-                    } else {
-                        updateAndTypeCast(newValue, attributeIndex, attribute, record);
+                    // Delete record from the arraylist
+                    currPage.getRecords().remove(record);
+                    // Decrement record count
+                    schema.decrementRecordCount();
+                    // If only record in page delete the page
+                    if (schema.recordCount() = 0){
+                        storageManager.deletePage(schema, currPage.pageNumber);
                     }
-                    storageManager.insertRecord(tempTable, record);
-                } else {
-                    storageManager.fastInsert(tempTable, record);
+                    // reinsert record into the table
+                    updateAndTypeCast(newValue, attributeIndex, attribute, record);
+                    if (record != null){
+                        storageManager.insertRecord(schema, record);
+                    } else {
+                        System.err.println("Record '" + record + "' does not exist, error while inserting");
+                    }
                 }
             }
         }
-        storageManager.replaceTable(currTable,tempTable);
     }
 
     /**
@@ -166,7 +142,7 @@ public class DatabaseEngine {
      * @param attribute used for getting the type
      * @param record given record to be updated
      */
-    private void updateAndTypeCast(String newValue, int attributeIndex, Attribute attribute, Record record) {
+    private Record updateAndTypeCast(String newValue, int attributeIndex, Attribute attribute, Record record) {
         switch (attribute.type){
             case INT:
                 record.update(attributeIndex, Integer.parseInt(newValue));
