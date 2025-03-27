@@ -394,12 +394,15 @@ public class DatabaseEngine {
                 System.err.println("Encountered error while creating temp table: " + e);
                 return;
             }
-            // Fill the temp table only with where-passing values (empty where makes eval.evaluate always return true)
+            // Fill the temp table only with where-passing values
             while (page != null) {
                 for (Record r : page.records) {
-                    if (eval.evaluateRecord(r)) {
-                        if (orderby.isEmpty()){
+                    if (eval.evaluateRecord(r)) {   //this will always return true if there's n where clause
+                        if (orderby.isEmpty()){     //if we don't care about order, just throw everything that passes in
                             storageManager.fastInsert(temp, r);
+                        }
+                        else{
+                            //TODO: fuckfuckfuckfuckfuckfuckfuckfuck
                         }
 
                     }
