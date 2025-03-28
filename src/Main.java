@@ -166,7 +166,7 @@ public class Main {
             try {
                 exec(cmd);
             } catch (Exception e) {
-                System.err.println("String exec failed with exception : " + e);
+                System.err.println(e);
             }
         }
     }

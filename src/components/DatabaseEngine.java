@@ -317,6 +317,18 @@ public class DatabaseEngine {
             System.err.println("Invalid select: '*' cannot be used while also specifying attributes.");
             return;
         }
+        for (String attribute: attributes) {
+            if(ambiguous(tables, attribute)){
+                System.err.println("Invalid attribute: "+attribute+" is ambiguous.");
+                return;
+            }
+        }
+        if (orderBy != null){
+            if(ambiguous(tables, orderBy)){
+                System.err.println("Invalid orderby: "+orderBy+" is ambiguous.");
+                return;
+            }
+        }
 
         // Join all tables together
         TableSchema schema = storageManager.getTableSchema(tables.getFirst());
@@ -357,7 +369,7 @@ public class DatabaseEngine {
             while (page != null) {
                 for (Record r : page.records) {
                     if (eval.evaluateRecord(r)) {
-                        if (orderBy.isEmpty()){
+                        if (orderBy==null){
                             storageManager.fastInsert(temp, r);
                         }
                         else{
@@ -569,12 +581,7 @@ public class DatabaseEngine {
             }
             attrIndices[i] = schema.getAttributeIndex(attrs.get(i));
             if (attrIndices[i] == -1) {
-                if(ambiguous(attrs, attrs.get(i))) {    //TODO: this does not work
-                    System.err.println("ambiguous attribute name: "+attrs.get(i));
-                }
-                else {
-                    System.err.println("Unknown attribute '" + attrs.get(i) + "'");
-                }
+                System.err.println("Unknown attribute '" + attrs.get(i) + "'");
                 return null;
             }
         }
@@ -608,15 +615,14 @@ public class DatabaseEngine {
         return projSchema;
     }
 
-    private boolean ambiguous(ArrayList<String> attributes,  String attribute){
-        System.out.println(attributes);
-        System.out.println(attribute);
-        for(String a: attributes) {
-            if (a.contains("."+attribute)) {
-                return true;
+    private boolean ambiguous(ArrayList<String> tableNames,  String attribute){
+        int count = 0;
+        for (String tableName : tableNames) {
+            if (storageManager.getTableSchema(tableName).getAttributeNames().contains(attribute)) {
+                count++;
             }
         }
-        return false;
+        return count > 1;
     }
 
     //endregion

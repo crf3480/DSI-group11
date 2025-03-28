@@ -12,6 +12,7 @@ select * from foo where foo.y > 2.1;
 select * from foo where x > 2 and foo.y < 2.0;
 select y, x from foo where foo.x = 2 or y > 2.0 orderby foo.y;
 create table bar( a integer primarykey, x double);
+insert into bar values (1 10.1), (2 21.2), (9 34.6), (5 2.1),(6 3.7);
 select * from bar;
 select * from foo;
 select * from foo, bar;
