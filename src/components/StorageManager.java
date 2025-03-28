@@ -78,7 +78,7 @@ public class StorageManager {
     }
 
     /**
-     * Enables "NUKE MODE", which deletes all files in the DB directory upon exit
+     * Toggles "NUKE MODE", which deletes all files in the DB directory upon exit
      */
     public void toggleNUKE_MODE() {
         NUKE_MODE = !NUKE_MODE;
