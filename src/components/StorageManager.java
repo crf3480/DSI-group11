@@ -40,43 +40,61 @@ public class StorageManager {
     }
 
     /**
-     * This is mostly used for crash recovery, since all temp tables are supposed to be deleted after use. In the event that
-     * the program closes before it can delete these, this will avoid the program crashing upon the first attempt to create
-     * a temp table, where it would otherwise crash from a
-     *
      * Finds and deletes all tables in the database that start with a numeric character
-     *
-     * Standard table files cannot be have names starting with a number, so this will only delete temp tables.
+     * This is mostly used for crash recovery, since all temp tables are supposed to be deleted after use.
+     * In the event that the program closes/crashes before it can delete these, this will avoid the
+     * program crashing upon the first attempt to create a temp table on next run
+     * Standard table files cannot have names starting with a number, so this will only delete temp tables.
      */
     public void wipeTempTables() throws IOException {
         File dbDirectory = catalog.getFilePath().getParentFile();
-        for (File file : dbDirectory.listFiles()) {
+        File[] fileList = dbDirectory.listFiles();
+        if (fileList == null) {
+            return;  // This should never happen, but it makes the compiler happy
+        }
+        for (File file : fileList) {
             if(Character.isDigit(file.getName().charAt(0))){
                 dropTable(file.getName().substring(0, file.getName().indexOf('.')));
             }
         }
     }
 
-    public void nuke(){
+    /**
+     * "Nukes" the database by deleting all files in the database directory
+     */
+    public void nuke() {
         System.err.println();
         System.err.println("NUKING DATABASE AT "+catalog.getFilePath().getParentFile().getAbsolutePath());
         File dbDirectory = catalog.getFilePath().getParentFile();
-        for (File file : dbDirectory.listFiles()) {
-            file.delete();
+        File[] fileList = dbDirectory.listFiles();
+        if (fileList == null) {
+            return;  // This should never happen, but it makes the compiler happy
         }
-        dbDirectory.delete();
+        for (File file : fileList) {
+            if (!file.delete()) {
+                System.err.println("Failed to delete file " + file.getAbsolutePath());
+            }
+        }
     }
 
-    public boolean toggleNUKEMODE() throws InterruptedException {
+    /**
+     * Enables "NUKE MODE", which deletes all files in the DB directory upon exit
+     */
+    public void toggleNUKE_MODE() {
         NUKE_MODE = !NUKE_MODE;
 
         System.err.println("\nNUKE MODE "+((NUKE_MODE)? "enabled. Entire database will be deleted on program close.\n" : "disabled. Database will be saved as usual.\n"));
-        TimeUnit.MILLISECONDS.sleep(50);
-
-        return NUKE_MODE;
+        try {
+            TimeUnit.MILLISECONDS.sleep(50);
+        } catch (InterruptedException e) {
+            System.err.println(e + " : " + e.getMessage());
+        }
     }
 
-    public boolean inNUKEMODE() {
+    /**
+     * @return `true` if NUKE_MODE is enabled
+     */
+    public boolean inNUKE_MODE() {
         return NUKE_MODE;
     }
 

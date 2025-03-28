@@ -7,7 +7,11 @@ import java.util.*;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    private static StorageManager storageManager;
+    private static DDL ddl;
+    private static DML dml;
+
+    public static void main(String[] args) throws IOException {
         // Validate CLI arguments
         if (args.length < 3) {
             System.out.println("Usage: java src.Main <database> <page size> <buffer size>");
@@ -38,64 +42,126 @@ public class Main {
         else{
             System.out.println("Opening database at " + databaseDir.getAbsolutePath());
         }
-        StorageManager storageManager = new StorageManager(databaseDir, pageSize, bufferSize);
+
+        // Init storage components
+        storageManager = new StorageManager(databaseDir, pageSize, bufferSize);
+        DatabaseEngine databaseEngine = new DatabaseEngine(storageManager);
+        // Init parsers
+        dml = new DML(databaseEngine);
+        ddl = new DDL(databaseEngine);
+
+        // Custom dev args
+        ArrayList<String> devArgs = new ArrayList<>();
         if (args.length >= 4){
-            if (args[3].equals("--nuke")){
-                storageManager.toggleNUKEMODE();
+            devArgs.addAll(Arrays.asList(args).subList(3, args.length));
+        }
+        if (devArgs.contains("--nuke")) {
+            storageManager.toggleNUKE_MODE();
+        }
+        // CLI command run
+        int executeStringIndex = devArgs.indexOf("-X");
+        if (executeStringIndex != -1) {
+            if (executeStringIndex == devArgs.size() - 1) {
+                System.err.println("`-X` arg missing command string");
+                return;
+            }
+            exec(devArgs.get(executeStringIndex + 1));
+        }
+        // File command run
+        int execFileIndex = devArgs.indexOf("-i");
+        if (execFileIndex != -1) {
+            if (execFileIndex == devArgs.size() - 1) {
+                System.err.println("`-i` arg missing filepath");
+                return;
+            }
+            String execFile = devArgs.get(execFileIndex + 1);
+            try (BufferedReader br = new BufferedReader(new FileReader(execFile))) {
+                String line = br.readLine();
+                while (line != null) {
+                    if (!line.startsWith("//") && !line.isEmpty()) {
+                        exec(line);
+                    }
+                    line = br.readLine();
+                }
+            } catch (Exception e) {
+                System.err.println("Error reading exec file : " + e);
             }
         }
-        DatabaseEngine databaseEngine = new DatabaseEngine(storageManager);
-
-        DML dml = new DML(databaseEngine);
-        DDL ddl = new DDL(databaseEngine);
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
         try {
-            while (true) {
-                if (storageManager.inNUKEMODE()){
+            boolean keepRunning = true;
+            while (keepRunning) {
+                if (storageManager.inNUKE_MODE()){
                     System.out.print("Input ('<quit>' to nuke database): ");
                 }
                 else{
                     System.out.print("Input ('<quit>' to quit): ");
                 }
                 for (ArrayList<String> statement : getQuery(br)) {
-                    //System.out.println(statement);  // Check that 'getQuery()' is parsing command correctly
-                    switch (statement.getFirst()) {
-                        case "<quit>" -> {
-                            if (storageManager.inNUKEMODE()){
-                                storageManager.nuke();
-                            }
-                            else{
-                                storageManager.wipeTempTables();
-                                storageManager.save();
-                            }
-                            return;
-                        }
-                        case "<nuke>" -> storageManager.toggleNUKEMODE();
-                        // DDL commands
-                        case "alter" -> ddl.alter(statement);
-                        case "create" -> ddl.create(statement);
-                        case "drop" -> ddl.drop(statement);
-                        // DML commands
-                        case "display" -> dml.display(statement);
-                        case "insert" -> dml.insert(statement);
-                        case "select" -> dml.select(statement);
-                        case "test" -> dml.test(statement);
-                        case "update" -> dml.update(statement);
-                        case "delete" -> dml.delete(statement);
-                        default -> System.err.println("Invalid command: '" + statement.getFirst() + "'");
-                    }
+                    keepRunning = exec(statement);
                 }
             }
-        }catch (Exception e) {
-            if (storageManager.inNUKEMODE()){
+        } catch (Exception e) {
+            System.err.println(e + " : " + e.getMessage());
+        } finally {
+            if (storageManager.inNUKE_MODE()){
                 storageManager.nuke();
             }
             else{
                 storageManager.wipeTempTables();
                 storageManager.save();
             }
+        }
+    }
 
+    /**
+     * Executes a command in the database
+     * @param cmd The command to execute
+     * @return `false` if the user signaled that they wish to exit; `true` otherwise
+     */
+    private static boolean exec(ArrayList<String> cmd) throws IOException {
+        switch (cmd.getFirst()) {
+            case "<quit>" -> {
+                if (storageManager.inNUKE_MODE()){
+                    storageManager.nuke();
+                }
+                else{
+                    storageManager.wipeTempTables();
+                    storageManager.save();
+                }
+                return false;
+            }
+            case "<nuke>" -> storageManager.toggleNUKE_MODE();
+            // DDL commands
+            case "alter" -> ddl.alter(cmd);
+            case "create" -> ddl.create(cmd);
+            case "drop" -> ddl.drop(cmd);
+            // DML commands
+            case "display" -> dml.display(cmd);
+            case "insert" -> dml.insert(cmd);
+            case "select" -> dml.select(cmd);
+            case "test" -> dml.test(cmd);
+            case "update" -> dml.update(cmd);
+            case "delete" -> dml.delete(cmd);
+            default -> System.err.println("Invalid command: '" + cmd.getFirst() + "'");
+        }
+        return true;
+    }
+
+    /**
+     * Convenience method for calling exec directly with a string
+     * @param str The command to execute as a single String
+     */
+    private static void exec(String str) {
+        StringReader sr = new StringReader(str);
+        ArrayList<ArrayList<String>> tokenizedCmds = getQuery(new BufferedReader(sr));
+        for (ArrayList<String> cmd : tokenizedCmds) {
+            try {
+                exec(cmd);
+            } catch (Exception e) {
+                System.err.println("String exec failed with exception : " + e);
+            }
         }
     }
 
