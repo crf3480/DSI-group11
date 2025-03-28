@@ -569,7 +569,7 @@ public class DatabaseEngine {
             }
             attrIndices[i] = schema.getAttributeIndex(attrs.get(i));
             if (attrIndices[i] == -1) {
-                if(ambiguous(attrs, attrs.get(i))) {
+                if(ambiguous(attrs, attrs.get(i))) {    //TODO: this does not work
                     System.err.println("ambiguous attribute name: "+attrs.get(i));
                 }
                 else {
