@@ -115,20 +115,6 @@ public class DDL {
         return null;
     }
 
-    public void enableNuke() {
-        Scanner scan = new Scanner(System.in);
-        System.err.print("Enable NUKE MODE? This cannot be undone!: ");
-        char mode = scan.next().toLowerCase().charAt(0);
-        if(mode == 'y'){
-            if (engine.primeNuke()){
-                System.err.println("NUKE MODE initiated. Database will be deleted on program close.");
-            }
-        }
-        else{
-            System.err.println("NUKE MODE has not been activated. Data will be saved as usual.");
-        }
-    }
-
     /**
      * Performs a drop table command
      *

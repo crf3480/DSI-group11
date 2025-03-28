@@ -3,6 +3,7 @@ import tableData.*;
 import tableData.Record;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 /**
  * StorageManager.java
@@ -66,8 +67,12 @@ public class StorageManager {
         dbDirectory.delete();
     }
 
-    public boolean setNuke(){
-        NUKE_MODE = true;
+    public boolean toggleNUKEMODE() throws InterruptedException {
+        NUKE_MODE = !NUKE_MODE;
+
+        System.err.println("\nNUKE MODE "+((NUKE_MODE)? "enabled. Entire database will be deleted on program close.\n" : "disabled. Database will be saved as usual.\n"));
+        TimeUnit.MILLISECONDS.sleep(50);
+
         return NUKE_MODE;
     }
 

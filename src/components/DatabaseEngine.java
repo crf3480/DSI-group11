@@ -619,10 +619,6 @@ public class DatabaseEngine {
         return false;
     }
 
-    public boolean primeNuke(){
-        return storageManager.setNuke();
-    }
-
     //endregion
 
     // ====================================================================================

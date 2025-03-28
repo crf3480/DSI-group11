@@ -7,7 +7,7 @@ import java.util.*;
 
 public class Main {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         // Validate CLI arguments
         if (args.length < 3) {
             System.out.println("Usage: java src.Main <database> <page size> <buffer size>");
@@ -39,6 +39,11 @@ public class Main {
             System.out.println("Opening database at " + databaseDir.getAbsolutePath());
         }
         StorageManager storageManager = new StorageManager(databaseDir, pageSize, bufferSize);
+        if (args.length >= 4){
+            if (args[3].equals("-nuke")){
+                storageManager.toggleNUKEMODE();
+            }
+        }
         DatabaseEngine databaseEngine = new DatabaseEngine(storageManager);
 
         DML dml = new DML(databaseEngine);
@@ -59,15 +64,14 @@ public class Main {
                         case "<quit>" -> {
                             if (storageManager.inNUKEMODE()){
                                 storageManager.nuke();
-                                return;
                             }
                             else{
                                 storageManager.wipeTempTables();
                                 storageManager.save();
-                                return;
                             }
+                            return;
                         }
-                        case "<nuke>" -> ddl.enableNuke();
+                        case "<nuke>" -> storageManager.toggleNUKEMODE();
                         // DDL commands
                         case "alter" -> ddl.alter(statement);
                         case "create" -> ddl.create(statement);
