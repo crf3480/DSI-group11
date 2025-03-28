@@ -1,5 +1,5 @@
 package where;
-import exceptions.InvalidAttributeException;
+import exceptions.CustomExceptions;
 import tableData.TableSchema;
 import tableData.Record;
 
@@ -56,15 +56,15 @@ public class Evaluator {
             EvaluatorOperator oper;
             try {
                 oper = EvaluatorOperator.fromString(token);
-            } catch (InvalidOperatorException ioe) {
-                throw new InvalidAttributeException("Invalid attribute '" + token +
+            } catch (CustomExceptions.InvalidOperatorException ioe) {
+                throw new CustomExceptions("Invalid attribute '" + token +
                         "'. Did you mean '\"" + token + "\"'?");
             }
             // Pop from the operator stack until you find one of lower precedence (or the bottom)
             while (!operatorStack.isEmpty() && operatorStack.getLast().precedence() >= oper.precedence()) {
                 EvaluatorOperator popped = operatorStack.removeLast();
                 if (valueStack.size() < 2) {
-                    throw new WhereSyntaxError("Operator " + popped + " has insufficient operands");
+                    throw new CustomExceptions.WhereSyntaxError("Operator " + popped + " has insufficient operands");
                 }
                 EvaluatorNode rightOperand = valueStack.removeLast();
                 EvaluatorNode leftOperand = valueStack.removeLast();
@@ -77,7 +77,7 @@ public class Evaluator {
         while (!operatorStack.isEmpty()) {
             EvaluatorOperator popped = operatorStack.removeLast();
             if (valueStack.size() < 2) {
-                throw new WhereSyntaxError("Operator " + popped + " has insufficient operands");
+                throw new CustomExceptions.WhereSyntaxError("Operator " + popped + " has insufficient operands");
             }
             EvaluatorNode rightOperand = valueStack.removeLast();
             EvaluatorNode leftOperand = valueStack.removeLast();
@@ -85,7 +85,7 @@ public class Evaluator {
         }
         // Make sure all arguments are accounted for
         if (valueStack.size() > 1) {
-            throw new WhereSyntaxError("Dangling argument in where clause (" + valueStack.size() + ")");
+            throw new CustomExceptions.WhereSyntaxError("Dangling argument in where clause (" + valueStack.size() + ")");
         }
         root = valueStack.removeFirst();
     }

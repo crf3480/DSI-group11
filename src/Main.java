@@ -45,29 +45,53 @@ public class Main {
         DDL ddl = new DDL(databaseEngine);
 
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        while (true) {
-            System.out.print("Input ('<quit>' to quit): ");
-            for (ArrayList<String> statement : getQuery(br)) {
-                //System.out.println(statement);  // Check that 'getQuery()' is parsing command correctly
-                switch (statement.getFirst()) {
-                    case "<quit>"-> {
-                        storageManager.save();
-                        return;
+        try {
+            while (true) {
+                if (storageManager.inNUKEMODE()){
+                    System.out.print("Input ('<quit>' to nuke database): ");
+                }
+                else{
+                    System.out.print("Input ('<quit>' to quit): ");
+                }
+                for (ArrayList<String> statement : getQuery(br)) {
+                    //System.out.println(statement);  // Check that 'getQuery()' is parsing command correctly
+                    switch (statement.getFirst()) {
+                        case "<quit>" -> {
+                            if (storageManager.inNUKEMODE()){
+                                storageManager.nuke();
+                                return;
+                            }
+                            else{
+                                storageManager.wipeTempTables();
+                                storageManager.save();
+                                return;
+                            }
+                        }
+                        case "<nuke>" -> ddl.enableNuke();
+                        // DDL commands
+                        case "alter" -> ddl.alter(statement);
+                        case "create" -> ddl.create(statement);
+                        case "drop" -> ddl.drop(statement);
+                        // DML commands
+                        case "display" -> dml.display(statement);
+                        case "insert" -> dml.insert(statement);
+                        case "select" -> dml.select(statement);
+                        case "test" -> dml.test(statement);
+                        case "update" -> dml.update(statement);
+                        case "delete" -> dml.delete(statement);
+                        default -> System.err.println("Invalid command: '" + statement.getFirst() + "'");
                     }
-                    // DDL commands
-                    case "alter" -> ddl.alter(statement);
-                    case "create" -> ddl.create(statement);
-                    case "drop" -> ddl.drop(statement);
-                    // DML commands
-                    case "display" -> dml.display(statement);
-                    case "insert" -> dml.insert(statement);
-                    case "select" ->  dml.select(statement);
-                    case "test" -> dml.test(statement);
-                    case "update" -> dml.update(statement);
-                    case "delete" -> dml.delete(statement);
-                    default ->  System.err.println("Invalid command: '" + statement.getFirst() + "'");
                 }
             }
+        }catch (Exception e) {
+            if (storageManager.inNUKEMODE()){
+                storageManager.nuke();
+            }
+            else{
+                storageManager.wipeTempTables();
+                storageManager.save();
+            }
+
         }
     }
 
@@ -114,10 +138,16 @@ public class Main {
                 return new ArrayList<>();
             }
             // Quit command
-            if (statement.isEmpty() && (input.toLowerCase().equals("<quit>") || input.toLowerCase().startsWith("<quit> "))) {
+            if (statement.isEmpty() && (input.equalsIgnoreCase("<quit>") || input.toLowerCase().startsWith("<quit> "))) {
                     statement.add("<quit>");
                     statementList.add(statement);
                     return statementList;
+            }
+            // Quit command
+            if (statement.isEmpty() && (input.equalsIgnoreCase("<nuke>") || input.toLowerCase().startsWith("<nuke> "))) {
+                statement.add("<nuke>");
+                statementList.add(statement);
+                return statementList;
             }
             // Parse line of input
             for (int i = 0; i < input.length(); i++) {

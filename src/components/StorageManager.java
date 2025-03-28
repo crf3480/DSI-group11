@@ -9,7 +9,7 @@ import java.util.ArrayList;
  * Manages fetching and saving pages to file
  */
 public class StorageManager {
-
+    private boolean NUKE_MODE = false;
     private final Buffer buffer;
     Catalog catalog;
     int nextTempID;
@@ -26,6 +26,7 @@ public class StorageManager {
         File catalogFile = new File(databaseDir, "catalog.bin");
         catalog = new Catalog(catalogFile, pageSize);
         buffer = new Buffer(bufferSize, catalog.pageSize());
+        wipeTempTables();
         nextTempID = 0;
     }
 
@@ -35,6 +36,43 @@ public class StorageManager {
      */
     public int pageSize() {
         return catalog.pageSize();
+    }
+
+    /**
+     * This is mostly used for crash recovery, since all temp tables are supposed to be deleted after use. In the event that
+     * the program closes before it can delete these, this will avoid the program crashing upon the first attempt to create
+     * a temp table, where it would otherwise crash from a
+     *
+     * Finds and deletes all tables in the database that start with a numeric character
+     *
+     * Standard table files cannot be have names starting with a number, so this will only delete temp tables.
+     */
+    public void wipeTempTables() throws IOException {
+        File dbDirectory = catalog.getFilePath().getParentFile();
+        for (File file : dbDirectory.listFiles()) {
+            if(Character.isDigit(file.getName().charAt(0))){
+                dropTable(file.getName().substring(0, file.getName().indexOf('.')));
+            }
+        }
+    }
+
+    public void nuke(){
+        System.err.println();
+        System.err.println("NUKING DATABASE AT "+catalog.getFilePath().getParentFile().getAbsolutePath());
+        File dbDirectory = catalog.getFilePath().getParentFile();
+        for (File file : dbDirectory.listFiles()) {
+            file.delete();
+        }
+        dbDirectory.delete();
+    }
+
+    public boolean setNuke(){
+        NUKE_MODE = true;
+        return NUKE_MODE;
+    }
+
+    public boolean inNUKEMODE() {
+        return NUKE_MODE;
     }
 
     /**
@@ -326,6 +364,7 @@ public class StorageManager {
             System.out.println("\nTables:\n");
             for(String table : catalog.getTableNames()) {
                 displayTable(table);
+                System.out.println();
             }
         }
     }

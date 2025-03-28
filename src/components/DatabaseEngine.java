@@ -303,7 +303,6 @@ public class DatabaseEngine {
      * @param orderBy       Attribute to order by in ascending order.
      */
     public void selectRecords(ArrayList<String> attributes, ArrayList<String> tables, ArrayList<String> whereClause, String orderBy) {
-        ArrayList<String> tableDropList = new ArrayList<>();
         for (String table: tables) {    // make sure all given tables exist
             if (storageManager.getTableSchema(table) == null) {
                 System.err.println("Invalid select: Table " + table + " does not exist.");
@@ -329,12 +328,11 @@ public class DatabaseEngine {
         }
 
         // If attributes list is not '*', create a projection
-        if(tables.size() > 1 || !attributes.contains("*")) {
+        if(!attributes.contains("*")) {
             schema = projection(schema, attributes);
             if (schema == null) {
                 return;
             }
-            tableDropList.add(schema.name);  // Flag the projection for deletion after completing the command
         }
 
         /*
@@ -349,10 +347,8 @@ public class DatabaseEngine {
             TableSchema temp;
             try{
                 temp = storageManager.createTable(storageManager.getTempTableName(), schema.attributes);
-                tableDropList.add(temp.name);  // Flag the temp table for deletion
             } catch (IOException e) {
                 System.err.println("Encountered error while creating temp table: " + e);
-                dropAll(tableDropList);
                 return;
             }
             // Fill the temp table only with where-passing values (empty `where` makes eval.evaluate always return true)
@@ -391,7 +387,11 @@ public class DatabaseEngine {
         }
         // Cap off with footer string
         System.out.println(footerString(schema, 10));
-        dropAll(tableDropList);
+        try {
+            storageManager.wipeTempTables();
+        } catch (IOException e) {
+            System.err.println("Encountered error while wiping temp tables: " + e);
+        }
     }
 
     /**
@@ -569,7 +569,12 @@ public class DatabaseEngine {
             }
             attrIndices[i] = schema.getAttributeIndex(attrs.get(i));
             if (attrIndices[i] == -1) {
-                System.err.println("Unknown attribute '" + attrs.get(i) + "'");
+                if(ambiguous(attrs, attrs.get(i))) {
+                    System.err.println("ambiguous attribute name: "+attrs.get(i));
+                }
+                else {
+                    System.err.println("Unknown attribute '" + attrs.get(i) + "'");
+                }
                 return null;
             }
         }
@@ -601,6 +606,21 @@ public class DatabaseEngine {
             currPage = storageManager.getPage(schema, currIndex);
         }
         return projSchema;
+    }
+
+    private boolean ambiguous(ArrayList<String> attributes,  String attribute){
+        System.out.println(attributes);
+        System.out.println(attribute);
+        for(String a: attributes) {
+            if (a.contains("."+attribute)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean primeNuke(){
+        return storageManager.setNuke();
     }
 
     //endregion

@@ -1,5 +1,7 @@
 package where;
 
+import exceptions.CustomExceptions;
+
 /**
  * Defines one of the possible operators in a where clause
  */
@@ -16,7 +18,7 @@ public enum EvaluatorOperator {
             case "<" -> EvaluatorOperator.LESS_THAN;
             case ">=" -> EvaluatorOperator.GREATER_OR_EQUAL;
             case "<=" -> EvaluatorOperator.LESS_OR_EQUAL;
-            default -> throw new InvalidOperatorException(str);
+            default -> throw new CustomExceptions.InvalidOperatorException(str);
         };
     }
 

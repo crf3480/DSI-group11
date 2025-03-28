@@ -1,5 +1,6 @@
 package where;
 
+import exceptions.CustomExceptions;
 import tableData.Record;
 
 /**
@@ -25,7 +26,7 @@ public class EvaluatorOperatorNode extends EvaluatorNode {
         this.operator = operator;
 
         if (operator != EvaluatorOperator.AND && operator != EvaluatorOperator.OR && left.getClass() != EvaluatorAttributeNode.class) {
-            throw new WhereSyntaxError("Left side of comparison operator (" + operator + ") must be an attribute");
+            throw new CustomExceptions.WhereSyntaxError("Left side of comparison operator (" + operator + ") must be an attribute");
         }
     }
 
@@ -91,7 +92,7 @@ public class EvaluatorOperatorNode extends EvaluatorNode {
     private void validate(Object leftResult, Object rightResult) {
         // Validate operand compatibility
         if (leftResult.getClass() != rightResult.getClass()) {
-            throw new IncompatibleTypeComparisonException("Cannot compare values of different types (" +
+            throw new CustomExceptions.IncompatibleTypeComparisonException("Cannot compare values of different types (" +
                     leftResult.getClass() + " and " + rightResult.getClass() + ")");
         }
 
@@ -102,14 +103,14 @@ public class EvaluatorOperatorNode extends EvaluatorNode {
             case LESS_THAN:
             case GREATER_THAN:
                 if (leftResult.getClass() == String.class || leftResult.getClass() == Boolean.class) {
-                    throw new IncompatibleTypeComparisonException("Cannot use `" + operator +
+                    throw new CustomExceptions.IncompatibleTypeComparisonException("Cannot use `" + operator +
                             "` comparison with " + leftResult.getClass() + " type");
                 }
                 break;
             case AND:
             case OR:
                 if (leftResult.getClass() != Boolean.class) {
-                    throw new IncompatibleTypeComparisonException("Cannot perform `" + operator +
+                    throw new CustomExceptions.IncompatibleTypeComparisonException("Cannot perform `" + operator +
                             "` comparison on non-Boolean type");
                 }
         }
