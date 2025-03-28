@@ -40,7 +40,7 @@ public class Main {
         }
         StorageManager storageManager = new StorageManager(databaseDir, pageSize, bufferSize);
         if (args.length >= 4){
-            if (args[3].equals("-nuke")){
+            if (args[3].equals("--nuke")){
                 storageManager.toggleNUKEMODE();
             }
         }
