@@ -79,6 +79,7 @@ public class Main {
                 String line = br.readLine();
                 while (line != null) {
                     if (!line.startsWith("//") && !line.isEmpty()) {
+                        System.out.println(line);
                         exec(line);
                     }
                     line = br.readLine();
