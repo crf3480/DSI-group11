@@ -166,7 +166,7 @@ public class Main {
             try {
                 exec(cmd);
             } catch (Exception e) {
-                System.err.println(e);
+                System.err.println(e.getMessage());
             }
         }
     }

@@ -8,6 +8,7 @@ select foo.y from foo;
 select * from foo orderby x;
 select * from foo orderby foo.y;
 select * from foo where x = 2;
+select * from foo where foo.x <= 3;
 select * from foo where foo.y > 2.1;
 select * from foo where x > 2 and foo.y < 2.0;
 select y, x from foo where foo.x = 2 or y > 2.0 orderby foo.y;

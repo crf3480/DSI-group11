@@ -103,12 +103,12 @@ public class Record {
      */
     public boolean greaterThan(Record other, TableSchema schema, int attrIndex) {
         return switch (schema.attributes.get(attrIndex).type) {
-            case INT -> ((Integer) rowData.get(attrIndex)).compareTo(((Integer) other.rowData.get(attrIndex))) > 0;
-            case DOUBLE -> ((Double) rowData.get(attrIndex)).compareTo(((Double) other.rowData.get(attrIndex))) > 0;
+            case INT -> ((Integer) rowData.get(attrIndex)).compareTo(((Integer) other.rowData.get(attrIndex))) >= 0;
+            case DOUBLE -> ((Double) rowData.get(attrIndex)).compareTo(((Double) other.rowData.get(attrIndex))) >= 0;
             case CHAR, VARCHAR ->
-                    ((String) rowData.get(attrIndex)).compareTo(((String) other.rowData.get(attrIndex))) > 0;
+                    ((String) rowData.get(attrIndex)).compareTo(((String) other.rowData.get(attrIndex))) >= 0;
             case BOOLEAN ->
-                    ((Boolean) rowData.get(attrIndex)).compareTo(((Boolean) other.rowData.get(attrIndex))) > 0;
+                    ((Boolean) rowData.get(attrIndex)).compareTo(((Boolean) other.rowData.get(attrIndex))) >= 0;
         };
     }
 }

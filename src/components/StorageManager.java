@@ -145,8 +145,9 @@ public class StorageManager {
                 // Check for duplicate
                 int matchAttr = record.isEquivalent(existingRec, schema);
                 if (matchAttr != -1) {
-                    System.err.println("Invalid tuple: a record with the value '" + record.get(matchAttr) +
-                            "' already exists for column '" + schema.attributes.get(matchAttr).name + "'.");
+                    System.err.println("Invalid new tuple: the value '" + record.get(matchAttr) +
+                            "' already exists in "+ ((schema.attributes.get(matchAttr).primaryKey ? "primary key " : "unique ")
+                            +"column '" + schema.attributes.get(matchAttr).name + "'."));
                     return false;
                 }
                 // Check for insertion point

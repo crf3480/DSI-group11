@@ -323,6 +323,12 @@ public class DatabaseEngine {
                 return;
             }
         }
+        for (String where: whereClause) {
+            if(ambiguous(tables, where)){
+                System.err.println("Invalid where: "+where+" is ambiguous.");
+                return;
+            }
+        }
         if (orderBy != null){
             if(ambiguous(tables, orderBy)){
                 System.err.println("Invalid orderby: "+orderBy+" is ambiguous.");
@@ -615,7 +621,7 @@ public class DatabaseEngine {
         return projSchema;
     }
 
-    private boolean ambiguous(ArrayList<String> tableNames,  String attribute){
+    public boolean ambiguous(ArrayList<String> tableNames,  String attribute){
         int count = 0;
         for (String tableName : tableNames) {
             if (storageManager.getTableSchema(tableName).getAttributeNames().contains(attribute)) {
