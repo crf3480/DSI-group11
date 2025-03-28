@@ -4,6 +4,7 @@ import parsers.DDL;
 import parsers.DML;
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
@@ -82,6 +83,7 @@ public class Main {
                         System.out.println(line);
                         exec(line);
                     }
+                    TimeUnit.MILLISECONDS.sleep(25);
                     line = br.readLine();
                 }
             } catch (Exception e) {

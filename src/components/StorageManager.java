@@ -63,8 +63,7 @@ public class StorageManager {
      * "Nukes" the database by deleting all files in the database directory
      */
     public void nuke() {
-        System.err.println();
-        System.err.println("NUKING DATABASE AT "+catalog.getFilePath().getParentFile().getAbsolutePath());
+        System.err.println("\nNUKING DATABASE AT "+catalog.getFilePath().getParentFile().getAbsolutePath());
         File dbDirectory = catalog.getFilePath().getParentFile();
         File[] fileList = dbDirectory.listFiles();
         if (fileList == null) {
