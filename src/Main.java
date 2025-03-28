@@ -80,10 +80,13 @@ public class Main {
                 String line = br.readLine();
                 while (line != null) {
                     if (!line.startsWith("//") && !line.isEmpty()) {
-                        System.out.println(line);
+                        System.out.println("\n"+line);
                         exec(line);
                     }
                     TimeUnit.MILLISECONDS.sleep(25);
+                    if (line.contains("<quit>")){
+                        return;
+                    }
                     line = br.readLine();
                 }
             } catch (Exception e) {
