@@ -101,9 +101,9 @@ public class DatabaseEngine {
      * @param tableName table name from DML
      * @param columnName column name for given column to update
      * @param newValue new value to be put in place
-     * @param condition where conditional
+     * @param whereClause where clause
      */
-    public void updateWhere(String tableName, String columnName, String newValue, ArrayList<String> condition ){
+    public void updateWhere(String tableName, String columnName, String newValue, ArrayList<String> whereClause ){
         TableSchema schema = storageManager.getTableSchema(tableName);
         if (schema == null) {
             System.err.println("Table '" + tableName + "' does not exist.");
@@ -115,7 +115,7 @@ public class DatabaseEngine {
             return;
         }
         Attribute attribute = schema.attributes.get(attributeIndex);
-        Evaluator eval = new Evaluator(condition, schema);
+        Evaluator eval = new Evaluator(whereClause, schema);
         int pageIndex = 0;
         Page page = storageManager.getPage(schema, pageIndex);
         while (page != null) {
@@ -123,11 +123,10 @@ public class DatabaseEngine {
             while (i < page.recordCount()){
                 Record oldRecord = page.records.get(i);
                 if(eval.evaluateRecord(oldRecord)) {    // if the record passes the where
-
                     Record updatedRecord = oldRecord.duplicate();   // copy record to test if insertion works
                     updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute));
 
-                    if(!oldRecord.equals(updatedRecord)) {  // don't run logic if update changes nothing
+                    if(!oldRecord.equals(updatedRecord)) {  // don't run swap logic if update changes nothing
                         page.records.remove(i);             // need to remove old record temporarily to see if new is valid to insert
                         schema.decrementRecordCount();      // necessary to validate some checks that can't be done yet
                         if (storageManager.validInsert(schema, updatedRecord, schema.primaryKey)) {
