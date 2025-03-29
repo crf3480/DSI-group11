@@ -373,14 +373,22 @@ public class DatabaseEngine {
             if (orderIndex == -1 && orderBy.contains(".")){ // if the orderby has a table.attr but it's not formatted that way in the select statement
                 String t = orderBy.substring(0, orderBy.indexOf("."));
                 String a = orderBy.substring(orderBy.indexOf(".") + 1);
-                if (!ambiguous(tables, a)) {
+                if (attributes.contains("*")){
+                    orderIndex = storageManager.getTableSchema(t).getAttributeIndex(a);
+                    for (String table: tables){
+                        if (!table.equals(t)){
+                            orderIndex += storageManager.getTableSchema(table).getAttributeNames().size();
+                        } else {
+                            break;
+                        }
+                    }
+                } else {
                     orderIndex = attributes.indexOf(a);
                 }
             }
             if (orderIndex == -1) {
                 orderIndex = schema.primaryKey;
             }
-
             // Create temp table
             TableSchema temp;
             try{
