@@ -121,13 +121,23 @@ public class DatabaseEngine {
         while (page != null) {
             int i = 0;
             while (i < page.recordCount()){
-                Record updatedRecord = page.records.get(i);
-                if (eval.evaluateRecord(updatedRecord)) {
-                    page.records.remove(i);
-                    schema.decrementRecordCount();
+                Record oldRecord = page.records.get(i);
+                if(eval.evaluateRecord(oldRecord)) {    // if the record passes the where
 
+                    Record updatedRecord = oldRecord.duplicate();   // copy record to test if insertion works
                     updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute));
-                    storageManager.insertRecord(schema, updatedRecord, schema.primaryKey);
+
+                    if(!oldRecord.equals(updatedRecord)) {  // don't run logic if update changes nothing
+                        page.records.remove(i);             // need to remove old record temporarily to see if new is valid to insert
+                        schema.decrementRecordCount();      // necessary to validate some checks that can't be done yet
+                        if (storageManager.validInsert(schema, updatedRecord, schema.primaryKey)) {
+                            storageManager.insertRecord(schema, updatedRecord, schema.primaryKey);
+                        }
+                        else {  // if invalid insert, re-add the old one because we dropped it
+                            storageManager.insertRecord(schema, oldRecord, schema.primaryKey);
+                            return;
+                        }
+                    }
                 }
                 i += 1;
             }
@@ -892,4 +902,5 @@ public class DatabaseEngine {
         }
         dropTable(ts.name);
     }
+
 }

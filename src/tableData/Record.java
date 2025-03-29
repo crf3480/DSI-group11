@@ -1,6 +1,7 @@
 package tableData;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class Record {
 
@@ -110,5 +111,17 @@ public class Record {
             case BOOLEAN ->
                     ((Boolean) rowData.get(attrIndex)).compareTo(((Boolean) other.rowData.get(attrIndex))) >= 0;
         };
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Record record = (Record) o;
+        return Objects.equals(rowData, record.rowData);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(rowData);
     }
 }
