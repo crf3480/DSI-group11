@@ -368,7 +368,15 @@ public class DatabaseEngine {
         */
         if (!whereClause.isEmpty() || !orderBy.isEmpty()){
             Evaluator eval = new Evaluator(whereClause, schema);
-            int orderIndex = schema.getAttributeIndex(orderBy);
+            int orderIndex = attributes.indexOf(orderBy);
+
+            if (orderIndex == -1 && orderBy.contains(".")){ // if the orderby has a table.attr but it's not formatted that way in the select statement
+                String t = orderBy.substring(0, orderBy.indexOf("."));
+                String a = orderBy.substring(orderBy.indexOf(".") + 1);
+                if (!ambiguous(tables, a)) {
+                    orderIndex = attributes.indexOf(a);
+                }
+            }
             if (orderIndex == -1) {
                 orderIndex = schema.primaryKey;
             }
