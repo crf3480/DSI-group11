@@ -387,7 +387,7 @@ public class DatabaseEngine {
             while (page != null) {
                 for (Record r : page.records) {
                     if (eval.evaluateRecord(r)) {
-                        if (orderBy==null){
+                        if (orderIndex == -1){
                             storageManager.fastInsert(temp, r);
                         }
                         else{
