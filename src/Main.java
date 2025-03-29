@@ -83,7 +83,7 @@ public class Main {
                         System.out.println("\n"+line);
                         exec(line);
                     }
-                    TimeUnit.MILLISECONDS.sleep(25);
+                    TimeUnit.MILLISECONDS.sleep(25);    // allows stderr prints time to show up in intelliJ
                     if (line.contains("<quit>")){
                         return;
                     }
@@ -112,7 +112,7 @@ public class Main {
             System.err.println(e + " : " + e.getMessage());
         } finally {
             if (storageManager.inNUKE_MODE()){
-                storageManager.nuke();
+                storageManager.quietNuke();
             }
             else{
                 storageManager.wipeTempTables();

@@ -369,6 +369,9 @@ public class DatabaseEngine {
         if (!whereClause.isEmpty() || !orderBy.isEmpty()){
             Evaluator eval = new Evaluator(whereClause, schema);
             int orderIndex = schema.getAttributeIndex(orderBy);
+            if (orderIndex == -1) {
+                orderIndex = schema.primaryKey;
+            }
 
             // Create temp table
             TableSchema temp;

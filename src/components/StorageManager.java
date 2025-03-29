@@ -64,6 +64,13 @@ public class StorageManager {
      */
     public void nuke() {
         System.err.println("\nNUKING DATABASE AT "+catalog.getFilePath().getParentFile().getAbsolutePath());
+        quietNuke();
+    }
+
+    /**
+     *  Nukes the database without the fanfare. Used to hide the double call added when Will made file reading commands a thing
+     */
+    public void quietNuke(){
         File dbDirectory = catalog.getFilePath().getParentFile();
         File[] fileList = dbDirectory.listFiles();
         if (fileList == null) {
@@ -84,7 +91,7 @@ public class StorageManager {
 
         System.err.println("\nNUKE MODE "+((NUKE_MODE)? "enabled. Entire database will be deleted on program close.\n" : "disabled. Database will be saved as usual.\n"));
         try {
-            TimeUnit.MILLISECONDS.sleep(50);
+            TimeUnit.MILLISECONDS.sleep(25);    // allows stderr time to print
         } catch (InterruptedException e) {
             System.err.println(e + " : " + e.getMessage());
         }
