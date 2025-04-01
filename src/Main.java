@@ -98,6 +98,7 @@ public class Main {
         try {
             boolean keepRunning = true;
             while (keepRunning) {
+                TimeUnit.MILLISECONDS.sleep(25);    // allows stderr prints time to show up in intelliJ
                 if (storageManager.inNUKE_MODE()){
                     System.out.print("Input ('<quit>' to nuke database): ");
                 }
