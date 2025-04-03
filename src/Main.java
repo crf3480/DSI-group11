@@ -33,7 +33,7 @@ public class Main {
             throw new RuntimeException("Invalid buffer size: '" + args[2] + "'");
         }
 
-        boolean indexing = args[3].equals("true");
+        boolean indexing = args[3].equalsIgnoreCase("true");
 
         // Check if database exists and either restart the database or
         File databaseDir = new File(dbLocation);
@@ -109,7 +109,11 @@ public class Main {
                     System.out.print("Input ('<quit>' to quit): ");
                 }
                 for (ArrayList<String> statement : getQuery(br)) {
-                    keepRunning = exec(statement);
+                    try{
+                        keepRunning = exec(statement);
+                    } catch (Exception e){
+                        System.err.println(e.getMessage());
+                    }
                 }
             }
         } catch (Exception e) {
