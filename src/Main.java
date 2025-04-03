@@ -14,8 +14,8 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         // Validate CLI arguments
-        if (args.length < 3) {
-            System.out.println("Usage: java src.Main <database> <page size> <buffer size>");
+        if (args.length < 4) {
+            System.out.println("Usage: java src.Main <database> <page size> <buffer size> <indexing>");
             System.exit(1);
         }
         String dbLocation = args[0];
@@ -33,6 +33,8 @@ public class Main {
             throw new RuntimeException("Invalid buffer size: '" + args[2] + "'");
         }
 
+        boolean indexing = args[3].equals("true");
+
         // Check if database exists and either restart the database or
         File databaseDir = new File(dbLocation);
 
@@ -45,15 +47,16 @@ public class Main {
         }
 
         // Init storage components
-        storageManager = new StorageManager(databaseDir, pageSize, bufferSize);
+        storageManager = new StorageManager(databaseDir, pageSize, bufferSize, indexing);
         DatabaseEngine databaseEngine = new DatabaseEngine(storageManager);
+        System.out.println(storageManager.indexingEnabled());
         // Init parsers
         dml = new DML(databaseEngine);
         ddl = new DDL(databaseEngine);
 
         // Custom dev args
         ArrayList<String> devArgs = new ArrayList<>();
-        if (args.length >= 4){
+        if (args.length >= 5){
             devArgs.addAll(Arrays.asList(args).subList(3, args.length));
         }
         if (devArgs.contains("--nuke")) {
@@ -157,7 +160,7 @@ public class Main {
      * @param str The command to execute as a single String
      */
     private static void exec(String str) {
-        StringReader sr = new StringReader(str);
+        StringReader sr = new StringReader(str + ";");
         ArrayList<ArrayList<String>> tokenizedCmds = getQuery(new BufferedReader(sr));
         for (ArrayList<String> cmd : tokenizedCmds) {
             try {

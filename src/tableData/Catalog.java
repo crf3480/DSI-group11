@@ -7,6 +7,7 @@ public class Catalog {
 
     private final File catalogFile;
     private int pageSize;
+    private boolean indexing;
     private int currentTempID;
     private HashMap<String, TableSchema> tableSchemas;
     private final byte TYPE_MASK =        0b0000111;
@@ -19,10 +20,12 @@ public class Catalog {
      * @param file The file the catalog is stored in. By default, this is catalog.bin
      * @param pageSize The page size for the catalog. If the catalog already exists, the catalog's page size
      *                 will be used instead
+     * @param indexing `true` if indexing is turned on; `false` otherwise
      */
-    public Catalog(File file, int pageSize) throws IOException {
+    public Catalog(File file, int pageSize, boolean indexing) throws IOException {
         this.catalogFile = file;
         this.pageSize = pageSize;  // Overwritten if catalog file exists
+        this.indexing = indexing;  // Overwritten if catalog file exists
         tableSchemas = new HashMap<>();
         currentTempID = 0;
 
@@ -39,6 +42,7 @@ public class Catalog {
             DataInputStream inputStream = new DataInputStream(new FileInputStream(catalogFile));
             // Page size
             this.pageSize = inputStream.readInt();
+            this.indexing = inputStream.readBoolean();
             AttributeType[] attributeTypes = AttributeType.values();
             // Begin reading tables
             while (true) {
@@ -92,6 +96,14 @@ public class Catalog {
      */
     public int pageSize() {
         return pageSize;
+    }
+
+    /**
+     * Gets the status of indexing
+     * @return `true` if PK indices are enabled
+     */
+    public boolean indexingEnabled() {
+        return indexing;
     }
 
     /**
@@ -199,7 +211,9 @@ public class Catalog {
      */
     public void save() throws IOException {
         DataOutputStream outputStream = new DataOutputStream(new FileOutputStream(catalogFile));
+        // Catalog header
         outputStream.writeInt(pageSize);
+        outputStream.writeBoolean(indexing);
         // Write out table data
         List<AttributeType> attributeTypes = Arrays.stream(AttributeType.values()).toList();
         for (TableSchema tableSchema : tableSchemas.values()){

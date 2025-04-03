@@ -21,11 +21,12 @@ public class StorageManager {
      * @param pageSize The page size used. If a catalog already exists, the page size of that catalog
      *                 will be used instead
      * @param bufferSize The size of the page buffer
+     * @param indexing `true` if indexing is turned on; `false` otherwise
      * @throws IOException If there are problems accessing or modifying the catalog and table files
      */
-    public StorageManager(File databaseDir, int pageSize, int bufferSize) throws IOException {
+    public StorageManager(File databaseDir, int pageSize, int bufferSize, boolean indexing) throws IOException {
         File catalogFile = new File(databaseDir, "catalog.bin");
-        catalog = new Catalog(catalogFile, pageSize);
+        catalog = new Catalog(catalogFile, pageSize, indexing);
         buffer = new Buffer(bufferSize, catalog.pageSize());
         wipeTempTables();
         nextTempID = 0;
@@ -37,6 +38,14 @@ public class StorageManager {
      */
     public int pageSize() {
         return catalog.pageSize();
+    }
+
+    /**
+     * Gets the status of indexing
+     * @return `true` if PK indices are enabled
+     */
+    public boolean indexingEnabled() {
+        return catalog.indexingEnabled();
     }
 
     /**
