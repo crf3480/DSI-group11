@@ -93,7 +93,9 @@ public class EvaluatorOperatorNode extends EvaluatorNode {
         // Validate operand compatibility
         if (leftResult.getClass() != rightResult.getClass()) {
             throw new CustomExceptions.IncompatibleTypeComparisonException("Cannot compare values of different types (" +
-                    leftResult.getClass() + " and " + rightResult.getClass() + ")");
+                    String.valueOf(leftResult.getClass()).substring(String.valueOf(leftResult.getClass()).indexOf("lang.")+5) +
+                    " and " +
+                    String.valueOf(rightResult.getClass()).substring(String.valueOf(rightResult.getClass()).indexOf("lang.")+5) + ")");
         }
 
         // Validate operator compatibility

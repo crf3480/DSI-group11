@@ -101,9 +101,9 @@ public class DatabaseEngine {
      * @param tableName table name from DML
      * @param columnName column name for given column to update
      * @param newValue new value to be put in place
-     * @param condition where conditional
+     * @param whereClause where clause
      */
-    public void updateWhere(String tableName, String columnName, String newValue, ArrayList<String> condition ){
+    public void updateWhere(String tableName, String columnName, String newValue, ArrayList<String> whereClause ){
         TableSchema schema = storageManager.getTableSchema(tableName);
         if (schema == null) {
             System.err.println("Table '" + tableName + "' does not exist.");
@@ -115,19 +115,28 @@ public class DatabaseEngine {
             return;
         }
         Attribute attribute = schema.attributes.get(attributeIndex);
-        Evaluator eval = new Evaluator(condition, schema);
+        Evaluator eval = new Evaluator(whereClause, schema);
         int pageIndex = 0;
         Page page = storageManager.getPage(schema, pageIndex);
         while (page != null) {
             int i = 0;
             while (i < page.recordCount()){
-                Record updatedRecord = page.records.get(i);
-                if (eval.evaluateRecord(updatedRecord)) {
-                    page.records.remove(i);
-                    schema.decrementRecordCount();
-
+                Record oldRecord = page.records.get(i);
+                if(eval.evaluateRecord(oldRecord)) {    // if the record passes the where
+                    Record updatedRecord = oldRecord.duplicate();   // copy record to test if insertion works
                     updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute));
-                    storageManager.insertRecord(schema, updatedRecord, schema.primaryKey);
+
+                    if(!oldRecord.equals(updatedRecord)) {  // don't run swap logic if update changes nothing
+                        page.records.remove(i);             // need to remove old record temporarily to see if new is valid to insert
+                        schema.decrementRecordCount();      // necessary to validate some checks that can't be done yet
+                        if (storageManager.validInsert(schema, updatedRecord, schema.primaryKey)) {
+                            storageManager.insertRecord(schema, updatedRecord, schema.primaryKey);
+                        }
+                        else {  // if invalid insert, re-add the old one because we dropped it
+                            storageManager.insertRecord(schema, oldRecord, schema.primaryKey);
+                            return;
+                        }
+                    }
                 }
                 i += 1;
             }
@@ -317,6 +326,24 @@ public class DatabaseEngine {
             System.err.println("Invalid select: '*' cannot be used while also specifying attributes.");
             return;
         }
+        for (String attribute: attributes) {
+            if(ambiguous(tables, attribute)){
+                System.err.println("Invalid attribute: "+attribute+" is ambiguous.");
+                return;
+            }
+        }
+        for (String where: whereClause) {
+            if(ambiguous(tables, where)){
+                System.err.println("Invalid where: "+where+" is ambiguous.");
+                return;
+            }
+        }
+        if (orderBy != null){
+            if(ambiguous(tables, orderBy)){
+                System.err.println("Invalid orderby: "+orderBy+" is ambiguous.");
+                return;
+            }
+        }
 
         // Join all tables together
         TableSchema schema = storageManager.getTableSchema(tables.getFirst());
@@ -341,8 +368,27 @@ public class DatabaseEngine {
         */
         if (!whereClause.isEmpty() || !orderBy.isEmpty()){
             Evaluator eval = new Evaluator(whereClause, schema);
-            int orderIndex = schema.getAttributeIndex(orderBy);
+            int orderIndex = attributes.indexOf(orderBy);
 
+            if (orderIndex == -1 && orderBy.contains(".")){ // if the orderby has a table.attr but it's not formatted that way in the select statement
+                String t = orderBy.substring(0, orderBy.indexOf("."));
+                String a = orderBy.substring(orderBy.indexOf(".") + 1);
+                if (attributes.contains("*")){
+                    orderIndex = storageManager.getTableSchema(t).getAttributeIndex(a);
+                    for (String table: tables){
+                        if (!table.equals(t)){
+                            orderIndex += storageManager.getTableSchema(table).getAttributeNames().size();
+                        } else {
+                            break;
+                        }
+                    }
+                } else {
+                    orderIndex = attributes.indexOf(a);
+                }
+            }
+            if (orderIndex == -1) {
+                orderIndex = schema.primaryKey;
+            }
             // Create temp table
             TableSchema temp;
             try{
@@ -357,7 +403,7 @@ public class DatabaseEngine {
             while (page != null) {
                 for (Record r : page.records) {
                     if (eval.evaluateRecord(r)) {
-                        if (orderBy.isEmpty()){
+                        if (orderIndex == -1){
                             storageManager.fastInsert(temp, r);
                         }
                         else{
@@ -569,12 +615,7 @@ public class DatabaseEngine {
             }
             attrIndices[i] = schema.getAttributeIndex(attrs.get(i));
             if (attrIndices[i] == -1) {
-                if(ambiguous(attrs, attrs.get(i))) {
-                    System.err.println("ambiguous attribute name: "+attrs.get(i));
-                }
-                else {
-                    System.err.println("Unknown attribute '" + attrs.get(i) + "'");
-                }
+                System.err.println("Unknown attribute '" + attrs.get(i) + "'");
                 return null;
             }
         }
@@ -608,15 +649,14 @@ public class DatabaseEngine {
         return projSchema;
     }
 
-    private boolean ambiguous(ArrayList<String> attributes,  String attribute){
-        System.out.println(attributes);
-        System.out.println(attribute);
-        for(String a: attributes) {
-            if (a.contains("."+attribute)) {
-                return true;
+    public boolean ambiguous(ArrayList<String> tableNames,  String attribute){
+        int count = 0;
+        for (String tableName : tableNames) {
+            if (storageManager.getTableSchema(tableName).getAttributeNames().contains(attribute)) {
+                count++;
             }
         }
-        return false;
+        return count > 1;
     }
 
     //endregion
@@ -880,4 +920,5 @@ public class DatabaseEngine {
         }
         dropTable(ts.name);
     }
+
 }

@@ -83,10 +83,13 @@ public class Main {
                 String line = br.readLine();
                 while (line != null) {
                     if (!line.startsWith("//") && !line.isEmpty()) {
-                        System.out.println(line);
+                        System.out.println("\n"+line);
                         exec(line);
                     }
-                    TimeUnit.MILLISECONDS.sleep(25);
+                    TimeUnit.MILLISECONDS.sleep(25);    // allows stderr prints time to show up in intelliJ
+                    if (line.contains("<quit>")){
+                        return;
+                    }
                     line = br.readLine();
                 }
             } catch (Exception e) {
@@ -98,6 +101,7 @@ public class Main {
         try {
             boolean keepRunning = true;
             while (keepRunning) {
+                TimeUnit.MILLISECONDS.sleep(25);    // allows stderr prints time to show up in intelliJ
                 if (storageManager.inNUKE_MODE()){
                     System.out.print("Input ('<quit>' to nuke database): ");
                 }
@@ -112,7 +116,7 @@ public class Main {
             System.err.println(e + " : " + e.getMessage());
         } finally {
             if (storageManager.inNUKE_MODE()){
-                storageManager.nuke();
+                storageManager.quietNuke();
             }
             else{
                 storageManager.wipeTempTables();
@@ -166,7 +170,7 @@ public class Main {
             try {
                 exec(cmd);
             } catch (Exception e) {
-                System.err.println("String exec failed with exception : " + e);
+                System.err.println(e.getMessage());
             }
         }
     }

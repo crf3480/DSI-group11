@@ -2,14 +2,8 @@ package where;
 import exceptions.CustomExceptions;
 import tableData.TableSchema;
 import tableData.Record;
-
 import java.util.ArrayList;
 
-/**
-    lol this is shunting yard I could get it to work, here's an implementation
-
-    behold some code i've written
- */
 public class Evaluator {
     private final EvaluatorNode root;
 
@@ -47,6 +41,12 @@ public class Evaluator {
 
             // Check if it's an attribute
             int index = schema.getAttributeIndex(token);
+            if (index != -1) {
+                valueStack.add(new EvaluatorAttributeNode(index));
+                continue;
+            } else if (token.contains(".")){
+                index = schema.getAttributeIndex(token.substring(token.indexOf(".")+1));
+            }
             if (index != -1) {
                 valueStack.add(new EvaluatorAttributeNode(index));
                 continue;

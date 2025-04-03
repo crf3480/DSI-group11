@@ -73,6 +73,13 @@ public class StorageManager {
      */
     public void nuke() {
         System.err.println("\nNUKING DATABASE AT "+catalog.getFilePath().getParentFile().getAbsolutePath());
+        quietNuke();
+    }
+
+    /**
+     *  Nukes the database without the fanfare. Used to hide the double call added when Will made file reading commands a thing
+     */
+    public void quietNuke(){
         File dbDirectory = catalog.getFilePath().getParentFile();
         File[] fileList = dbDirectory.listFiles();
         if (fileList == null) {
@@ -93,7 +100,7 @@ public class StorageManager {
 
         System.err.println("\nNUKE MODE "+((NUKE_MODE)? "enabled. Entire database will be deleted on program close.\n" : "disabled. Database will be saved as usual.\n"));
         try {
-            TimeUnit.MILLISECONDS.sleep(50);
+            TimeUnit.MILLISECONDS.sleep(25);    // allows stderr time to print
         } catch (InterruptedException e) {
             System.err.println(e + " : " + e.getMessage());
         }
@@ -122,6 +129,42 @@ public class StorageManager {
      */
     public Page getPage(TableSchema schema, int pageNumber) {
         return buffer.getPage(schema, pageNumber);
+    }
+
+    /**
+     * Tests if a record can be inserted into a table
+     * @param schema The TableSchema of the table the record would be inserted into
+     * @param record The record to insert
+     * @param attrIndex The index of the attribute the table will be sorted by
+     * @return `true` if the record was can be inserted; `false` otherwise
+     */
+    public boolean validInsert(TableSchema schema, Record record, int attrIndex) {
+        // Verify record is unique. While looping, find and remember the insertion point
+        int targetPageNum = -1;
+        int targetRecordIndex = -1;
+        int pageIndex = 0;
+        Page currPage = schema.rootIndex == -1 ? null : getPage(schema, pageIndex);
+        while (currPage != null) {
+            for (int i = 0; i < currPage.recordCount(); i++) {
+                Record existingRec = currPage.records.get(i);
+                // Check for duplicate
+                int matchAttr = record.isEquivalent(existingRec, schema);
+                if (matchAttr != -1) {
+                    System.err.println("Invalid new tuple ("+record+"): the value '" + record.get(matchAttr) +
+                            "' already exists in "+ ((schema.attributes.get(matchAttr).primaryKey ? "primary key " : "unique ")
+                            +"column '" + schema.attributes.get(matchAttr).name + "'."));
+                    return false;
+                }
+                // Check for insertion point
+                if (targetPageNum == -1 && !record.greaterThan(existingRec, schema, attrIndex)) {
+                    targetPageNum = pageIndex;
+                    targetRecordIndex = i;
+                }
+            }
+            pageIndex += 1;
+            currPage = getPage(schema, pageIndex);
+        }
+        return true;
     }
 
     /**
@@ -154,8 +197,9 @@ public class StorageManager {
                 // Check for duplicate
                 int matchAttr = record.isEquivalent(existingRec, schema);
                 if (matchAttr != -1) {
-                    System.err.println("Invalid tuple: a record with the value '" + record.get(matchAttr) +
-                            "' already exists for column '" + schema.attributes.get(matchAttr).name + "'.");
+                    System.err.println("Invalid new tuple ("+record+"): the value '" + record.get(matchAttr) +
+                            "' already exists in "+ ((schema.attributes.get(matchAttr).primaryKey ? "primary key " : "unique ")
+                            +"column '" + schema.attributes.get(matchAttr).name + "'."));
                     return false;
                 }
                 // Check for insertion point
