@@ -3,6 +3,7 @@ import tableData.*;
 import tableData.Record;
 
 import where.Evaluator;
+import exceptions.CustomExceptions.*;
 
 import java.io.IOException;
 import java.util.*;
@@ -354,41 +355,20 @@ public class DatabaseEngine {
             }
         }
 
-        // If attributes list is not '*', create a projection
-        if(!attributes.contains("*")) {
-            schema = projection(schema, attributes);
-            if (schema == null) {
-                return;
-            }
-        }
-
         /*
             we only need to look at the record data if there's a where clause or an orderBy attribute
             if so, we make another temp table and run the necessary checks on all records
         */
-        if (!whereClause.isEmpty() || !orderBy.isEmpty()){
+        if (!whereClause.isEmpty() || orderBy != null){
             Evaluator eval = new Evaluator(whereClause, schema);
-            int orderIndex = attributes.indexOf(orderBy);
-
-            if (orderIndex == -1 && orderBy.contains(".")){ // if the orderby has a table.attr but it's not formatted that way in the select statement
-                String t = orderBy.substring(0, orderBy.indexOf("."));
-                String a = orderBy.substring(orderBy.indexOf(".") + 1);
-                if (attributes.contains("*")){
-                    orderIndex = storageManager.getTableSchema(t).getAttributeIndex(a);
-                    for (String table: tables){
-                        if (!table.equals(t)){
-                            orderIndex += storageManager.getTableSchema(table).getAttributeNames().size();
-                        } else {
-                            break;
-                        }
-                    }
-                } else {
-                    orderIndex = attributes.indexOf(a);
+            int orderIndex = -1;
+            if (orderBy != null) {
+                orderIndex = schema.getAttributeIndex(orderBy);
+                if (orderIndex == -1) {
+                    throw new InvalidAttributeException("Attribute `" + orderBy + "` does not exist");
                 }
             }
-            if (orderIndex == -1) {
-                orderIndex = schema.primaryKey;
-            }
+
             // Create temp table
             TableSchema temp;
             try{
@@ -415,6 +395,14 @@ public class DatabaseEngine {
                 page = storageManager.getPage(schema, pageIndex);
             }
             schema = temp;
+        }
+
+        // If attributes list is not '*', create a projection
+        if(!attributes.contains("*")) {
+            schema = projection(schema, attributes);
+            if (schema == null) {
+                return;
+            }
         }
 
         // Print table

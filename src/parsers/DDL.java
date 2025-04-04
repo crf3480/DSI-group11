@@ -32,7 +32,7 @@ public class DDL {
             System.err.println("Invalid Alter Statement");
             return null;
         }
-        //Splitting the string into qiery
+        //Splitting the string into query
         String queryType = inputList.get(0) + " " + inputList.get(1);
         String tableName = inputList.get(2);
         String addOrDrop = inputList.get(3);

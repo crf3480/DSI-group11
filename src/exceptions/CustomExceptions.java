@@ -25,4 +25,18 @@ public class CustomExceptions extends RuntimeException {
             super(message);
         }
     }
+
+    /**
+     * An exception thrown when a user inputs an attribute that does not exist
+     */
+    public static class InvalidAttributeException extends IllegalArgumentException {
+        public InvalidAttributeException(String message) { super(message); }
+    }
+
+    /**
+     * An exception thrown when a user inputs a table name that does not exist
+     */
+    public static class InvalidTableException extends IllegalArgumentException {
+        public InvalidTableException(String message) { super(message); }
+    }
 }

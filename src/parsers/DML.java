@@ -136,7 +136,7 @@ public class DML extends GeneralParser {
         ArrayList<String> attributes = new ArrayList<>();
         ArrayList<String> tables = new ArrayList<>();
         ArrayList<String> where = new ArrayList<>();
-        String orderby = "";
+        String orderby = null;
         int scanMode = 0;
         for (int x = 1; x < inputList.size(); x++) {
             String s = inputList.get(x);
