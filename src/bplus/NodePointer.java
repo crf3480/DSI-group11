@@ -1,6 +1,6 @@
 package bplus;
 
-public class NodePointer<T extends Comparable<T>> extends BPlusPointer<T> {
+class NodePointer<T extends Comparable<T>> extends BPlusPointer<T> {
 
     private BPlusNode<T> ptr;
 

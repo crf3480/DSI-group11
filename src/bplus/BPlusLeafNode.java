@@ -2,7 +2,7 @@ package bplus;
 
 import java.util.ArrayList;
 
-public class BPlusLeafNode<T extends Comparable<T>> extends BPlusNode<T> {
+class BPlusLeafNode<T extends Comparable<T>> extends BPlusNode<T> {
 
     public ArrayList<RecordPointer<T>> records;
     //TODO: This attribute exists, but it is never read/updated

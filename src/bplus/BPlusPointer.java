@@ -4,7 +4,7 @@ package bplus;
  * Represents a generic kind of pointer that a BPlusNode can contain,
  * either a NodePointer or a RecordPointer
  */
-public abstract class BPlusPointer<T extends Comparable<T>> {
+abstract class BPlusPointer<T extends Comparable<T>> {
 
     protected T value;
 

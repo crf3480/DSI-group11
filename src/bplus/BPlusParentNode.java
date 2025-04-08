@@ -2,7 +2,7 @@ package bplus;
 
 import java.util.ArrayList;
 
-public class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
+class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
 
     private ArrayList<NodePointer<T>> children;
 
