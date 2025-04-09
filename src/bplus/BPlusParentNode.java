@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
 
-    private ArrayList<NodePointer<T>> children;
+    private ArrayList<BPlusNode<T>> children;
 
     /**
      * Creates a BPlusNode which is a parent of other nodes, either
@@ -14,7 +14,7 @@ class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
      *              of the tree to follow when getting/inserting records
      * @param children The children of this parent node
      */
-    public BPlusParentNode(int pageSize, T value, ArrayList<NodePointer<T>> children) {
+    public BPlusParentNode(int pageSize, T value, ArrayList<BPlusNode<T>> children) {
         super(pageSize, value);
         this.children = children;
     }
@@ -27,10 +27,10 @@ class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
      */
     @Override
     public boolean insertRecord(RecordPointer<T> rp) {
-        for (NodePointer<T> child : children) {
+        for (BPlusNode<T> child : children) {
             if (child.isGreaterThan(rp)) {
                 //TODO: Handle restructuring tree
-                return child.getPtr().insertRecord(rp);
+                return child.insertRecord(rp);
             }
         }
         // The value of the last child should be null, which means `isGreaterThan` should
@@ -42,10 +42,10 @@ class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
 
     @Override
     public boolean deleteRecord(T value) {
-        for (NodePointer<T> child : children) {
+        for (BPlusNode<T> child : children) {
             if (child.isGreaterThan(value)) {
                 //TODO: Handle restructuring tree
-                return child.getPtr().deleteRecord(value);
+                return child.deleteRecord(value);
             }
         }
         // See insertRecord() for why this error is here
@@ -55,9 +55,9 @@ class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
 
     @Override
     public boolean contains(T value) {
-        for (NodePointer<T> child : children) {
+        for (BPlusNode<T> child : children) {
             if (child.isGreaterThan(value)) {
-                return child.getPtr().contains(value);
+                return child.contains(value);
             }
         }
         // See insertRecord() for why this error is here
@@ -67,9 +67,9 @@ class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
 
     @Override
     public RecordPointer<T> get(T value) {
-        for (NodePointer<T> child : children) {
+        for (BPlusNode<T> child : children) {
             if (child.isGreaterThan(value)) {
-                return child.getPtr().get(value);
+                return child.get(value);
             }
         }
         // See insertRecord() for why this error is here

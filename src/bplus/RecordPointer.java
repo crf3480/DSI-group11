@@ -1,13 +1,13 @@
 package bplus;
 
-public class RecordPointer<T extends Comparable<T>> extends BPlusPointer<T> {
+public class RecordPointer<T extends Comparable<T>> {
 
     private T value;
     private int pageIndex;
     private int recordIndex;
 
     /**
-     * A pointer to a record
+     * A pointer to a record in a table
      * @param value The key for this record
      * @param pageIndex The index of the page this record is stored in
      * @param recordIndex The index of this record within the page
@@ -16,6 +16,14 @@ public class RecordPointer<T extends Comparable<T>> extends BPlusPointer<T> {
         this.value = value;
         this.pageIndex = pageIndex;
         this.recordIndex = recordIndex;
+    }
+
+    /**
+     * Gets the pointer's value
+     * @return The value of this pointer
+     */
+    public T getValue() {
+        return value;
     }
 
     /**
