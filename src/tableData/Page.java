@@ -36,7 +36,7 @@ public class Page extends Bufferable {
     public Page(int pageIndex, long pageNumber, byte[] pageData, TableSchema tableSchema) throws IOException {
         this.pageIndex = pageIndex;
         this.tableSchema = tableSchema;
-        if (pageData.length == tableSchema.pageSize) {
+        if (pageData.length != tableSchema.pageSize) {
             throw new CorruptedDataException("pageData.length did not match DB pageSize when creating page " +
                     pageNumber + " in table `" + tableSchema.name + "` (index: " + pageIndex + ")");
         }
