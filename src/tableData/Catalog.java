@@ -76,7 +76,8 @@ public class Catalog {
                                 attributes,
                                 catalogFile.getParent() + File.separator,
                                 pageCount,
-                                recordCount)
+                                recordCount,
+                                pageSize)
                         );
                     } catch (IllegalArgumentException e) {
                         System.err.println("Encountered error while creating table from catalog: " + e.getMessage());
@@ -141,7 +142,8 @@ public class Catalog {
                 attributeArrayList,
                 catalogFile.getParent() + File.separator,
                 0,
-                0
+                0,
+                pageSize
         );
         // Create a new Page file for the table and write it to disk
         File tableFile = newSchema.tableFile();

@@ -33,14 +33,6 @@ public class StorageManager {
     }
 
     /**
-     * Get the page size for the database
-     * @return The database's page size
-     */
-    public int pageSize() {
-        return catalog.pageSize();
-    }
-
-    /**
      * Gets the status of indexing
      * @return `true` if PK indices are enabled
      */
@@ -127,7 +119,7 @@ public class StorageManager {
      * @param pageNumber The number of the Page being fetched
      * @return The fetched Page; `null` if no page exists with that number
      */
-    public Page getPage(TableSchema schema, int pageNumber) {
+    public Page getPage(TableSchema schema, long pageNumber) {
         return buffer.getPage(schema, pageNumber);
     }
 
@@ -177,9 +169,9 @@ public class StorageManager {
     public boolean insertRecord(TableSchema schema, Record record, int attrIndex) {
         // If table has no pages, make a new page and insert it into the buffer
         if (schema.rootIndex == -1) {
-            Page firstPage = new Page(0, 0, schema, catalog.pageSize());
+            Page firstPage = new Page(0, 0, schema);
             try {
-                buffer.savePage(firstPage);
+                firstPage.save();
                 buffer.insertPage(firstPage);
             } catch (IOException ioe) {
                 System.err.println("Encountered exception while adding new page to table file: " + ioe.getMessage());
@@ -235,19 +227,19 @@ public class StorageManager {
                 targetPage.records.remove(targetRecordIndex);
                 return false;
             }
-            Page afterChild = buffer.getPage(schema, targetPage.pageNumber + 1); // Get this BEFORE you mess with root's nextIndex
+            Page afterChild = buffer.getPage(schema, targetPage.number + 1); // Get this BEFORE you mess with root's nextIndex
             Page child = targetPage.split(pageIndex);
             assert (child.nextPage == -1) == (afterChild == null);
             if (child.nextPage != -1) {
                 // Update the prevPage pointer for the page after this one, if one exists
                 afterChild.prevPage = pageIndex;
                 // Increment the page number for every page that follows child
-                buffer.incrementPageNumbers(schema, child.pageNumber);
+                buffer.incrementPageNumbers(schema, child.number);
             }
             // Insert the new page into the buffer
             try {
                 buffer.insertPage(child);
-                buffer.savePage(child);
+                child.save();
             } catch (IOException ioe) {
                 System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
             }
@@ -263,9 +255,9 @@ public class StorageManager {
     public void fastInsert(TableSchema schema, Record record) {
         // If table has no pages, make a new page and insert it into the buffer
         if (schema.rootIndex == -1) {
-            Page firstPage = new Page(0, 0, schema, catalog.pageSize());
+            Page firstPage = new Page(0, 0, schema);
             try {
-                buffer.savePage(firstPage);
+                firstPage.save();
                 buffer.insertPage(firstPage);
             } catch (IOException ioe) {
                 System.err.println("Encountered exception while adding new page to table file: " + ioe.getMessage());
@@ -290,13 +282,13 @@ public class StorageManager {
             // Create Page with new record and link it with prev
             ArrayList<Record> recordList = new ArrayList<>();
             recordList.add(record);
-            Page newPage = new Page(pageIndex, lastPage.pageNumber + 1, recordList, pageSize(), schema);
+            Page newPage = new Page(pageIndex, lastPage.number + 1, recordList, schema);
             newPage.prevPage = lastPage.pageIndex;
             lastPage.nextPage = newPage.pageIndex;
             // Insert the new page into the buffer
             try {
                 buffer.insertPage(newPage);
-                buffer.savePage(newPage);
+                newPage.save();
             } catch (IOException ioe) {
                 System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
             }
@@ -342,7 +334,7 @@ public class StorageManager {
      */
     public void dropPage(Page page) {
         TableSchema schema = page.getTableSchema();
-        int pageNum = page.pageNumber;
+        long pageNum = page.number;
         // Remove page
         buffer.removePage(page);
         schema.decrementPageCount();

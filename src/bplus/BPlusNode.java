@@ -1,18 +1,20 @@
 package bplus;
 
-public abstract class BPlusNode<T extends Comparable<T>> {
+import tableData.Bufferable;
+import tableData.TableSchema;
 
-    private final int pageSize;
-    protected T value;
+public abstract class BPlusNode<T extends Comparable<T>> extends Bufferable {
+
+    protected final TableSchema schema;
 
     /**
      * Creates a node in a BPlusTree
-     * @param pageSize The page size for the BPlusTree (i.e. the space for
-     *                 storing records within a node)
+     * @param ts The TableSchema for the table this BPlus tree indexes into
+     * @param pointer The pointer to this node within the BPlus file
      */
-    public BPlusNode(int pageSize, T value) {
-        this.pageSize = pageSize;
-        this.value = value;
+    public BPlusNode(TableSchema ts, long pointer) {
+        schema = ts;
+        this.number = pointer;
     }
 
     /**
@@ -46,31 +48,7 @@ public abstract class BPlusNode<T extends Comparable<T>> {
      */
     public abstract RecordPointer<T> get(T value);
 
-    /**
-     * Checks if the value in this pointer is greater than the value in a given RecordPointer
-     * @param rp The RecordPointer being compared
-     * @return `true` if the RecordPointer contains a value which is less than the value
-     * in this pointer, or if this pointer's value is null; `false` if the value in
-     * the RecordPointer is greater than or equal to the value in this pointer
-     */
-    public boolean isGreaterThan(RecordPointer<T> rp) {
-        if (value == null) {
-            return true;
-        }
-        return value.compareTo(rp.getValue()) > 0;
-    }
-
-    /**
-     * Checks if the value in this pointer is greater than another value
-     * @param o The value being compared to this RecordPointer
-     * @return `true` if the value is less than this pointer's value, or if
-     * this pointer has a null value; `false` if the value is greater than
-     * or equal to the value in this pointer
-     */
-    public boolean isGreaterThan(T o) {
-        if (value == null) {
-            return true;
-        }
-        return value.compareTo(o) > 0;
+    public String getTableName() {
+        return schema.name;
     }
 }

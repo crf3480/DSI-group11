@@ -1,5 +1,6 @@
 package components;
 
+import tableData.Bufferable;
 import tableData.Page;
 import tableData.TableSchema;
 
@@ -15,7 +16,7 @@ import java.util.HashSet;
 public class Buffer {
 
     int bufferSize;
-    ArrayDeque<Page> buffer;
+    ArrayDeque<Bufferable> buffer;
     int pageSize;
 
     /**
@@ -43,25 +44,29 @@ public class Buffer {
      * @param pageNum The number of the page to fetch
      * @return The requested Page. `null` if page number is outside the range of page numbers for the table
      */
-    public Page getPage(TableSchema schema, int pageNum) {
+    public Page getPage(TableSchema schema, long pageNum) {
         // If number is outside the bounds of page numbers
         if (pageNum >= schema.pageCount() || pageNum < 0) {
             return null;
         }
         // Search the buffer for the page and return it
         Page currClosest = null;
-        for (Page page : buffer) {
-            if (page.getTableName().equals(schema.name)) {
-                if (page.pageNumber == pageNum) {
+        for (Bufferable page : buffer) {
+            // We're only looking for pages
+            if (page.getClass() != Page.class) {
+                continue;
+            }
+            if (page.matchesSchema(schema)) {
+                if (page.number == pageNum) {
                     // If page was found, move it to the back of the queue and return it
                     buffer.remove(page);
                     buffer.push(page);
-                    return page;
+                    return (Page)page;
                 }
                 // Check if this ID was at least closer than the previous target
                 if (currClosest == null ||
-                        Math.abs(page.pageNumber - pageNum) < Math.abs(currClosest.pageNumber - pageNum)) {
-                    currClosest = page;
+                        Math.abs(page.number - pageNum) < Math.abs(currClosest.number - pageNum)) {
+                    currClosest = (Page)page;
                 }
             }
         }
@@ -72,7 +77,7 @@ public class Buffer {
         }
         // Otherwise, find page offset by hunting from the closest page.
         // If no page from this table was in the buffer or the beginning is closer, start from the beginning
-        if (currClosest == null || Math.abs(currClosest.pageNumber - pageNum) > pageNum) {
+        if (currClosest == null || Math.abs(currClosest.number - pageNum) > pageNum) {
             currClosest = loadPage(schema, schema.rootIndex, 0);
             if (currClosest == null) {
                 // If the first page cannot be loaded, table must have zero pages
@@ -81,7 +86,7 @@ public class Buffer {
         }
         HashSet<Integer> visitedIndices = new HashSet<>();
         visitedIndices.add(currClosest.pageIndex);
-        int currPageNumber = currClosest.pageNumber;
+        long currPageNumber = currClosest.number;
         int nextIndex;
         // Hop from page to page until you get to the target
         while (true) {
@@ -126,7 +131,7 @@ public class Buffer {
      * table file, returns `null`
      * @throws IndexOutOfBoundsException if pageIndex exceeds the size of the table file
      */
-    public Page loadPage(TableSchema schema, int pageIndex, int pageNum) throws IndexOutOfBoundsException {
+    public Page loadPage(TableSchema schema, int pageIndex, long pageNum) throws IndexOutOfBoundsException {
         byte[] pageData = new byte[pageSize];
         File tableFile = schema.tableFile();
         if (!tableFile.exists()) {
@@ -171,8 +176,8 @@ public class Buffer {
     public void insertPage(Page page) throws IOException {
         // See if we need to make room in the buffer
         if (buffer.size() >= bufferSize) {
-            Page old = buffer.removeLast();
-            savePage(old);
+            Bufferable old = buffer.removeLast();
+            old.save();
         }
         buffer.push(page);
     }
@@ -182,11 +187,11 @@ public class Buffer {
      * @param tableName The name of the table whose Pages are being dropped from the filter
      */
     public void removeTable(String tableName) {
-        ArrayDeque<Page> newBuffer = new ArrayDeque<>(buffer.size());
+        ArrayDeque<Bufferable> newBuffer = new ArrayDeque<>(buffer.size());
         while (!buffer.isEmpty()) {
-            Page currPage = buffer.removeLast();
+            Bufferable currPage = buffer.removeLast();
             if (currPage.getTableName().equals(tableName)) {
-                continue;  // Pages from the target are dropped
+                continue;  // Pages from the target are not carried over
             }
             // Push the page onto the other end of the queue
             newBuffer.push(currPage);
@@ -207,35 +212,14 @@ public class Buffer {
      * @param schema The TableSchema of the table the pages being updated belong to
      * @param above The threshold (inclusive) above which to increment the page numbers
      */
-    public void incrementPageNumbers(TableSchema schema, int above) {
-        for (Page page : buffer) {
-            if (page.getTableName().equals(schema.name) && page.pageNumber >= above) {
-                page.pageNumber += 1;
+    public void incrementPageNumbers(TableSchema schema, long above) {
+        for (Bufferable bPage : buffer) {
+            if (bPage.getClass() != Page.class) {
+                continue;
             }
-        }
-    }
-
-    /**
-     * Saves a Page to its corresponding table file
-     * @param page The Page to write
-     * @throws IOException if there is an error writing the Page to file
-     */
-    public void savePage(Page page) throws IOException {
-        // Read in the data
-        File tableFile = page.getTableSchema().tableFile();
-        if (!tableFile.exists()) {
-            throw new IOException("Could not find table file `" + tableFile.getAbsolutePath() + "`");
-        }
-        try (RandomAccessFile raf = new RandomAccessFile(tableFile, "rw")) {
-            long offset = Integer.BYTES + ((long) page.pageIndex * pageSize);  // Page count + pageIndex offset
-            raf.seek(offset);
-            byte[] pageData = page.encodePage();
-            if (pageData.length > pageSize) {
-                System.err.println("Page data array exceeded pageSize while saving");
+            if (bPage.matchesSchema(schema) && bPage.number >= above) {
+                bPage.number += 1;
             }
-            raf.write(pageData);
-        } catch (IOException ioe) {
-            throw new IOException("Encountered problem while attempting to write to table file: " + ioe.getMessage());
         }
     }
 
@@ -245,7 +229,7 @@ public class Buffer {
      */
     public void save() throws IOException {
         while (!buffer.isEmpty()) {
-            savePage(buffer.pop());
+            buffer.pop().save();
         }
     }
 }

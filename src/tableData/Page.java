@@ -1,5 +1,7 @@
 package tableData;
 
+import exceptions.CustomExceptions.*;
+
 import java.util.ArrayList;
 import java.io.*;
 import java.util.Collection;
@@ -8,7 +10,7 @@ import java.util.Collection;
  * Represents a page of a Table
  * Authors:
  */
-public class Page {
+public class Page extends Bufferable {
 
     // The discrepancy between pageSize and recordData size because of additional data
     private final int SIZE_OFFSET =
@@ -17,8 +19,6 @@ public class Page {
             Integer.BYTES;                                 // Next page index
 
     private final TableSchema tableSchema;
-    private final int pageSize;
-    public int pageNumber;
     public int pageIndex;
 
     public int nextPage;  // index of next page in the file
@@ -33,14 +33,17 @@ public class Page {
      * @param pageData The byte array of page data
      * @param tableSchema The schema of the data in this page
      */
-    public Page(int pageIndex, int pageNumber, byte[] pageData, TableSchema tableSchema) throws IOException {
+    public Page(int pageIndex, long pageNumber, byte[] pageData, TableSchema tableSchema) throws IOException {
         this.pageIndex = pageIndex;
         this.tableSchema = tableSchema;
-        pageSize = pageData.length;
+        if (pageData.length == tableSchema.pageSize) {
+            throw new CorruptedDataException("pageData.length did not match DB pageSize when creating page " +
+                    pageNumber + " in table `" + tableSchema.name + "` (index: " + pageIndex + ")");
+        }
 
         ByteArrayInputStream inStream = new ByteArrayInputStream(pageData);
         DataInputStream in = new DataInputStream(inStream);
-        this.pageNumber = pageNumber;
+        this.number = pageNumber;
         int numRecords = in.readInt();
         this.nextPage = in.readInt();
         this.prevPage = in.readInt();
@@ -55,14 +58,12 @@ public class Page {
      * @param pageIndex The index into the table file where this page is located
      * @param pageNumber The number of the Page
      * @param records The list of records in the Page
-     * @param pageSize The size of the Page
      * @param tableSchema The table schema for records in the page
      */
-    public Page(int pageIndex, int pageNumber, ArrayList<Record> records, int pageSize, TableSchema tableSchema) {
+    public Page(int pageIndex, long pageNumber, ArrayList<Record> records, TableSchema tableSchema) {
         this.pageIndex = pageIndex;
-        this.pageNumber = pageNumber;
+        this.number = pageNumber;
         this.tableSchema = tableSchema;
-        this.pageSize = pageSize;
         this.nextPage = -1; //default next page value
         this.prevPage = -1; //default prev page value
         this.records = records;
@@ -74,13 +75,11 @@ public class Page {
      * @param pageIndex The index into the table file where this page is located
      * @param pageNumber The number of the page
      * @param tableSchema The schema of the records stored in this page
-     * @param pageSize The page size in bytes
      */
-    public Page(int pageIndex, int pageNumber, TableSchema tableSchema, int pageSize) {
+    public Page(int pageIndex, long pageNumber, TableSchema tableSchema) {
         this.pageIndex = pageIndex;
-        this.pageNumber = pageNumber;
+        this.number = pageNumber;
         this.tableSchema = tableSchema;
-        this.pageSize = pageSize;
         this.nextPage = -1; //default next page value
         this.prevPage = -1; //default prev page value
         this.records = new ArrayList<>();
@@ -209,6 +208,7 @@ public class Page {
     public Page split(int childPageIndex) {
         ArrayList<Record> splitRecords = new ArrayList<>();
         int newSize = 0;
+        int pageSize = tableSchema.pageSize;
         while (newSize < pageSize / 2) {
             // Check if moving the new record over will get the page below half size, ending the split
             int splitRecordSize = recordSize(records.getLast());
@@ -222,7 +222,7 @@ public class Page {
             splitRecords.addFirst(records.removeLast());
             newSize += splitRecordSize;
         }
-        Page childPage = new Page(childPageIndex, pageNumber + 1, splitRecords, pageSize, tableSchema);
+        Page childPage = new Page(childPageIndex, number + 1, splitRecords, tableSchema);
         // Update page pointers
         childPage.nextPage = this.nextPage;
         this.nextPage = childPageIndex;
@@ -243,7 +243,7 @@ public class Page {
         for (Record record : records) {
             out.write(encodeRecord(record));
         }
-        byte[] recordData = new byte[pageSize - SIZE_OFFSET];
+        byte[] recordData = new byte[tableSchema.pageSize - SIZE_OFFSET];
         System.arraycopy(outStream.toByteArray(), 0, recordData, 0, outStream.size());
         return recordData;
     }
@@ -291,25 +291,40 @@ public class Page {
     }
 
     /**
-     * Encodes the given page to the end of the page file. Encodes to data to binary starting with the
-     * page num, number of records, and then the record data. The array will always be the length of
-     * the page size, so any space not taken up by records will contain indeterminate data.
-     * @return A byte array containing the fully encoded Page
+     * Saves this Page to its corresponding table file
+     * @throws IOException if there is an error writing the Page to file
      */
-    public byte[] encodePage() throws IOException {
-        ByteArrayOutputStream bs = new ByteArrayOutputStream();
-        DataOutputStream out = new DataOutputStream(bs);
-        out.writeInt(records.size()); // Writes the number of records
-        out.writeInt(nextPage);  // Writes the pointer to the next page
-        out.writeInt(prevPage);  // Writes the pointer to the next page
-        out.write(encodeRecords(records));    // Writes the record data
+    public void save() throws IOException {
+        // Read in the data
+        File tableFile = tableSchema.tableFile();
+        if (!tableFile.exists()) {
+            throw new IOException("Could not find table file `" + tableFile.getAbsolutePath() + "`");
+        }
+        try (RandomAccessFile raf = new RandomAccessFile(tableFile, "rw")) {
+            long offset = Integer.BYTES + ((long) pageIndex * tableSchema.pageSize);  // Page count + pageIndex offset
+            raf.seek(offset);
 
-        return bs.toByteArray();
+            // Create output byte array
+            ByteArrayOutputStream bs = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(bs);
+            out.writeInt(records.size()); // Writes the number of records
+            out.writeInt(nextPage);  // Writes the pointer to the next page
+            out.writeInt(prevPage);  // Writes the pointer to the next page
+            out.write(encodeRecords(records));    // Writes the record data
+            byte[] pageData = bs.toByteArray();
+            if (pageData.length > tableSchema.pageSize) {
+                System.err.println("Page data array exceeded pageSize while saving");
+            }
+            // Write output
+            raf.write(pageData);
+        } catch (IOException ioe) {
+            throw new IOException("Encountered problem while attempting to write to table file: " + ioe.getMessage());
+        }
     }
 
     @Override
     public String toString() {
-        return "Page " + tableSchema.name + "." + pageNumber +
+        return "Page " + tableSchema.name + "." + number +
                 " (index: " + pageIndex + "), Prev: " + prevPage + ", Next: " + nextPage +
                 " | Records: " + recordCount();
     }

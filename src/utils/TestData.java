@@ -96,9 +96,10 @@ public class TestData {
      * @param attributes The number of attributes in the schema. The first one will always be the primary key.
      *                   Subsequent attributes will have random constraints, types, and lengths, but none will
      *                   be a primary key
+     * @param pageSize The page size for the database
      * @return A bogus table schema
      */
-    public static TableSchema testTableSchema(int attributes) {
+    public static TableSchema testTableSchema(int attributes, int pageSize) {
         ArrayList<Attribute> attrList = new ArrayList<>();
         attrList.add(new Attribute("ID",
                 AttributeType.INT,
@@ -115,7 +116,7 @@ public class TestData {
                     random.nextBoolean(),
                     random.nextInt(24) + 1));
         }
-        return new TableSchema("Test Table",0, attrList, "", 0, 0);
+        return new TableSchema("Test Table",0, attrList, "", 0, 0, pageSize);
     }
 
     public static Record permaRecord(){
@@ -129,8 +130,8 @@ public class TestData {
         return record;
     }
 
-    public static TableSchema permaTable() {
-        TableSchema out = new TableSchema("The PermaTable", 0, new ArrayList<>(), "", 0, 0);
+    public static TableSchema permaTable(int pageSize) {
+        TableSchema out = new TableSchema("The PermaTable", 0, new ArrayList<>(), "", 0, 0, pageSize);
         out.attributes.add(new Attribute("id", AttributeType.INT, true, false, false, 4));
         out.attributes.add(new Attribute("motto", AttributeType.VARCHAR, false, false, false, 4));
         out.attributes.add(new Attribute("friends", AttributeType.DOUBLE, false, true, false, 4));

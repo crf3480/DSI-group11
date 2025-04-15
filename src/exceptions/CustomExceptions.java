@@ -1,5 +1,7 @@
 package exceptions;
 
+import java.io.IOException;
+
 public class CustomExceptions extends RuntimeException {
     public CustomExceptions(String message) {
         super(message);
@@ -38,5 +40,12 @@ public class CustomExceptions extends RuntimeException {
      */
     public static class InvalidTableException extends IllegalArgumentException {
         public InvalidTableException(String message) { super(message); }
+    }
+
+    /**
+     * Thrown when an I/O operation successfully returned, but the result was malformed
+     */
+    public static class CorruptedDataException extends IOException {
+        public CorruptedDataException(String message) { super(message); }
     }
 }

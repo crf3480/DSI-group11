@@ -1,8 +1,7 @@
 package bplus;
 
-public class RecordPointer<T extends Comparable<T>> {
+public class RecordPointer<T extends Comparable<T>> extends BPlusPointer<T> {
 
-    private T value;
     private int pageIndex;
     private int recordIndex;
 
@@ -19,15 +18,7 @@ public class RecordPointer<T extends Comparable<T>> {
     }
 
     /**
-     * Gets the pointer's value
-     * @return The value of this pointer
-     */
-    public T getValue() {
-        return value;
-    }
-
-    /**
-     * Gets the index of the page this record is stored in
+     * Gets the page index of the page this record is stored in
      * @return The page index
      */
     public int getPageIndex() {
@@ -40,18 +31,6 @@ public class RecordPointer<T extends Comparable<T>> {
      */
     public int getRecordIndex() {
         return recordIndex;
-    }
-
-    /**
-     * Compares the values of this RecordPointer with another. Returns a negative
-     * integer, zero, or a positive integer if this value is less than, equal to,
-     * or greater than the other RecordPointer (respectively).
-     * @param o The RecordPointer being compared
-     * @return a negative integer, zero, or a positive integer as this RecordPointer
-     * is less than, equal to, or greater than the passed RecordPointer
-     */
-    public int compareTo(RecordPointer<T> o) {
-        return value.compareTo(o.getValue());
     }
 
 }

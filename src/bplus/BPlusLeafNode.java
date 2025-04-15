@@ -1,5 +1,8 @@
 package bplus;
 
+import tableData.TableSchema;
+
+import java.io.IOException;
 import java.util.ArrayList;
 
 class BPlusLeafNode<T extends Comparable<T>> extends BPlusNode<T> {
@@ -9,38 +12,25 @@ class BPlusLeafNode<T extends Comparable<T>> extends BPlusNode<T> {
     public BPlusNode<T> nextLeaf;
 
     /**
-     * Creates a Leaf node which is intended for the root of a B+ tree. It
-     * has no records, and by extension has no value
-     * @param pageSize The pageSize for the tree nodes
+     * Creates an empty Leaf node for a B+ tree
+     * @param schema The TableSchema of the table this node belongs to
+     * @param pointer The pointer to this node in the BPlus file
      */
-    public BPlusLeafNode(int pageSize) {
-        super(pageSize, null);
+    public BPlusLeafNode(TableSchema schema, long pointer) {
+        super(schema, pointer);
         this.records = new ArrayList<>();
     }
 
     /**
      * Creates a Leaf node for a B+ tree from a collection of RecordPointers
-     * @param pageSize The pageSize for the tree nodes
-     * @param value The value of this node, used by the parent to determine which node to
-     *              explore when finding/inserting records
+     * @param schema The TableSchema for the table this BPlus tree indexes into
+     * @param pointer The pointer to this node in the BPlus file
      * @param records The list of records stored in this node
      * @param nextLeaf The next leaf in the tree. `null` if this is the final leaf
      */
-    public BPlusLeafNode(int pageSize, T value, ArrayList<RecordPointer<T>> records, BPlusNode<T> nextLeaf) {
-        super(pageSize, value);
+    public BPlusLeafNode(TableSchema schema, long pointer, ArrayList<RecordPointer<T>> records, BPlusNode<T> nextLeaf) {
+        super(schema, pointer);
         this.records = records;
-    }
-
-    /**
-     * Creates a node in a BPlusTree
-     *
-     * @param pageSize The page size for the BPlusTree (i.e. the space for
-     *                 storing records within a node)
-     * @param value The value of this node, used to determine which leaf node
-     *              to insert a record into
-     */
-    public BPlusLeafNode(int pageSize, T value) {
-        super(pageSize, value);
     }
 
     /**
@@ -118,5 +108,10 @@ class BPlusLeafNode<T extends Comparable<T>> extends BPlusNode<T> {
             }
         }
         return null;
+    }
+
+    @Override
+    public void save() throws IOException {
+        //TODO: Serialize leaf nodes
     }
 }

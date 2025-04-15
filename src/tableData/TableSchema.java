@@ -12,6 +12,7 @@ public class TableSchema {
     private final String fileDir;
     private int recordCount;
     private int pageCount;
+    public final int pageSize;
 
     /**
      * Creates a TableSchema. This should not be directly called by any classes other than Catalog
@@ -25,13 +26,15 @@ public class TableSchema {
                        ArrayList<Attribute> attributeArrayList,
                        String fileDir,
                        int pageCount,
-                       int recordCount) {
+                       int recordCount,
+                       int pageSize) {
         this.name = name;
         this.rootIndex = rootIndex;
         this.attributes = attributeArrayList;
         this.fileDir = fileDir;
         this.recordCount = recordCount;
         this.pageCount = pageCount;
+        this.pageSize = pageSize;
         // Verify the attribute names are distinct and there is at least one primary key
         ArrayList<String> attributeNames = new ArrayList<>();
         for (int i = 0; i < attributeArrayList.size(); i++) {
@@ -179,7 +182,7 @@ public class TableSchema {
         for (Attribute attr : attributes) {
             duplicateAttributes.add(new Attribute(attr));
         }
-        return new TableSchema(tableName, rootIndex, duplicateAttributes, fileDir, pageCount, recordCount);
+        return new TableSchema(tableName, rootIndex, duplicateAttributes, fileDir, pageCount, recordCount, pageSize);
     }
 
     @Override

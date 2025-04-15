@@ -13,7 +13,7 @@ public class WhereTester {
         String[] inputL = input.split(" ");
         ArrayList<String> where = new ArrayList<>(Arrays.asList(inputL));
 
-        Evaluator e = new Evaluator(where, TestData.permaTable());
+        Evaluator e = new Evaluator(where, TestData.permaTable(1024));
         System.out.println(e.evaluateRecord(TestData.permaRecord()));
     }
 }

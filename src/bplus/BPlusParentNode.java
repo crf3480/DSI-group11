@@ -1,21 +1,23 @@
 package bplus;
 
+import tableData.TableSchema;
+
+import java.io.IOException;
 import java.util.ArrayList;
 
 class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
 
-    private ArrayList<BPlusNode<T>> children;
+    private ArrayList<BPlusNodePointer<T>> children;
 
     /**
      * Creates a BPlusNode which is a parent of other nodes, either
      * leaf nodes or other parent nodes
-     * @param pageSize The pageSize of the tree
-     * @param value The value of this node, used to determine which branch
-     *              of the tree to follow when getting/inserting records
+     * @param schema The TableSchema of the  pageSize of the tree
+     * @param pointer The pointer to this node in the BPlus file
      * @param children The children of this parent node
      */
-    public BPlusParentNode(int pageSize, T value, ArrayList<BPlusNode<T>> children) {
-        super(pageSize, value);
+    public BPlusParentNode(TableSchema schema, long pointer, ArrayList<BPlusNodePointer<T>> children) {
+        super(schema, pointer);
         this.children = children;
     }
 
@@ -27,10 +29,10 @@ class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
      */
     @Override
     public boolean insertRecord(RecordPointer<T> rp) {
-        for (BPlusNode<T> child : children) {
+        for (BPlusNodePointer<T> child : children) {
             if (child.isGreaterThan(rp)) {
                 //TODO: Handle restructuring tree
-                return child.insertRecord(rp);
+                //TODO: child.insertRecord(rp);
             }
         }
         // The value of the last child should be null, which means `isGreaterThan` should
@@ -42,10 +44,10 @@ class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
 
     @Override
     public boolean deleteRecord(T value) {
-        for (BPlusNode<T> child : children) {
+        for (BPlusNodePointer<T> child : children) {
             if (child.isGreaterThan(value)) {
+                //TODO: child.delete(value)
                 //TODO: Handle restructuring tree
-                return child.deleteRecord(value);
             }
         }
         // See insertRecord() for why this error is here
@@ -55,9 +57,9 @@ class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
 
     @Override
     public boolean contains(T value) {
-        for (BPlusNode<T> child : children) {
+        for (BPlusNodePointer<T> child : children) {
             if (child.isGreaterThan(value)) {
-                return child.contains(value);
+                //TODO: child.contains(value)
             }
         }
         // See insertRecord() for why this error is here
@@ -67,13 +69,18 @@ class BPlusParentNode<T extends Comparable<T>> extends BPlusNode<T> {
 
     @Override
     public RecordPointer<T> get(T value) {
-        for (BPlusNode<T> child : children) {
+        for (BPlusNodePointer<T> child : children) {
             if (child.isGreaterThan(value)) {
-                return child.get(value);
+                //TODO: child.get(value)
             }
         }
         // See insertRecord() for why this error is here
         throw new InternalError("GET: Value " + value +
                 " was not searched for in any child of " + this);
+    }
+
+    @Override
+    public void save() throws IOException {
+        //TODO: Serialize node
     }
 }
