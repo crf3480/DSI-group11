@@ -1,8 +1,23 @@
 package bplus;
 
+import tableData.Attribute;
+import tableData.TableSchema;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+
 public class BPlusPointer<T extends Comparable<T>> {
 
     protected T value;
+    protected int mainPointer;
+    protected int subPointer;
+
+    public BPlusPointer(T value, int mainPointer, int subPointer) {
+        this.value = value;
+        this.mainPointer = mainPointer;
+        this.subPointer = subPointer;
+    }
 
     /**
      * Gets the pointer's value
@@ -10,6 +25,31 @@ public class BPlusPointer<T extends Comparable<T>> {
      */
     public T getValue() {
         return value;
+    }
+
+    /**
+     * Gets the main pointer. For parent nodes, this is
+     * @return The value of this pointer
+     */
+    public int getMainPointer() {
+        return mainPointer;
+    }
+
+    /**
+     * Gets the subpointer. For parent nodes, this is -1. For leaf nodes,
+     * this is the record pointer
+     * @return The value of the subpointer
+     */
+    public int getSubPointer() {
+        return subPointer;
+    }
+
+    /**
+     * Checks if this is a pointer to a record instead of a BPlusNode
+     * @return `true` if this is a record pointer; `false` if this object points to a BPlusNode
+     */
+    public boolean isRecordPointer() {
+        return subPointer != -1;
     }
 
     /**
@@ -25,20 +65,6 @@ public class BPlusPointer<T extends Comparable<T>> {
     }
 
     /**
-     * Checks if the value in this pointer is greater than the value in a given RecordPointer
-     * @param rp The RecordPointer being compared
-     * @return `true` if the RecordPointer contains a value which is less than the value
-     * in this pointer, or if this pointer's value is null; `false` if the value in
-     * the RecordPointer is greater than or equal to the value in this pointer
-     */
-    public boolean isGreaterThan(RecordPointer<T> rp) {
-        if (value == null) {
-            return true;
-        }
-        return value.compareTo(rp.getValue()) > 0;
-    }
-
-    /**
      * Checks if the value in this pointer is greater than another value
      * @param o The value being compared to this RecordPointer
      * @return `true` if the value is less than this pointer's value, or if
@@ -50,5 +76,27 @@ public class BPlusPointer<T extends Comparable<T>> {
             return true;
         }
         return value.compareTo(o) > 0;
+    }
+
+    /**
+     * Converts the contents of this pointer to a byte array for writing to disk
+     * @param schema The TableSchema for table this pointer belongs to
+     * @return A byte array representing this pointer's data
+     */
+    public byte[] encode(TableSchema schema) throws IOException {
+        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        DataOutputStream out = new DataOutputStream(outStream);
+        // Write pointers
+        out.writeInt(mainPointer);
+        out.writeInt(subPointer);
+        // Write value
+        Attribute pk = schema.attributes.get(schema.primaryKey);
+        switch (pk.type) {
+            case INT -> out.writeInt((Integer)value);
+            case DOUBLE -> out.writeDouble((Double)value);
+            case BOOLEAN -> out.writeBoolean((Boolean) value);
+            case VARCHAR, CHAR -> out.writeUTF((String)value);
+        }
+        return outStream.toByteArray();
     }
 }

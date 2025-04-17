@@ -33,7 +33,7 @@ public class Page extends Bufferable {
      * @param pageData The byte array of page data
      * @param tableSchema The schema of the data in this page
      */
-    public Page(int pageIndex, long pageNumber, byte[] pageData, TableSchema tableSchema) throws IOException {
+    public Page(int pageIndex, int pageNumber, byte[] pageData, TableSchema tableSchema) throws IOException {
         this.pageIndex = pageIndex;
         this.tableSchema = tableSchema;
         if (pageData.length != tableSchema.pageSize) {
@@ -43,7 +43,7 @@ public class Page extends Bufferable {
 
         ByteArrayInputStream inStream = new ByteArrayInputStream(pageData);
         DataInputStream in = new DataInputStream(inStream);
-        this.number = pageNumber;
+        this.index = pageNumber;
         int numRecords = in.readInt();
         this.nextPage = in.readInt();
         this.prevPage = in.readInt();
@@ -60,9 +60,9 @@ public class Page extends Bufferable {
      * @param records The list of records in the Page
      * @param tableSchema The table schema for records in the page
      */
-    public Page(int pageIndex, long pageNumber, ArrayList<Record> records, TableSchema tableSchema) {
+    public Page(int pageIndex, int pageNumber, ArrayList<Record> records, TableSchema tableSchema) {
         this.pageIndex = pageIndex;
-        this.number = pageNumber;
+        this.index = pageNumber;
         this.tableSchema = tableSchema;
         this.nextPage = -1; //default next page value
         this.prevPage = -1; //default prev page value
@@ -76,9 +76,9 @@ public class Page extends Bufferable {
      * @param pageNumber The number of the page
      * @param tableSchema The schema of the records stored in this page
      */
-    public Page(int pageIndex, long pageNumber, TableSchema tableSchema) {
+    public Page(int pageIndex, int pageNumber, TableSchema tableSchema) {
         this.pageIndex = pageIndex;
-        this.number = pageNumber;
+        this.index = pageNumber;
         this.tableSchema = tableSchema;
         this.nextPage = -1; //default next page value
         this.prevPage = -1; //default prev page value
@@ -222,7 +222,7 @@ public class Page extends Bufferable {
             splitRecords.addFirst(records.removeLast());
             newSize += splitRecordSize;
         }
-        Page childPage = new Page(childPageIndex, number + 1, splitRecords, tableSchema);
+        Page childPage = new Page(childPageIndex, index + 1, splitRecords, tableSchema);
         // Update page pointers
         childPage.nextPage = this.nextPage;
         this.nextPage = childPageIndex;
@@ -295,11 +295,12 @@ public class Page extends Bufferable {
      * @throws IOException if there is an error writing the Page to file
      */
     public void save() throws IOException {
-        // Read in the data
+        // Verify table exists
         File tableFile = tableSchema.tableFile();
         if (!tableFile.exists()) {
             throw new IOException("Could not find table file `" + tableFile.getAbsolutePath() + "`");
         }
+        // Write data
         try (RandomAccessFile raf = new RandomAccessFile(tableFile, "rw")) {
             long offset = Integer.BYTES + ((long) pageIndex * tableSchema.pageSize);  // Page count + pageIndex offset
             raf.seek(offset);
@@ -324,7 +325,7 @@ public class Page extends Bufferable {
 
     @Override
     public String toString() {
-        return "Page " + tableSchema.name + "." + number +
+        return "Page " + tableSchema.name + "." + index +
                 " (index: " + pageIndex + "), Prev: " + prevPage + ", Next: " + nextPage +
                 " | Records: " + recordCount();
     }

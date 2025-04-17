@@ -8,6 +8,7 @@ public class TableSchema {
     public String name;
     public int primaryKey = -1;
     public int rootIndex; // The location of page 0 in the table, as a number of pageSize chunks
+    public int treeRoot;  // The location of the root of its BPlus tree
     public ArrayList<Attribute> attributes;
     private final String fileDir;
     private int recordCount;
@@ -23,6 +24,7 @@ public class TableSchema {
      */
     public TableSchema(String name,
                        int rootIndex,
+                       int treeRoot,
                        ArrayList<Attribute> attributeArrayList,
                        String fileDir,
                        int pageCount,
@@ -30,6 +32,7 @@ public class TableSchema {
                        int pageSize) {
         this.name = name;
         this.rootIndex = rootIndex;
+        this.treeRoot = treeRoot;
         this.attributes = attributeArrayList;
         this.fileDir = fileDir;
         this.recordCount = recordCount;
@@ -77,6 +80,14 @@ public class TableSchema {
             attributeNames.add(attribute.name);
         }
         return attributeNames;
+    }
+
+    /**
+     * Returns a clone of the table's Primary Key Attribute
+     * @return The primary key attribute for this table
+     */
+    public Attribute getPK() {
+        return new Attribute(attributes.get(primaryKey));
     }
 
     /**
@@ -152,6 +163,14 @@ public class TableSchema {
     }
 
     /**
+     * Returns a File object matching the BPlusTree file for this table
+     * @return The BPlusTree's File object
+     */
+    public File indexFile(){
+        return new File(fileDir + name + ".bpt");
+    }
+
+    /**
      * Returns the number of attributes in this table that are can be null
      * @return The number of nullable attributes
      */
@@ -182,7 +201,7 @@ public class TableSchema {
         for (Attribute attr : attributes) {
             duplicateAttributes.add(new Attribute(attr));
         }
-        return new TableSchema(tableName, rootIndex, duplicateAttributes, fileDir, pageCount, recordCount, pageSize);
+        return new TableSchema(tableName, rootIndex, treeRoot, duplicateAttributes, fileDir, pageCount, recordCount, pageSize);
     }
 
     @Override

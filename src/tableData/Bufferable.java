@@ -4,7 +4,7 @@ import java.io.IOException;
 
 public abstract class Bufferable {
 
-    public long number;
+    public int index;
 
     /**
      * Returns the table name that this Bufferable belongs to
@@ -31,8 +31,8 @@ public abstract class Bufferable {
      * @param id The ID of the Bufferable being fetched
      * @return `true` if this object matches the schema and id
      */
-    public boolean match(TableSchema schema, long id) {
-        return matchesSchema(schema) && number == id;
+    public boolean match(TableSchema schema, int id) {
+        return matchesSchema(schema) && index == id;
     }
 
     /**

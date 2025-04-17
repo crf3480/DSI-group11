@@ -1,5 +1,6 @@
 package components;
 
+import bplus.BPlusNode;
 import tableData.Bufferable;
 import tableData.Page;
 import tableData.TableSchema;
@@ -38,13 +39,39 @@ public class Buffer {
     }
 
     /**
+     * Inserts an item into the buffer, popping another element if the buffer is full
+     * @param page The element to insert
+     * @throws IOException if the popped element could not be written back to disk
+     */
+    public void insert(Bufferable page) throws IOException {
+        // See if we need to make room in the buffer
+        if (buffer.size() >= bufferSize) {
+            Bufferable old = buffer.removeLast();
+            old.save();
+        }
+        buffer.push(page);
+    }
+
+    /**
+     * Removes an element from the buffer
+     * @param page The element to remove
+     */
+    public void remove(Bufferable page) {
+        buffer.remove(page);
+    }
+
+    // ====================================================================================
+    //region Page =========================================================================
+    // ====================================================================================
+
+    /**
      * Returns a page with a given ID from a specified table. It will be retrieved from the buffer,
      * unless the page isn't present, in which case it will be fetched from storage
      * @param schema The schema of the table to fetch the page from
      * @param pageNum The number of the page to fetch
      * @return The requested Page. `null` if page number is outside the range of page numbers for the table
      */
-    public Page getPage(TableSchema schema, long pageNum) {
+    public Page getPage(TableSchema schema, int pageNum) {
         // If number is outside the bounds of page numbers
         if (pageNum >= schema.pageCount() || pageNum < 0) {
             return null;
@@ -57,7 +84,7 @@ public class Buffer {
                 continue;
             }
             if (page.matchesSchema(schema)) {
-                if (page.number == pageNum) {
+                if (page.index == pageNum) {
                     // If page was found, move it to the back of the queue and return it
                     buffer.remove(page);
                     buffer.push(page);
@@ -65,7 +92,7 @@ public class Buffer {
                 }
                 // Check if this ID was at least closer than the previous target
                 if (currClosest == null ||
-                        Math.abs(page.number - pageNum) < Math.abs(currClosest.number - pageNum)) {
+                        Math.abs(page.index - pageNum) < Math.abs(currClosest.index - pageNum)) {
                     currClosest = (Page)page;
                 }
             }
@@ -77,7 +104,7 @@ public class Buffer {
         }
         // Otherwise, find page offset by hunting from the closest page.
         // If no page from this table was in the buffer or the beginning is closer, start from the beginning
-        if (currClosest == null || Math.abs(currClosest.number - pageNum) > pageNum) {
+        if (currClosest == null || Math.abs(currClosest.index - pageNum) > pageNum) {
             currClosest = loadPage(schema, schema.rootIndex, 0);
             if (currClosest == null) {
                 // If the first page cannot be loaded, table must have zero pages
@@ -86,7 +113,7 @@ public class Buffer {
         }
         HashSet<Integer> visitedIndices = new HashSet<>();
         visitedIndices.add(currClosest.pageIndex);
-        long currPageNumber = currClosest.number;
+        int currPageNumber = currClosest.index;
         int nextIndex;
         // Hop from page to page until you get to the target
         while (true) {
@@ -127,11 +154,10 @@ public class Buffer {
      * @param pageNum The page number that should be assigned to this page. If there are gaps in
      *                a table file or the pages are out of order, this number will be different from
      *                pageIndex.
-     * @return A reference to the Page that was inserted. If pageIndex exceeds the size of the
-     * table file, returns `null`
-     * @throws IndexOutOfBoundsException if pageIndex exceeds the size of the table file
+     * @return A reference to the Page that was inserted
+     * @throws IndexOutOfBoundsException if pageIndex is outside the bounds of the table file
      */
-    public Page loadPage(TableSchema schema, int pageIndex, long pageNum) throws IndexOutOfBoundsException {
+    public Page loadPage(TableSchema schema, int pageIndex, int pageNum) throws IndexOutOfBoundsException {
         byte[] pageData = new byte[pageSize];
         File tableFile = schema.tableFile();
         if (!tableFile.exists()) {
@@ -159,7 +185,7 @@ public class Buffer {
         // Parse the page data and return it
         try {
             Page newPage = new Page(pageIndex, pageNum, pageData, schema);
-            insertPage(newPage);
+            insert(newPage);
             return newPage;
         } catch (IOException ioe) {
             System.err.println("Failed to parse page " + pageNum + " at index " + pageIndex +
@@ -169,18 +195,102 @@ public class Buffer {
     }
 
     /**
-     * Inserts a Page into the buffer, popping another Page if the buffer is full
-     * @param page The page to insert
-     * @throws IOException if the popped page could not be written back to disk
+     * Increments the page numbers of all pages above a certain number
+     * @param schema The TableSchema of the table the pages being updated belong to
+     * @param above The threshold (inclusive) above which to increment the page numbers
      */
-    public void insertPage(Page page) throws IOException {
-        // See if we need to make room in the buffer
-        if (buffer.size() >= bufferSize) {
-            Bufferable old = buffer.removeLast();
-            old.save();
+    public void incrementPageNumbers(TableSchema schema, int above) {
+        for (Bufferable bPage : buffer) {
+            if (bPage.getClass() != Page.class) {
+                continue;
+            }
+            if (bPage.matchesSchema(schema) && bPage.index >= above) {
+                bPage.index += 1;
+            }
         }
-        buffer.push(page);
     }
+
+    //endregion
+
+    // ====================================================================================
+    //region BPlusTree ====================================================================
+    // ====================================================================================
+
+    /**
+     * Returns a BPlus Tree Node with a given ID from a specified table. It will be retrieved
+     * from the buffer unless the node isn't present, in which case it will be fetched from storage
+     * @param schema The schema of the table to fetch the node from
+     * @param nodeIndex The index of the page to fetch
+     * @return The requested BPlusNode
+     * @throws IndexOutOfBoundsException if nodeIndex is outside the bounds of the B+ Tree file
+     */
+    public BPlusNode<?> getNode(TableSchema schema, int nodeIndex) throws IndexOutOfBoundsException {
+        // Search the buffer for the page and return it
+        for (Bufferable node : buffer) {
+            // We're only looking for pages
+            if (node.getClass() == Page.class) {
+                continue;
+            }
+            if (node.match(schema, nodeIndex)) {
+                if (node.index == nodeIndex) {
+                    // If page was found, move it to the back of the queue and return it
+                    buffer.remove(node);
+                    buffer.push(node);
+                    return (BPlusNode<?>) node;
+                }
+            }
+        }
+        // Page wasn't in the buffer, so load it in.
+        return loadNode(schema, nodeIndex);
+    }
+
+    /**
+     * Loads a specific page into the buffer, freeing up an existing page if space is needed.
+     * NOTE: This function <b>does not</b> check if the page already exists in the buffer.
+     * @param schema The TableSchema of the table the Page belongs to
+     * @param nodeIndex The index of the node within the tree's file (i.e. nodeIndex * pageSize =
+     *                  the byte offset of the desired node)
+     * @return A reference to the Node that was inserted
+     * @throws IndexOutOfBoundsException if pageIndex exceeds the size of the table file
+     */
+    public BPlusNode<?> loadNode(TableSchema schema, int nodeIndex) throws IndexOutOfBoundsException {
+        byte[] nodeData = new byte[pageSize];
+        File indexFile = schema.indexFile();
+        if (!indexFile.exists()) {
+            System.err.println("Could not find table file.");
+            return null;
+        }
+        // Make sure index is within the bounds of the file
+        if ((nodeIndex + 1) > indexFile.length() / pageSize) {  // This breaks if pageSize is less than the table offset
+            return null;
+        } else if (nodeIndex < 0) {
+            throw new IndexOutOfBoundsException("Invalid node index `" + nodeIndex + "`");
+        }
+        // Read in the data
+        try (RandomAccessFile raf = new RandomAccessFile(indexFile, "r")) {
+            long offset = Integer.BYTES + ((long) nodeIndex * pageSize);  // Page count + nodeIndex offset
+            raf.seek(offset);
+            if (raf.read(nodeData) != pageSize) {
+                System.err.println("WARNING: Read fewer bytes than expected while loading node from `" +
+                        indexFile.getAbsolutePath() + "`");
+            }
+        } catch (IOException ioe) {
+            System.err.println("Encountered problem while attempting to read index file: " + ioe.getMessage());
+            return null;
+        }
+        // Parse the node data and return it
+        try {
+            BPlusNode<?> newNode = BPlusNode.parse(schema, nodeIndex, nodeData);
+            insert(newNode);
+            return newNode;
+        } catch (IOException ioe) {
+            System.err.println("Failed to parse node " + nodeIndex + " for table `" +
+                    schema.name + "` with error: " + ioe);
+            return null;
+        }
+    }
+
+    //endregion
 
     /**
      * Removes all Pages belonging to a given table from the buffer without saving them to disk
@@ -197,30 +307,6 @@ public class Buffer {
             newBuffer.push(currPage);
         }
         buffer = newBuffer;
-    }
-
-    /**
-     * Removes a Page from the buffer
-     * @param page The page to remove
-     */
-    public void removePage(Page page) {
-        buffer.remove(page);  // Page objects are passed by reference, so this *should* work?
-    }
-
-    /**
-     * Increments the page numbers of all pages above a certain number
-     * @param schema The TableSchema of the table the pages being updated belong to
-     * @param above The threshold (inclusive) above which to increment the page numbers
-     */
-    public void incrementPageNumbers(TableSchema schema, long above) {
-        for (Bufferable bPage : buffer) {
-            if (bPage.getClass() != Page.class) {
-                continue;
-            }
-            if (bPage.matchesSchema(schema) && bPage.number >= above) {
-                bPage.number += 1;
-            }
-        }
     }
 
     /**

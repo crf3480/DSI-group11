@@ -1,4 +1,5 @@
 package components;
+import bplus.*;
 import tableData.*;
 import tableData.Record;
 import java.io.*;
@@ -41,71 +42,6 @@ public class StorageManager {
     }
 
     /**
-     * Finds and deletes all tables in the database that start with a numeric character
-     * This is mostly used for crash recovery, since all temp tables are supposed to be deleted after use.
-     * In the event that the program closes/crashes before it can delete these, this will avoid the
-     * program crashing upon the first attempt to create a temp table on next run
-     * Standard table files cannot have names starting with a number, so this will only delete temp tables.
-     */
-    public void wipeTempTables() throws IOException {
-        File dbDirectory = catalog.getFilePath().getParentFile();
-        File[] fileList = dbDirectory.listFiles();
-        if (fileList == null) {
-            return;  // This should never happen, but it makes the compiler happy
-        }
-        for (File file : fileList) {
-            if(Character.isDigit(file.getName().charAt(0))){
-                dropTable(file.getName().substring(0, file.getName().indexOf('.')));
-            }
-        }
-    }
-
-    /**
-     * "Nukes" the database by deleting all files in the database directory
-     */
-    public void nuke() {
-        System.err.println("\nNUKING DATABASE AT "+catalog.getFilePath().getParentFile().getAbsolutePath());
-        quietNuke();
-    }
-
-    /**
-     *  Nukes the database without the fanfare. Used to hide the double call added when Will made file reading commands a thing
-     */
-    public void quietNuke(){
-        File dbDirectory = catalog.getFilePath().getParentFile();
-        File[] fileList = dbDirectory.listFiles();
-        if (fileList == null) {
-            return;  // This should never happen, but it makes the compiler happy
-        }
-        for (File file : fileList) {
-            if (!file.delete()) {
-                System.err.println("Failed to delete file " + file.getAbsolutePath());
-            }
-        }
-    }
-
-    /**
-     * Toggles "NUKE MODE", which deletes all files in the DB directory upon exit
-     */
-    public void toggleNUKE_MODE() {
-        NUKE_MODE = !NUKE_MODE;
-
-        System.err.println("\nNUKE MODE "+((NUKE_MODE)? "enabled. Entire database will be deleted on program close.\n" : "disabled. Database will be saved as usual.\n"));
-        try {
-            TimeUnit.MILLISECONDS.sleep(25);    // allows stderr time to print
-        } catch (InterruptedException e) {
-            System.err.println(e + " : " + e.getMessage());
-        }
-    }
-
-    /**
-     * @return `true` if NUKE_MODE is enabled
-     */
-    public boolean inNUKE_MODE() {
-        return NUKE_MODE;
-    }
-
-    /**
      * Returns a name for a temporary table
      * @return The name of a temporary table
      */
@@ -119,8 +55,27 @@ public class StorageManager {
      * @param pageNumber The number of the Page being fetched
      * @return The fetched Page; `null` if no page exists with that number
      */
-    public Page getPage(TableSchema schema, long pageNumber) {
+    public Page getPage(TableSchema schema, int pageNumber) {
         return buffer.getPage(schema, pageNumber);
+    }
+
+    /**
+     * Fetches the BPlusPointer for the record with a given value
+     * @param schema The TableSchema of the table being searched
+     * @param value The value to find the RecordPointer for
+     * @return The pointer for the value; `null` if value does not exist in the table
+     */
+    private BPlusPointer<?> getIndex(TableSchema schema, Object value) {
+        BPlusNode<?> node = buffer.getNode(schema, schema.treeRoot);
+        while (node != null) {
+            BPlusPointer<?> pointer = node.get(value);
+            if (pointer.isRecordPointer()) {
+                return pointer;
+            }
+            // If pointer was a node pointer, follow it
+            node = buffer.getNode(schema, pointer.getMainPointer());
+        }
+        return null;
     }
 
     /**
@@ -133,7 +88,7 @@ public class StorageManager {
     public boolean validInsert(TableSchema schema, Record record, int attrIndex) {
         // Verify record is unique. While looping, find and remember the insertion point
         int targetPageNum = -1;
-        int targetRecordIndex = -1;
+        int targetRecordIndex = -1;  //TODO: What's going on here?
         int pageIndex = 0;
         Page currPage = schema.rootIndex == -1 ? null : getPage(schema, pageIndex);
         while (currPage != null) {
@@ -172,7 +127,7 @@ public class StorageManager {
             Page firstPage = new Page(0, 0, schema);
             try {
                 firstPage.save();
-                buffer.insertPage(firstPage);
+                buffer.insert(firstPage);
             } catch (IOException ioe) {
                 System.err.println("Encountered exception while adding new page to table file: " + ioe.getMessage());
                 return false;
@@ -227,18 +182,18 @@ public class StorageManager {
                 targetPage.records.remove(targetRecordIndex);
                 return false;
             }
-            Page afterChild = buffer.getPage(schema, targetPage.number + 1); // Get this BEFORE you mess with root's nextIndex
+            Page afterChild = buffer.getPage(schema, targetPage.index + 1); // Get this BEFORE you mess with root's nextIndex
             Page child = targetPage.split(pageIndex);
             assert (child.nextPage == -1) == (afterChild == null);
             if (child.nextPage != -1) {
                 // Update the prevPage pointer for the page after this one, if one exists
                 afterChild.prevPage = pageIndex;
                 // Increment the page number for every page that follows child
-                buffer.incrementPageNumbers(schema, child.number);
+                buffer.incrementPageNumbers(schema, child.index);
             }
             // Insert the new page into the buffer
             try {
-                buffer.insertPage(child);
+                buffer.insert(child);
                 child.save();
             } catch (IOException ioe) {
                 System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
@@ -258,7 +213,7 @@ public class StorageManager {
             Page firstPage = new Page(0, 0, schema);
             try {
                 firstPage.save();
-                buffer.insertPage(firstPage);
+                buffer.insert(firstPage);
             } catch (IOException ioe) {
                 System.err.println("Encountered exception while adding new page to table file: " + ioe.getMessage());
                 return;
@@ -282,12 +237,12 @@ public class StorageManager {
             // Create Page with new record and link it with prev
             ArrayList<Record> recordList = new ArrayList<>();
             recordList.add(record);
-            Page newPage = new Page(pageIndex, lastPage.number + 1, recordList, schema);
+            Page newPage = new Page(pageIndex, lastPage.index + 1, recordList, schema);
             newPage.prevPage = lastPage.pageIndex;
             lastPage.nextPage = newPage.pageIndex;
             // Insert the new page into the buffer
             try {
-                buffer.insertPage(newPage);
+                buffer.insert(newPage);
                 newPage.save();
             } catch (IOException ioe) {
                 System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
@@ -334,9 +289,9 @@ public class StorageManager {
      */
     public void dropPage(Page page) {
         TableSchema schema = page.getTableSchema();
-        long pageNum = page.number;
+        int pageNum = page.index;
         // Remove page
-        buffer.removePage(page);
+        buffer.remove(page);
         schema.decrementPageCount();
         // Link adjacent pages
         Page prevPage = getPage(schema, pageNum - 1);
@@ -477,5 +432,70 @@ public class StorageManager {
         } catch (IOException ioe) {
             System.err.println(ioe.getMessage());
         }
+    }
+
+    /**
+     * Finds and deletes all tables in the database that start with a numeric character
+     * This is mostly used for crash recovery, since all temp tables are supposed to be deleted after use.
+     * In the event that the program closes/crashes before it can delete these, this will avoid the
+     * program crashing upon the first attempt to create a temp table on next run
+     * Standard table files cannot have names starting with a number, so this will only delete temp tables.
+     */
+    public void wipeTempTables() throws IOException {
+        File dbDirectory = catalog.getFilePath().getParentFile();
+        File[] fileList = dbDirectory.listFiles();
+        if (fileList == null) {
+            return;  // This should never happen, but it makes the compiler happy
+        }
+        for (File file : fileList) {
+            if(Character.isDigit(file.getName().charAt(0))){
+                dropTable(file.getName().substring(0, file.getName().indexOf('.')));
+            }
+        }
+    }
+
+    /**
+     * "Nukes" the database by deleting all files in the database directory
+     */
+    public void nuke() {
+        System.err.println("\nNUKING DATABASE AT "+catalog.getFilePath().getParentFile().getAbsolutePath());
+        quietNuke();
+    }
+
+    /**
+     *  Nukes the database without the fanfare. Used to hide the double call added when Will made file reading commands a thing
+     */
+    public void quietNuke(){
+        File dbDirectory = catalog.getFilePath().getParentFile();
+        File[] fileList = dbDirectory.listFiles();
+        if (fileList == null) {
+            return;  // This should never happen, but it makes the compiler happy
+        }
+        for (File file : fileList) {
+            if (!file.delete()) {
+                System.err.println("Failed to delete file " + file.getAbsolutePath());
+            }
+        }
+    }
+
+    /**
+     * Toggles "NUKE MODE", which deletes all files in the DB directory upon exit
+     */
+    public void toggleNUKE_MODE() {
+        NUKE_MODE = !NUKE_MODE;
+
+        System.err.println("\nNUKE MODE "+((NUKE_MODE)? "enabled. Entire database will be deleted on program close.\n" : "disabled. Database will be saved as usual.\n"));
+        try {
+            TimeUnit.MILLISECONDS.sleep(25);    // allows stderr time to print
+        } catch (InterruptedException e) {
+            System.err.println(e + " : " + e.getMessage());
+        }
+    }
+
+    /**
+     * @return `true` if NUKE_MODE is enabled
+     */
+    public boolean inNUKE_MODE() {
+        return NUKE_MODE;
     }
 }

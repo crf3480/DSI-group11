@@ -53,6 +53,7 @@ public class Catalog {
                     int pageCount = inputStream.readInt();
                     int recordCount = inputStream.readInt();
                     int rootIndex = inputStream.readInt();
+                    int treeRoot = inputStream.readInt();
                     int numAttributes = inputStream.readInt();
                     // Read attributes
                     for (int i = 0; i < numAttributes; i++) {
@@ -73,6 +74,7 @@ public class Catalog {
                         tableSchemas.put(tableName, new TableSchema(
                                 tableName,
                                 rootIndex,
+                                treeRoot,
                                 attributes,
                                 catalogFile.getParent() + File.separator,
                                 pageCount,
@@ -138,6 +140,7 @@ public class Catalog {
         // Create table
         TableSchema newSchema = new TableSchema(
                 name,
+                -1,
                 -1,
                 attributeArrayList,
                 catalogFile.getParent() + File.separator,
@@ -223,6 +226,7 @@ public class Catalog {
             outputStream.writeInt(tableSchema.pageCount());
             outputStream.writeInt(tableSchema.recordCount());
             outputStream.writeInt(tableSchema.rootIndex);
+            outputStream.writeInt(tableSchema.treeRoot);
             ArrayList<Attribute> attributes = tableSchema.attributes;
             outputStream.writeInt(attributes.size()); // Number of attributes
             for (Attribute attribute : attributes){

@@ -116,7 +116,7 @@ public class TestData {
                     random.nextBoolean(),
                     random.nextInt(24) + 1));
         }
-        return new TableSchema("Test Table",0, attrList, "", 0, 0, pageSize);
+        return new TableSchema("Test Table",0, 0, attrList, "", 0, 0, pageSize);
     }
 
     public static Record permaRecord(){
@@ -131,7 +131,7 @@ public class TestData {
     }
 
     public static TableSchema permaTable(int pageSize) {
-        TableSchema out = new TableSchema("The PermaTable", 0, new ArrayList<>(), "", 0, 0, pageSize);
+        TableSchema out = new TableSchema("The PermaTable", 0, 0, new ArrayList<>(), "", 0, 0, pageSize);
         out.attributes.add(new Attribute("id", AttributeType.INT, true, false, false, 4));
         out.attributes.add(new Attribute("motto", AttributeType.VARCHAR, false, false, false, 4));
         out.attributes.add(new Attribute("friends", AttributeType.DOUBLE, false, true, false, 4));
@@ -139,6 +139,7 @@ public class TestData {
         out.attributes.add(new Attribute("name", AttributeType.CHAR, false, true, true, 13));
         return out;
     }
+
     /**
      * Generates a random alphanumeric string of a given length
      * @param length The length of the string to return. Negatives return an empty string
