@@ -10,8 +10,8 @@ import java.util.ArrayList;
 
 public class BPlusNode<T extends Comparable<T>> extends Bufferable {
 
-    private TableSchema schema;
-    private ArrayList<BPlusPointer<T>> pointers;
+    private final TableSchema schema;
+    private final ArrayList<BPlusPointer<T>> pointers;
     public final int n;
 
     /**
