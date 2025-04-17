@@ -54,6 +54,10 @@ public class Main {
         dml = new DML(databaseEngine);
         ddl = new DDL(databaseEngine);
 
+        // Attempt to clear temp tables in case there are any left over (usually from a crash)
+        // This is mostly here for peace of mind, since the program is supposed to wipe temp tables on exit.
+        storageManager.wipeTempTables();
+
         // Custom dev args
         ArrayList<String> devArgs = new ArrayList<>();
         if (args.length >= 5){
