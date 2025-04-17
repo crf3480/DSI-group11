@@ -439,7 +439,7 @@ public class StorageManager {
      * This is mostly used for crash recovery, since all temp tables are supposed to be deleted after use.
      * In the event that the program closes/crashes before it can delete these, this will avoid the
      * program crashing upon the first attempt to create a temp table on next run
-     * Standard table files cannot have names starting with a number, so this will only delete temp tables.
+     * Query-based table files cannot have names starting with a number, so this will only delete temp tables.
      */
     public void wipeTempTables() throws IOException {
         File dbDirectory = catalog.getFilePath().getParentFile();
