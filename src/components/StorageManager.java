@@ -1,5 +1,6 @@
 package components;
 import bplus.*;
+import exceptions.CustomExceptions.*;
 import tableData.*;
 import tableData.Record;
 import java.io.*;
@@ -358,9 +359,10 @@ public class StorageManager {
     /**
      * Gets the TableSchema for the table with a given name
      * @param tableName The name of the table
-     * @return The table's schema; `null` if table name does not exist in the catalog
+     * @return The table's schema
+     * @throws InvalidTableException if table does not exist in the catalog
      */
-    public TableSchema getTableSchema(String tableName){
+    public TableSchema getTableSchema(String tableName) throws InvalidTableException {
         return catalog.getTableSchema(tableName);
     }
 

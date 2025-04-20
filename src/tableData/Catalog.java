@@ -1,5 +1,7 @@
 package tableData;
 
+import exceptions.CustomExceptions.*;
+
 import java.io.*;
 import java.util.*;
 
@@ -195,9 +197,13 @@ public class Catalog {
     /**
      * Fetches the schema of a table by name
      * @param tableName The name of the table
-     * @return The table's schema, or 'null' if that table name does not exist in the schema
+     * @return The table's schema
+     * @throws InvalidTableException if the requested table does not exist in the catalog
      */
-    public TableSchema getTableSchema(String tableName){
+    public TableSchema getTableSchema(String tableName) throws InvalidTableException {
+        if (!tableSchemas.containsKey(tableName)) {
+            throw new InvalidTableException("Table `" + tableName + "` does not exist.");
+        }
         return tableSchemas.get(tableName);
     }
 

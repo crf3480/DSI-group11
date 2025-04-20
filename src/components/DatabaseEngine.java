@@ -106,10 +106,6 @@ public class DatabaseEngine {
      */
     public void updateWhere(String tableName, String columnName, String newValue, ArrayList<String> whereClause ){
         TableSchema schema = storageManager.getTableSchema(tableName);
-        if (schema == null) {
-            System.err.println("Table '" + tableName + "' does not exist.");
-            return;
-        }
         int attributeIndex = schema.getAttributeIndex(columnName);
         if (attributeIndex == -1) {
             System.err.println("Table '" + tableName + "' does not contain column '" + columnName + "'.");
@@ -170,10 +166,6 @@ public class DatabaseEngine {
     //Storage manager
     public void dropAttribute(String tableName, String attributeName) {
         TableSchema schema = storageManager.getTableSchema(tableName);
-        if (schema == null) {
-            System.err.println("Table `" + tableName + "` does not exist.");
-            return;
-        }
         int dropIndex = schema.getAttributeIndex(attributeName);
         // Validate parameters
         if (dropIndex == -1) {
@@ -219,10 +211,7 @@ public class DatabaseEngine {
     public void addAttribute(String tableName, String attributeName, String attributeType, String defaultValue) {
         TableSchema schema = storageManager.getTableSchema(tableName);
         // Validate parameters
-        if (schema == null) {
-            System.err.println("Table `" + tableName + "` does not exist.");
-            return;
-        } else if (schema.getAttributeIndex(attributeName) != -1) {
+        if (schema.getAttributeIndex(attributeName) != -1) {
             System.err.println("Attribute `" + attributeName + "` already exists on table `" + tableName + "`.");
             return;
         }
@@ -310,12 +299,6 @@ public class DatabaseEngine {
      * @param orderBy       Attribute to order by in ascending order.
      */
     public void selectRecords(ArrayList<String> attributes, ArrayList<String> tables, ArrayList<String> whereClause, String orderBy) {
-        for (String table: tables) {    // make sure all given tables exist
-            if (storageManager.getTableSchema(table) == null) {
-                System.err.println("Invalid select: Table " + table + " does not exist.");
-                return;
-            }
-        }
         if (containsDuplicates(tables)){
             System.err.println("Invalid select: Cannot join a table with itself.");
             return;
@@ -432,11 +415,6 @@ public class DatabaseEngine {
      */
     public void deleteWhere(String tableName, ArrayList<String> whereClause) {
         TableSchema schema = storageManager.getTableSchema(tableName);
-        if (schema == null) {
-            System.err.println("Table `" + tableName + "` does not exist.");
-            return;
-        }
-
         Evaluator eval = new Evaluator(whereClause, schema);
         int pageIndex = 0;
         Page page = storageManager.getPage(schema, 0);
@@ -469,11 +447,6 @@ public class DatabaseEngine {
      */
     public boolean insert(String tableName, ArrayList<String> tupleValues) {
         TableSchema schema = storageManager.getTableSchema(tableName);
-        // Check table exists
-        if (schema == null){
-            System.err.println("Table " + tableName + " does not exist");
-            return false;
-        }
         // Check tuple count matches
         if (tupleValues.size() != schema.attributes.size()) {
             System.err.println("Invalid tuple (" + String.join(", ", tupleValues) + "): " +
