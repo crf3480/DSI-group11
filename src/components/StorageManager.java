@@ -79,42 +79,6 @@ public class StorageManager {
     }
 
     /**
-     * Tests if a record can be inserted into a table
-     * @param schema The TableSchema of the table the record would be inserted into
-     * @param record The record to insert
-     * @param attrIndex The index of the attribute the table will be sorted by
-     * @return `true` if the record was can be inserted; `false` otherwise
-     */
-    public boolean validInsert(TableSchema schema, Record record, int attrIndex) {
-        // Verify record is unique. While looping, find and remember the insertion point
-        int targetPageNum = -1;
-        int targetRecordIndex = -1;  //TODO: What's going on here?
-        int pageIndex = 0;
-        Page currPage = schema.rootIndex == -1 ? null : getPage(schema, pageIndex);
-        while (currPage != null) {
-            for (int i = 0; i < currPage.recordCount(); i++) {
-                Record existingRec = currPage.records.get(i);
-                // Check for duplicate
-                int matchAttr = record.isEquivalent(existingRec, schema);
-                if (matchAttr != -1) {
-                    System.err.println("Invalid new tuple ("+record+"): the value '" + record.get(matchAttr) +
-                            "' already exists in "+ ((schema.attributes.get(matchAttr).primaryKey ? "primary key " : "unique ")
-                            +"column '" + schema.attributes.get(matchAttr).name + "'."));
-                    return false;
-                }
-                // Check for insertion point
-                if (targetPageNum == -1 && !record.greaterThan(existingRec, schema, attrIndex)) {
-                    targetPageNum = pageIndex;
-                    targetRecordIndex = i;
-                }
-            }
-            pageIndex += 1;
-            currPage = getPage(schema, pageIndex);
-        }
-        return true;
-    }
-
-    /**
      * Inserts a record into the table, ordered by the specified attribute
      * @param schema The TableSchema of the table the record is being inserted into
      * @param record The record to insert

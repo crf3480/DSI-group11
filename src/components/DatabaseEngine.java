@@ -130,10 +130,7 @@ public class DatabaseEngine {
                     if(!oldRecord.equals(updatedRecord)) {  // don't run swap logic if update changes nothing
                         page.records.remove(i);             // need to remove old record temporarily to see if new is valid to insert
                         schema.decrementRecordCount();      // necessary to validate some checks that can't be done yet
-                        if (storageManager.validInsert(schema, updatedRecord, schema.primaryKey)) {
-                            storageManager.insertRecord(schema, updatedRecord, schema.primaryKey);
-                        }
-                        else {  // if invalid insert, re-add the old one because we dropped it
+                        if (storageManager.insertRecord(schema, updatedRecord, schema.primaryKey)) {
                             storageManager.insertRecord(schema, oldRecord, schema.primaryKey);
                             return;
                         }
