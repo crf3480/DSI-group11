@@ -49,7 +49,7 @@ public class Main {
         // Init storage components
         storageManager = new StorageManager(databaseDir, pageSize, bufferSize, indexing);
         DatabaseEngine databaseEngine = new DatabaseEngine(storageManager);
-        System.out.println(storageManager.indexingEnabled());
+        System.out.println("Indexing is "+((storageManager.isIndexingEnabled()) ? "" : "not ") + "enabled");
         // Init parsers
         dml = new DML(databaseEngine);
         ddl = new DDL(databaseEngine);

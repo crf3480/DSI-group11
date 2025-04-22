@@ -62,8 +62,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                     doublePointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
                 }
                 return new BPlusNode<>(schema, nodeIndex, doublePointers);
-            case VARCHAR:
-            case CHAR:
+            case VARCHAR, CHAR:
                 ArrayList<BPlusPointer<String>> strPointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
                     int mainPointer = in.readInt();
@@ -160,8 +159,45 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             insertIndex += 1;
         }
         pointers.add(insertIndex, bpp);
-        //TODO: Split page if overfull
-        //TODO: Update value/parent?
+
+        //Split if node is now overfull
+        if(isLeafNode() && pointers.size() >= n){   // leaf node max size of n-1
+            int splitIndex = (pointers.size()+1)/2;    //If odd size, the left one gets the extra element
+            ArrayList<BPlusPointer<T>> leftSide = new ArrayList<>();
+            ArrayList<BPlusPointer<T>> rightSide = new ArrayList<>();
+            leftSide.addAll(pointers.subList(0, splitIndex));
+            rightSide.addAll(pointers.subList(splitIndex, pointers.size()));
+
+            /*
+                I'm not adding multiple variables to the constructor if I don't have to
+                and it's too late to talk to people about it.
+
+                I'm fairly certain we need to add a parent pointer(or just a node?).
+                uncertain how to find the parent without adding it as a pointer.
+                I have an idea for finding the path to a leaf node, but there might be a better way
+                Either way I'm not implementing anything without consulting the group first
+
+                TODO: Leaf node splitting
+                 Get parent node(?) Right side needs to be given to parent node
+                 insertRecord(rightSide) on the parent node, that way it'll recursively split upwards
+                 set this node's pointers array to leftSize.
+
+             */
+        }
+        else if (pointers.size() > n) {  // internal node max size of n
+            int splitIndex = (pointers.size() + 1) / 2;    //If odd size, the left one gets the extra element
+            ArrayList<BPlusPointer<T>> leftSide = new ArrayList<>();
+            ArrayList<BPlusPointer<T>> rightSide = new ArrayList<>();
+            leftSide.addAll(pointers.subList(0, splitIndex));
+            rightSide.addAll(pointers.subList(splitIndex, pointers.size()));
+
+            /*
+                More pseudocode yay
+                TODO: internal node splitting
+                    if root, create new root. value = first on right side, pointers are left and right
+                    if not root, split as usual; send right upwards and and replace current pointers with left side
+             */
+        }
         return true;
     }
 
@@ -195,6 +231,8 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         //TODO: Update value/parent?
         return true;
     }
+
+    private BPlusNode<T> findParent()
 
     @Override
     public void save() throws IOException {

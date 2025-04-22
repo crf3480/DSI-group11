@@ -38,7 +38,7 @@ public class StorageManager {
      * Gets the status of indexing
      * @return `true` if PK indices are enabled
      */
-    public boolean indexingEnabled() {
+    public boolean isIndexingEnabled() {
         return catalog.indexingEnabled();
     }
 
