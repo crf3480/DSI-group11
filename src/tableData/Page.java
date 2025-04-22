@@ -13,16 +13,11 @@ import java.util.Collection;
 public class Page extends Bufferable {
 
     // The discrepancy between pageSize and recordData size because of additional data
-    private final int SIZE_OFFSET =
-            Integer.BYTES +                                // Record count
-            Integer.BYTES +                                // Previous page index
-            Integer.BYTES;                                 // Next page index
+    private final int SIZE_OFFSET = Integer.BYTES; // Record count
 
     private final TableSchema tableSchema;
-    public int pageIndex;
+    public int pageNumber;
 
-    public int nextPage;  // index of next page in the file
-    public int prevPage;  // index of previous page in the file
     public ArrayList<Record> records;
 
 
@@ -34,7 +29,7 @@ public class Page extends Bufferable {
      * @param tableSchema The schema of the data in this page
      */
     public Page(int pageIndex, int pageNumber, byte[] pageData, TableSchema tableSchema) throws IOException {
-        this.pageIndex = pageIndex;
+        this.index = pageIndex;
         this.tableSchema = tableSchema;
         if (pageData.length != tableSchema.pageSize) {
             throw new CorruptedDataException("pageData.length did not match DB pageSize when creating page " +
@@ -43,10 +38,8 @@ public class Page extends Bufferable {
 
         ByteArrayInputStream inStream = new ByteArrayInputStream(pageData);
         DataInputStream in = new DataInputStream(inStream);
-        this.index = pageNumber;
+        this.pageNumber = pageNumber;
         int numRecords = in.readInt();
-        this.nextPage = in.readInt();
-        this.prevPage = in.readInt();
         // Read in records
         byte[] recordData = new byte[pageData.length - SIZE_OFFSET];
         in.readFully(recordData);
@@ -61,11 +54,9 @@ public class Page extends Bufferable {
      * @param tableSchema The table schema for records in the page
      */
     public Page(int pageIndex, int pageNumber, ArrayList<Record> records, TableSchema tableSchema) {
-        this.pageIndex = pageIndex;
-        this.index = pageNumber;
+        this.index = pageIndex;
+        this.pageNumber = pageNumber;
         this.tableSchema = tableSchema;
-        this.nextPage = -1; //default next page value
-        this.prevPage = -1; //default prev page value
         this.records = records;
         tableSchema.incrementPageCount();
     }
@@ -77,11 +68,9 @@ public class Page extends Bufferable {
      * @param tableSchema The schema of the records stored in this page
      */
     public Page(int pageIndex, int pageNumber, TableSchema tableSchema) {
-        this.pageIndex = pageIndex;
-        this.index = pageNumber;
+        this.index = pageIndex;
+        this.pageNumber = pageNumber;
         this.tableSchema = tableSchema;
-        this.nextPage = -1; //default next page value
-        this.prevPage = -1; //default prev page value
         this.records = new ArrayList<>();
 
         // If this is page 0, update the table schema
@@ -89,6 +78,7 @@ public class Page extends Bufferable {
             tableSchema.rootIndex = pageIndex;
         }
         tableSchema.incrementPageCount();
+        tableSchema.insertPage(pageNumber, pageIndex);
     }
 
     /**
@@ -222,11 +212,7 @@ public class Page extends Bufferable {
             splitRecords.addFirst(records.removeLast());
             newSize += splitRecordSize;
         }
-        Page childPage = new Page(childPageIndex, index + 1, splitRecords, tableSchema);
-        // Update page pointers
-        childPage.nextPage = this.nextPage;
-        this.nextPage = childPageIndex;
-        childPage.prevPage = pageIndex;
+        Page childPage = new Page(childPageIndex, pageNumber + 1, splitRecords, tableSchema);
         return childPage;
     }
 
@@ -302,15 +288,13 @@ public class Page extends Bufferable {
         }
         // Write data
         try (RandomAccessFile raf = new RandomAccessFile(tableFile, "rw")) {
-            long offset = Integer.BYTES + ((long) pageIndex * tableSchema.pageSize);  // Page count + pageIndex offset
+            long offset = Integer.BYTES + ((long) index * tableSchema.pageSize);  // Page count + pageIndex offset
             raf.seek(offset);
 
             // Create output byte array
             ByteArrayOutputStream bs = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(bs);
             out.writeInt(records.size()); // Writes the number of records
-            out.writeInt(nextPage);  // Writes the pointer to the next page
-            out.writeInt(prevPage);  // Writes the pointer to the next page
             out.write(encodeRecords(records));    // Writes the record data
             byte[] pageData = bs.toByteArray();
             if (pageData.length > tableSchema.pageSize) {
@@ -325,8 +309,8 @@ public class Page extends Bufferable {
 
     @Override
     public String toString() {
-        return "Page " + tableSchema.name + "." + index +
-                " (index: " + pageIndex + "), Prev: " + prevPage + ", Next: " + nextPage +
+        return tableSchema.name + " - Page #" + pageNumber +
+                " (index: " + index + ")" +
                 " | Records: " + recordCount();
     }
 }

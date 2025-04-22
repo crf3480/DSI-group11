@@ -56,8 +56,14 @@ public class Catalog {
                     int recordCount = inputStream.readInt();
                     int rootIndex = inputStream.readInt();
                     int treeRoot = inputStream.readInt();
-                    int numAttributes = inputStream.readInt();
+                    // Read pageOffset table
+                    int offsetCount = inputStream.readInt();
+                    ArrayList<Integer> offsets = new ArrayList<>();
+                    for (int i = 0; i < offsetCount; i++) {
+                        offsets.add(inputStream.readInt());
+                    }
                     // Read attributes
+                    int numAttributes = inputStream.readInt();
                     for (int i = 0; i < numAttributes; i++) {
                         byte flags = inputStream.readByte();
                         boolean primaryKey = (flags & PRIMARY_KEY_MASK) != 0;
@@ -73,16 +79,18 @@ public class Catalog {
                         attributes.add(new Attribute(typeName, attrType, primaryKey, notNull, unique, length));
                     }
                     try  {
-                        tableSchemas.put(tableName, new TableSchema(
+                        TableSchema newSchema = new TableSchema(
                                 tableName,
                                 rootIndex,
                                 treeRoot,
+                                offsets,
                                 attributes,
                                 catalogFile.getParent() + File.separator,
                                 pageCount,
                                 recordCount,
-                                pageSize)
+                                pageSize
                         );
+                        tableSchemas.put(tableName, newSchema);
                     } catch (IllegalArgumentException e) {
                         System.err.println("Encountered error while creating table from catalog: " + e.getMessage());
                     }
@@ -144,6 +152,7 @@ public class Catalog {
                 name,
                 -1,
                 -1,
+                new ArrayList<>(),
                 attributeArrayList,
                 catalogFile.getParent() + File.separator,
                 0,
@@ -185,7 +194,7 @@ public class Catalog {
     }
 
     /**
-     * Removes a table schema from the catalog
+     * Removes a table schema from the catalog. Also removes offset table
      * @param tableName The name of the table to remove
      * @return 'true' if the table was removed from the schema; 'false' if a table with that name did not exist
      * in the catalog
@@ -233,6 +242,12 @@ public class Catalog {
             outputStream.writeInt(tableSchema.recordCount());
             outputStream.writeInt(tableSchema.rootIndex);
             outputStream.writeInt(tableSchema.treeRoot);
+            // NumberMap table
+            outputStream.writeInt(tableSchema.numberMap.size());
+            for (int offset : tableSchema.numberMap) {
+                outputStream.writeInt(offset);
+            }
+            // Attributes
             ArrayList<Attribute> attributes = tableSchema.attributes;
             outputStream.writeInt(attributes.size()); // Number of attributes
             for (Attribute attribute : attributes){

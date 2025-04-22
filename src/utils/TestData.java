@@ -116,7 +116,7 @@ public class TestData {
                     random.nextBoolean(),
                     random.nextInt(24) + 1));
         }
-        return new TableSchema("Test Table",0, 0, attrList, "", 0, 0, pageSize);
+        return new TableSchema("Test Table",0, 0, new ArrayList<>(), attrList, "", 0, 0, pageSize);
     }
 
     public static Record permaRecord(){
@@ -149,7 +149,7 @@ public class TestData {
         attrList.add(new Attribute("friends", AttributeType.DOUBLE, false, true, false, 4));
         attrList.add(new Attribute("isgamer", AttributeType.BOOLEAN, false, true, false, 4));
         attrList.add(new Attribute("name", AttributeType.CHAR, false, true, true, 13));
-        TableSchema out = new TableSchema("The PermaTable", 0, 0, attrList, "", 0, 0, pageSize);
+        TableSchema out = new TableSchema("The PermaTable", 0, 0, new ArrayList<>(), attrList, "", 0, 0, pageSize);
         return out;
     }
 
@@ -171,7 +171,7 @@ public class TestData {
     public static TableSchema permaTinyTable(int pageSize) {
         ArrayList<Attribute> attrList = new ArrayList<>();
         attrList.add(new Attribute("id", AttributeType.INT, true, false, false, 4));
-        TableSchema out = new TableSchema("TinyTable", 0, 0, attrList, "", 0, 0, pageSize);
+        TableSchema out = new TableSchema("TinyTable", 0, 0, new ArrayList<>(), attrList, "", 0, 0, pageSize);
         return out;
     }
 

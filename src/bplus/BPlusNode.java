@@ -11,7 +11,7 @@ import java.util.ArrayList;
 public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     private final TableSchema schema;
     private ArrayList<BPlusPointer<T>> pointers;
-    private BPlusPointer<T> parent;
+    private Integer parentIndex;
     public int n;
 
     /**
@@ -20,11 +20,11 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * @param nodeIndex The index of this node in the BPlus file
      * @param pointers The pointers stored in this node
      */
-    public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<T>> pointers, BPlusPointer<T> parent) {
+    public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<T>> pointers, Integer parentIndex) {
         this.schema = schema;
         this.index = nodeIndex;
         this.pointers = pointers;
-        this.parent = parent;
+        this.parentIndex = parentIndex;
         Attribute pk = schema.attributes.get(schema.primaryKey);
         n = (schema.pageSize / (pk.length + Integer.BYTES + Integer.BYTES)) - 1;
         n = 5;  //TODO: TEST VALUE. REMOVE LATER
@@ -51,7 +51,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * @return boolean corresponding to if the node is the root or not
      */
     public boolean isRootNode() {
-        return parent == null;
+        return parentIndex == null;
     }
 
     /**
@@ -107,7 +107,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         pointers.add(insertIndex, bpp);
 
         //Split if node is now overfull
-        if(parent == null && pointers.size()>n) {   // Root splitting - middle value is new root node's only value
+        if(parentIndex == null && pointers.size()>n) {   // Root splitting - middle value is new root node's only value
             System.out.println("Splitting time!");
             System.out.println("BEFORE: "+pointers);
             int splitIndex = (pointers.size())/2;
@@ -236,14 +236,12 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * @param nodeIndex The index of the node within the B+ Tree file
      * @param nodeData The array of bytes containing the node's data
      */
-    public static BPlusNode<?> parse(TableSchema schema, int nodeIndex, byte[] nodeData) throws IOException {
+    public static BPlusNode<?> parse(TableSchema schema, int nodeIndex, byte[] nodeData, BPlusNode<?> parent) throws IOException {
         ByteArrayInputStream inStream = new ByteArrayInputStream(nodeData);
         DataInputStream in = new DataInputStream(inStream);
         in.readByte();  // Ignore metadata byte
         Attribute pk = schema.getPK();
         int n = (schema.pageSize / (pk.length + Integer.BYTES + Integer.BYTES)) - 1;
-
-        //TODO: Update this to account for parent pointer according to how it's stored in save()
 
         switch (pk.type) {
             case INT:
@@ -255,7 +253,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                     int secondPointer = in.readInt();
                     intPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
                 }
-                return new BPlusNode<>(schema, nodeIndex, intPointers, null);   //TODO: parent
+                return new BPlusNode<>(schema, nodeIndex, intPointers, parent.index);
             case DOUBLE:
                 ArrayList<BPlusPointer<Double>> doublePointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
@@ -265,7 +263,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                     int secondPointer = in.readInt();
                     doublePointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
                 }
-                return new BPlusNode<>(schema, nodeIndex, doublePointers, null);
+                return new BPlusNode<>(schema, nodeIndex, doublePointers, parent.index);
             case VARCHAR, CHAR:
                 ArrayList<BPlusPointer<String>> strPointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
@@ -275,7 +273,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                     String value = in.readUTF();
                     strPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
                 }
-                return new BPlusNode<>(schema, nodeIndex, strPointers, null);
+                return new BPlusNode<>(schema, nodeIndex, strPointers, parent.index);
             case BOOLEAN:
                 // Who is going to index on a boolean?????
                 ArrayList<BPlusPointer<Boolean>> boolPointers = new ArrayList<>();
@@ -286,12 +284,10 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                     int secondPointer = in.readInt();
                     boolPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
                 }
-                return new BPlusNode<>(schema, nodeIndex, boolPointers, null);
+                return new BPlusNode<>(schema, nodeIndex, boolPointers, parent.index);
         }
         return null;
     }
-
-
 
     /**
      * Helper method for casting an object to this node's type

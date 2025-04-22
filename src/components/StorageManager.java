@@ -29,7 +29,7 @@ public class StorageManager {
     public StorageManager(File databaseDir, int pageSize, int bufferSize, boolean indexing) throws IOException {
         File catalogFile = new File(databaseDir, "catalog.bin");
         catalog = new Catalog(catalogFile, pageSize, indexing);
-        buffer = new Buffer(bufferSize, catalog.pageSize());
+        buffer = new Buffer(catalog, bufferSize, catalog.pageSize());
         wipeTempTables();
         nextTempID = 0;
     }
@@ -67,14 +67,14 @@ public class StorageManager {
      * @return The pointer for the value; `null` if value does not exist in the table
      */
     private BPlusPointer<?> getIndex(TableSchema schema, Object value) {
-        BPlusNode<?> node = buffer.getNode(schema, schema.treeRoot);
+        BPlusNode<?> node = buffer.getNode(schema, schema.treeRoot, null);
         while (node != null) {
             BPlusPointer<?> pointer = node.get(value);
             if (pointer.isRecordPointer()) {
                 return pointer;
             }
             // If pointer was a node pointer, follow it
-            node = buffer.getNode(schema, pointer.getMainPointer());
+            node = buffer.getNode(schema, pointer.getMainPointer(), node);
         }
         return null;
     }
@@ -102,7 +102,7 @@ public class StorageManager {
         int targetPageNum = -1;
         int targetRecordIndex = -1;
         int pageIndex = 0;
-        Page currPage = schema.rootIndex == -1 ? null : getPage(schema, pageIndex);
+        Page currPage = getPage(schema, pageIndex);
         while (currPage != null) {
             for (int i = 0; i < currPage.recordCount(); i++) {
                 Record existingRec = currPage.records.get(i);
@@ -139,30 +139,27 @@ public class StorageManager {
 
         // If the page is now oversize, split
         if (targetPage.pageDataSize() > catalog.pageSize()) {
-            try {
-                pageIndex = addPage(schema.tableFile());
-            } catch (IOException e) {
-                // If there was a failure, undo the record insert and abort
-                System.err.println(e.getMessage());
-                targetPage.records.remove(targetRecordIndex);
-                return false;
+            int childIndex = schema.getFirstPageGap();
+            if (childIndex == -1) {
+                try {
+                    childIndex = addPage(schema.tableFile());
+                } catch (IOException e) {
+                    // If there was a failure, undo the record insert and abort
+                    System.err.println(e.getMessage());
+                    targetPage.records.remove(targetRecordIndex);
+                    return false;
+                }
             }
-            Page afterChild = buffer.getPage(schema, targetPage.index + 1); // Get this BEFORE you mess with root's nextIndex
-            Page child = targetPage.split(pageIndex);
-            assert (child.nextPage == -1) == (afterChild == null);
-            if (child.nextPage != -1) {
-                // Update the prevPage pointer for the page after this one, if one exists
-                afterChild.prevPage = pageIndex;
-                // Increment the page number for every page that follows child
-                buffer.incrementPageNumbers(schema, child.index);
-            }
-            // Insert the new page into the buffer
+            Page child = targetPage.split(childIndex);
+            // Insert the new page into the buffer and catalog
             try {
                 buffer.insert(child);
+                schema.insertPage(child.pageNumber, childIndex);
                 child.save();
             } catch (IOException ioe) {
                 System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
             }
+            buffer.refreshPageNumbers(schema); // Resync pageNumber for pages in buffer
         }
         return true;
     }
@@ -199,12 +196,11 @@ public class StorageManager {
                 System.err.println(e.getMessage());
                 return;
             }
-            // Create Page with new record and link it with prev
+            // Create Page with new record and update catalog page mapping
             ArrayList<Record> recordList = new ArrayList<>();
             recordList.add(record);
             Page newPage = new Page(pageIndex, lastPage.index + 1, recordList, schema);
-            newPage.prevPage = lastPage.pageIndex;
-            lastPage.nextPage = newPage.pageIndex;
+            schema.insertPage(newPage.pageNumber, newPage.index);
             // Insert the new page into the buffer
             try {
                 buffer.insert(newPage);
@@ -254,23 +250,15 @@ public class StorageManager {
      */
     public void dropPage(Page page) {
         TableSchema schema = page.getTableSchema();
-        int pageNum = page.index;
         // Remove page
         buffer.remove(page);
+        schema.removePage(page.pageNumber);  // Decrements existing pages as well
         schema.decrementPageCount();
-        // Link adjacent pages
-        Page prevPage = getPage(schema, pageNum - 1);
-        Page nextPage = getPage(schema, pageNum + 1);
-        // If prev page exists, set its next, otherwise make the next page root
-        if (prevPage != null) {
-            prevPage.nextPage = page.nextPage;
-        } else {
-            schema.rootIndex = page.nextPage;
+        // If page was root, get the new page 0 and set it as root
+        if (page.pageNumber == 0) {
+            schema.rootIndex = schema.getIndex(0);
         }
-        // If next page exists, set its prev page (if next page is null, do nothing)
-        if (nextPage != null) {
-            nextPage.prevPage = page.prevPage;
-        }
+        buffer.refreshPageNumbers(schema); // Resync pageNumbers for buffered pages
     }
 
     /**
