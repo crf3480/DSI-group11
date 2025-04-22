@@ -125,6 +125,8 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             pointers.clear();
             pointers.addAll(middle);
 
+            //BPlusNode<T> left = new BPlusNode<>(schema, , pointers, parent);
+
 
 
 
@@ -192,6 +194,24 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         //TODO: Merge leaves if underfull, update parent
         return true;
     }
+/*
+    public BPlusNode<T> getNode(int pageNum){
+        for(BPlusPointer<T> bpp : pointers){
+            if(bpp.pageIndex == pageNum){
+                return bpp;
+            }
+        }
+    }
+
+ */
+
+    public BPlusPointer<T> getRoot(){
+        return null;
+    }
+
+    public BPlusPointer<T> getParent() {
+        return parent;
+    }
 
     @Override
     public void save() throws IOException {
@@ -248,30 +268,30 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 ArrayList<BPlusPointer<Integer>> intPointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
                     int value = in.readInt();
-                    int mainPointer = in.readInt();
-                    if (mainPointer == -1) { break; }  // End of pointers flag
+                    int pageIndex = in.readInt();
+                    if (pageIndex == -1) { break; }  // End of pointers flag
                     int secondPointer = in.readInt();
-                    intPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
+                    intPointers.add(new BPlusPointer<>(value, pageIndex, secondPointer));
                 }
                 return new BPlusNode<>(schema, nodeIndex, intPointers, parent.index);
             case DOUBLE:
                 ArrayList<BPlusPointer<Double>> doublePointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
                     double value = in.readDouble();
-                    int mainPointer = in.readInt();
-                    if (mainPointer == -1) { break; }  // End of pointers flag
+                    int pageIndex = in.readInt();
+                    if (pageIndex == -1) { break; }  // End of pointers flag
                     int secondPointer = in.readInt();
-                    doublePointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
+                    doublePointers.add(new BPlusPointer<>(value, pageIndex, secondPointer));
                 }
                 return new BPlusNode<>(schema, nodeIndex, doublePointers, parent.index);
             case VARCHAR, CHAR:
                 ArrayList<BPlusPointer<String>> strPointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
-                    int mainPointer = in.readInt();
-                    if (mainPointer == -1) { break; }  // End of pointers flag
+                    int pageIndex = in.readInt();
+                    if (pageIndex == -1) { break; }  // End of pointers flag
                     int secondPointer = in.readInt();
                     String value = in.readUTF();
-                    strPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
+                    strPointers.add(new BPlusPointer<>(value, pageIndex, secondPointer));
                 }
                 return new BPlusNode<>(schema, nodeIndex, strPointers, parent.index);
             case BOOLEAN:
@@ -279,10 +299,10 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 ArrayList<BPlusPointer<Boolean>> boolPointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
                     boolean value = in.readBoolean();
-                    int mainPointer = in.readInt();
-                    if (mainPointer == -1) { break; }  // End of pointers flag
+                    int pageIndex = in.readInt();
+                    if (pageIndex == -1) { break; }  // End of pointers flag
                     int secondPointer = in.readInt();
-                    boolPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
+                    boolPointers.add(new BPlusPointer<>(value, pageIndex, secondPointer));
                 }
                 return new BPlusNode<>(schema, nodeIndex, boolPointers, parent.index);
         }

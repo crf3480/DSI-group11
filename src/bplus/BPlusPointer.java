@@ -10,13 +10,13 @@ import java.io.IOException;
 public class BPlusPointer<T extends Comparable<T>> {
 
     protected T value;
-    protected int mainPointer;
-    protected int subPointer;
+    protected int pageIndex;
+    protected int recordIndex;
 
-    public BPlusPointer(T value, int mainPointer, int subPointer) {
+    public BPlusPointer(T value, int pageIndex, int recordIndex) {
         this.value = value;
-        this.mainPointer = mainPointer;
-        this.subPointer = subPointer;
+        this.pageIndex = pageIndex;
+        this.recordIndex = recordIndex;
     }
 
     /**
@@ -31,16 +31,16 @@ public class BPlusPointer<T extends Comparable<T>> {
      * Gets the main pointer. For parent nodes, this is
      * @return The value of this pointer
      */
-    public int getMainPointer() {
-        return mainPointer;
+    public int getPageIndex() {
+        return pageIndex;
     }
 
     /**
-     * Gets the subpointer. For parent nodes, this is -1. For leaf nodes, this is the record pointer
-     * @return The value of the subpointer
+     * Gets the recordIndex. For parent nodes, this is -1. For leaf nodes, this is the record pointer
+     * @return The value of the recordIndex
      */
-    public int getSubPointer() {
-        return subPointer;
+    public int getRecordIndex() {
+        return recordIndex;
     }
 
     /**
@@ -48,7 +48,7 @@ public class BPlusPointer<T extends Comparable<T>> {
      * @return `true` if this is a record pointer; `false` if this object points to a BPlusNode
      */
     public boolean isRecordPointer() {
-        return subPointer != -1;
+        return recordIndex != -1;
     }
 
     /**
@@ -86,8 +86,8 @@ public class BPlusPointer<T extends Comparable<T>> {
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(outStream);
         // Write pointers
-        out.writeInt(mainPointer);
-        out.writeInt(subPointer);
+        out.writeInt(pageIndex);
+        out.writeInt(recordIndex);
         // Write value
         Attribute pk = schema.attributes.get(schema.primaryKey);
         switch (pk.type) {
@@ -102,8 +102,8 @@ public class BPlusPointer<T extends Comparable<T>> {
     @Override
     public String toString() {
         return "[" +value +
-                ", " + mainPointer +
-                ", " + subPointer +
+                ", " + pageIndex +
+                ", " + recordIndex +
                 ']';
     }
 }

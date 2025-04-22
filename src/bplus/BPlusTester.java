@@ -26,7 +26,7 @@ public class BPlusTester {
         BPlusNode<Integer> root = new BPlusNode<>(schema, 0, new ArrayList<>(), null);
         for (ArrayList<Record> page : file) {
             for (Record r : page) {
-                BPlusPointer<Integer> bpp = new BPlusPointer<>((int) r.get(0), -1, -1);
+                BPlusPointer<Integer> bpp = new BPlusPointer<>((int) r.get(0), 0, -1);
 
                 System.out.println("BEFORE: "+root);
                 root.insertRecord(bpp);
