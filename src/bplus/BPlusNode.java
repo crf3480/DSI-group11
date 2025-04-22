@@ -223,7 +223,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         in.readByte();  // Ignore metadata byte
         Attribute pk = schema.getPK();
         int n = (schema.pageSize / (pk.length + Integer.BYTES + Integer.BYTES)) - 1;
-        // Hurray for duplicated code...
 
         //TODO: Update this to account for parent pointer according to how it's stored in save()
 
@@ -237,7 +236,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                     int secondPointer = in.readInt();
                     intPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
                 }
-                return new BPlusNode<>(schema, nodeIndex, intPointers, null);
+                return new BPlusNode<>(schema, nodeIndex, intPointers, null);   //TODO: parent
             case DOUBLE:
                 ArrayList<BPlusPointer<Double>> doublePointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {

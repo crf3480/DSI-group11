@@ -131,12 +131,13 @@ public class TestData {
     }
 
     public static TableSchema permaTable(int pageSize) {
-        TableSchema out = new TableSchema("The PermaTable", 0, 0, new ArrayList<>(), "", 0, 0, pageSize);
-        out.attributes.add(new Attribute("id", AttributeType.INT, true, false, false, 4));
-        out.attributes.add(new Attribute("motto", AttributeType.VARCHAR, false, false, false, 4));
-        out.attributes.add(new Attribute("friends", AttributeType.DOUBLE, false, true, false, 4));
-        out.attributes.add(new Attribute("isgamer", AttributeType.BOOLEAN, false, true, false, 4));
-        out.attributes.add(new Attribute("name", AttributeType.CHAR, false, true, true, 13));
+        ArrayList<Attribute> attrList = new ArrayList<>();
+        attrList.add(new Attribute("id", AttributeType.INT, true, false, false, 4));
+        attrList.add(new Attribute("motto", AttributeType.VARCHAR, false, false, false, 4));
+        attrList.add(new Attribute("friends", AttributeType.DOUBLE, false, true, false, 4));
+        attrList.add(new Attribute("isgamer", AttributeType.BOOLEAN, false, true, false, 4));
+        attrList.add(new Attribute("name", AttributeType.CHAR, false, true, true, 13));
+        TableSchema out = new TableSchema("The PermaTable", 0, 0, attrList, "", 0, 0, pageSize);
         return out;
     }
 
