@@ -140,7 +140,7 @@ public class StorageManager {
         // If the page is now oversize, split
         if (targetPage.pageDataSize() > catalog.pageSize()) {
             try {
-                pageIndex = expandTable(schema);
+                pageIndex = expandTable(schema.tableFile());
             } catch (IOException e) {
                 // If there was a failure, undo the record insert and abort
                 System.err.println(e.getMessage());
@@ -194,7 +194,7 @@ public class StorageManager {
             lastPage.records.removeLast();
             int pageIndex;
             try {
-                pageIndex = expandTable(schema);
+                pageIndex = expandTable(schema.tableFile());
             } catch (IOException e) {
                 System.err.println(e.getMessage());
                 return;
@@ -372,8 +372,7 @@ public class StorageManager {
      * @param schema The TableSchema for the table being expanded
      * @return The index of the added page
      */
-    private int expandTable(TableSchema schema) throws IOException {
-        File tableFile = schema.tableFile();
+    private int expandTable(File tableFile) throws IOException {
         int newIndex = (int) tableFile.length() / catalog.pageSize();  // Calculate index before expanding table
         try (RandomAccessFile out = new RandomAccessFile(tableFile, "rw")) {
             out.seek(tableFile.length());
