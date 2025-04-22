@@ -9,10 +9,9 @@ import java.io.*;
 import java.util.ArrayList;
 
 public class BPlusNode<T extends Comparable<T>> extends Bufferable {
-
     private final TableSchema schema;
-    private final ArrayList<BPlusPointer<T>> pointers;
-    private BPlusNode<T> parent;
+    private ArrayList<BPlusPointer<T>> pointers;
+    private BPlusPointer<T> parent;
     public int n;
 
     /**
@@ -21,14 +20,14 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * @param nodeIndex The index of this node in the BPlus file
      * @param pointers The pointers stored in this node
      */
-    public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<T>> pointers, BPlusNode<T> parent) {
+    public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<T>> pointers, BPlusPointer<T> parent) {
         this.schema = schema;
         this.index = nodeIndex;
         this.pointers = pointers;
         this.parent = parent;
         Attribute pk = schema.attributes.get(schema.primaryKey);
         n = (schema.pageSize / (pk.length + Integer.BYTES + Integer.BYTES)) - 1;
-        n = 4;  //TODO: TEST VALUE. REMOVE LATER
+        n = 5;  //TODO: TEST VALUE. REMOVE LATER
     }
 
     /**
@@ -48,6 +47,14 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     }
 
     /**
+     * Checks if this node is the root node
+     * @return boolean corresponding to if the node is the root or not
+     */
+    public boolean isRootNode() {
+        return parent == null;
+    }
+
+    /**
      * Gets the BPlusPointer for a given value. If this is an internal node, returns
      * the BPlusPointer for the child node whose branch the value should be in
      * @param obj The value whose pointer is being searched for
@@ -57,7 +64,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     public BPlusPointer<T> get(Object obj) {
         T value = cast(obj);
         // Searches through all pointers until it finds the value. If it finds
-        // a larger value or the loop exists, a matching record does not exist
+        // a larger value or the loop exits, a matching record does not exist
         for (BPlusPointer<T> bpp : pointers) {
             // Last pointer has a null value, meaning you did not find a match
             // Leaf nodes return `null` since there was no match
@@ -84,11 +91,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * that key value already exists in this node
      */
     public boolean insertRecord(BPlusPointer<T> bpp) {
-        if (!isLeafNode()) {
-            throw new InternalError("`insertRecord` called on internal node. To traverse tree " +
-                    "for insertion, call `get()` until a leaf node is returned.");
-        }
-
         // Find the index where the record should be inserted, i.e. the index of the first
         // record with a greater value. If no record is larger, the loop will exit with
         // insertIndex == records.size() and the record will get appended
@@ -105,12 +107,37 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         pointers.add(insertIndex, bpp);
 
         //Split if node is now overfull
+        if(parent == null && pointers.size()>n) {   // Root splitting - middle value is new root node's only value
+            System.out.println("Splitting time!");
+            System.out.println("BEFORE: "+pointers);
+            int splitIndex = (pointers.size())/2;
+            ArrayList<BPlusPointer<T>> leftSide = new ArrayList<>();
+            ArrayList<BPlusPointer<T>> middle = new ArrayList<>();
+            ArrayList<BPlusPointer<T>> rightSide = new ArrayList<>();
+            leftSide.addAll(pointers.subList(0, splitIndex));
+            middle.add(pointers.get(splitIndex));
+            rightSide.addAll(pointers.subList(splitIndex+1, pointers.size()));
+            System.out.println(leftSide.toString());
+            System.out.println(middle.toString());
+            System.out.println(rightSide.toString());
+
+            //Make new root
+            pointers.clear();
+            pointers.addAll(middle);
+
+
+
+
+        }
+
         if(isLeafNode() && pointers.size() >= n){   // leaf node max size of n-1
             int splitIndex = (pointers.size()+1)/2;    //If odd size, the left one gets the extra element
             ArrayList<BPlusPointer<T>> leftSide = new ArrayList<>();
             ArrayList<BPlusPointer<T>> rightSide = new ArrayList<>();
             leftSide.addAll(pointers.subList(0, splitIndex));
             rightSide.addAll(pointers.subList(splitIndex, pointers.size()));
+
+            throw new InternalError("Time to split!");
 
             /*
                 I'm not adding multiple variables to the constructor if I don't have to
@@ -289,5 +316,15 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                     obj.getClass() + "` for table `" + schema.name + " (Expected: " +
                     schema.attributes.get(schema.primaryKey).type + ")");
         }
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (BPlusPointer<T> pointer : pointers) {
+            sb.append(pointer.toString()+" ");
+        }
+
+        return sb.toString();
     }
 }

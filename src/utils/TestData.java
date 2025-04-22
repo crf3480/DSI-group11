@@ -133,11 +133,11 @@ public class TestData {
     public static Record randomPermaRecord(){
         ArrayList<Object> recordData = new ArrayList<>();
         Random random = new Random();
-        recordData.add(random.nextInt());
-        recordData.add(randomString(10));
-        recordData.add(random.nextInt());
-        recordData.add(random.nextBoolean());
-        recordData.add(randomString(13));
+        recordData.add(random.nextInt() % 100000);                                  //id
+        recordData.add(randomString(10).strip().split(" ")[0]);        //motto
+        recordData.add(random.nextInt()%5000);                                      //friends
+        recordData.add(random.nextBoolean());                                       //isgamer
+        recordData.add(randomString(13).strip().split(" ")[0]);        //name
         Record record = new Record(recordData);
         return record;
     }
@@ -150,6 +150,28 @@ public class TestData {
         attrList.add(new Attribute("isgamer", AttributeType.BOOLEAN, false, true, false, 4));
         attrList.add(new Attribute("name", AttributeType.CHAR, false, true, true, 13));
         TableSchema out = new TableSchema("The PermaTable", 0, 0, attrList, "", 0, 0, pageSize);
+        return out;
+    }
+
+    public static Record randomTinyRecord(ArrayList<Integer> doNotUse){
+        ArrayList<Object> recordData = new ArrayList<>();
+        Random random = new Random();
+        int id = random.nextInt(100);
+        while (doNotUse.contains(id)) {
+            id = random.nextInt(100);
+        }
+        if (id < 0) {
+            id *= -1;
+        }
+        recordData.add(id);
+        Record record = new Record(recordData);
+        return record;
+    }
+
+    public static TableSchema permaTinyTable(int pageSize) {
+        ArrayList<Attribute> attrList = new ArrayList<>();
+        attrList.add(new Attribute("id", AttributeType.INT, true, false, false, 4));
+        TableSchema out = new TableSchema("TinyTable", 0, 0, attrList, "", 0, 0, pageSize);
         return out;
     }
 

@@ -36,8 +36,7 @@ public class BPlusPointer<T extends Comparable<T>> {
     }
 
     /**
-     * Gets the subpointer. For parent nodes, this is -1. For leaf nodes,
-     * this is the record pointer
+     * Gets the subpointer. For parent nodes, this is -1. For leaf nodes, this is the record pointer
      * @return The value of the subpointer
      */
     public int getSubPointer() {
@@ -98,5 +97,13 @@ public class BPlusPointer<T extends Comparable<T>> {
             case VARCHAR, CHAR -> out.writeUTF((String)value);
         }
         return outStream.toByteArray();
+    }
+
+    @Override
+    public String toString() {
+        return "[" +value +
+                ", " + mainPointer +
+                ", " + subPointer +
+                ']';
     }
 }
