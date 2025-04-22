@@ -232,8 +232,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         return true;
     }
 
-    private BPlusNode<T> findParent()
-
     @Override
     public void save() throws IOException {
         // Verify table exists
