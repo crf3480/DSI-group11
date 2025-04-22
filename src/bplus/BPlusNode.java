@@ -205,14 +205,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
 
  */
 
-    public BPlusPointer<T> getRoot(){
-        return null;
-    }
-
-    public BPlusPointer<T> getParent() {
-        return parent;
-    }
-
     @Override
     public void save() throws IOException {
         // Verify table exists
