@@ -74,7 +74,7 @@ public class StorageManager {
                 return pointer;
             }
             // If pointer was a node pointer, follow it
-            node = buffer.getNode(schema, pointer.getMainPointer(), node);
+            node = buffer.getNode(schema, pointer.getPageIndex(), node);
         }
         return null;
     }
