@@ -12,6 +12,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
 
     private final TableSchema schema;
     private final ArrayList<BPlusPointer<T>> pointers;
+    private BPlusNode<T> parent;
     public final int n;
 
     /**
@@ -20,71 +21,13 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * @param nodeIndex The index of this node in the BPlus file
      * @param pointers The pointers stored in this node
      */
-    public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<T>> pointers) {
+    public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<T>> pointers, BPlusNode<T> parent) {
         this.schema = schema;
         this.index = nodeIndex;
         this.pointers = pointers;
+        this.parent = parent;
         Attribute pk = schema.attributes.get(schema.primaryKey);
         n = (schema.pageSize / (pk.length + Integer.BYTES + Integer.BYTES)) - 1;
-    }
-
-    /**
-     * Parses a BPlusNode out of an array of bytes
-     * @param schema The TableSchema for the table the node belongs to
-     * @param nodeIndex The index of the node within the B+ Tree file
-     * @param nodeData The array of bytes containing the node's data
-     */
-    public static BPlusNode<?> parse(TableSchema schema, int nodeIndex, byte[] nodeData) throws IOException {
-        ByteArrayInputStream inStream = new ByteArrayInputStream(nodeData);
-        DataInputStream in = new DataInputStream(inStream);
-        in.readByte();  // Ignore metadata byte
-        Attribute pk = schema.getPK();
-        int n = (schema.pageSize / (pk.length + Integer.BYTES + Integer.BYTES)) - 1;
-        // Hurray for duplicated code...
-        switch (pk.type) {
-            case INT:
-                ArrayList<BPlusPointer<Integer>> intPointers = new ArrayList<>();
-                for (int i = 0; i < n; i++) {
-                    int value = in.readInt();
-                    int mainPointer = in.readInt();
-                    if (mainPointer == -1) { break; }  // End of pointers flag
-                    int secondPointer = in.readInt();
-                    intPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
-                }
-                return new BPlusNode<>(schema, nodeIndex, intPointers);
-            case DOUBLE:
-                ArrayList<BPlusPointer<Double>> doublePointers = new ArrayList<>();
-                for (int i = 0; i < n; i++) {
-                    double value = in.readDouble();
-                    int mainPointer = in.readInt();
-                    if (mainPointer == -1) { break; }  // End of pointers flag
-                    int secondPointer = in.readInt();
-                    doublePointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
-                }
-                return new BPlusNode<>(schema, nodeIndex, doublePointers);
-            case VARCHAR, CHAR:
-                ArrayList<BPlusPointer<String>> strPointers = new ArrayList<>();
-                for (int i = 0; i < n; i++) {
-                    int mainPointer = in.readInt();
-                    if (mainPointer == -1) { break; }  // End of pointers flag
-                    int secondPointer = in.readInt();
-                    String value = in.readUTF();
-                    strPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
-                }
-                return new BPlusNode<>(schema, nodeIndex, strPointers);
-            case BOOLEAN:
-                // Who is going to index on a boolean?????
-                ArrayList<BPlusPointer<Boolean>> boolPointers = new ArrayList<>();
-                for (int i = 0; i < n; i++) {
-                    boolean value = in.readBoolean();
-                    int mainPointer = in.readInt();
-                    if (mainPointer == -1) { break; }  // End of pointers flag
-                    int secondPointer = in.readInt();
-                    boolPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
-                }
-                return new BPlusNode<>(schema, nodeIndex, boolPointers);
-        }
-        return null;
     }
 
     /**
@@ -194,7 +137,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             /*
                 More pseudocode yay
                 TODO: internal node splitting
-                    if root, create new root. value = first on right side, pointers are left and right
+                    if root, create new root. value = first on right side, pointers are left and right.sublist(1 to end)
                     if not root, split as usual; send right upwards and and replace current pointers with left side
              */
         }
@@ -227,8 +170,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             deleteIndex += 1;
         }
         pointers.remove(deleteIndex);
-        //TODO: Merge leaves if underfull
-        //TODO: Update value/parent?
+        //TODO: Merge leaves if underfull, update parent
         return true;
     }
 
@@ -248,6 +190,9 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             // Create output byte array
             ByteArrayOutputStream bs = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(bs);
+
+
+
             for (BPlusPointer<T> pointer : pointers) {
                 out.write(pointer.encode(schema));
             }
@@ -265,6 +210,70 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             throw new IOException("Encountered problem while attempting to write to index file: " + ioe.getMessage());
         }
     }
+
+    /**
+     * Parses a BPlusNode out of an array of bytes
+     * @param schema The TableSchema for the table the node belongs to
+     * @param nodeIndex The index of the node within the B+ Tree file
+     * @param nodeData The array of bytes containing the node's data
+     */
+    public static BPlusNode<?> parse(TableSchema schema, int nodeIndex, byte[] nodeData) throws IOException {
+        ByteArrayInputStream inStream = new ByteArrayInputStream(nodeData);
+        DataInputStream in = new DataInputStream(inStream);
+        in.readByte();  // Ignore metadata byte
+        Attribute pk = schema.getPK();
+        int n = (schema.pageSize / (pk.length + Integer.BYTES + Integer.BYTES)) - 1;
+        // Hurray for duplicated code...
+
+        //TODO: Update this to account for parent pointer according to how it's stored in save()
+
+        switch (pk.type) {
+            case INT:
+                ArrayList<BPlusPointer<Integer>> intPointers = new ArrayList<>();
+                for (int i = 0; i < n; i++) {
+                    int value = in.readInt();
+                    int mainPointer = in.readInt();
+                    if (mainPointer == -1) { break; }  // End of pointers flag
+                    int secondPointer = in.readInt();
+                    intPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
+                }
+                return new BPlusNode<>(schema, nodeIndex, intPointers, null);
+            case DOUBLE:
+                ArrayList<BPlusPointer<Double>> doublePointers = new ArrayList<>();
+                for (int i = 0; i < n; i++) {
+                    double value = in.readDouble();
+                    int mainPointer = in.readInt();
+                    if (mainPointer == -1) { break; }  // End of pointers flag
+                    int secondPointer = in.readInt();
+                    doublePointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
+                }
+                return new BPlusNode<>(schema, nodeIndex, doublePointers, null);
+            case VARCHAR, CHAR:
+                ArrayList<BPlusPointer<String>> strPointers = new ArrayList<>();
+                for (int i = 0; i < n; i++) {
+                    int mainPointer = in.readInt();
+                    if (mainPointer == -1) { break; }  // End of pointers flag
+                    int secondPointer = in.readInt();
+                    String value = in.readUTF();
+                    strPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
+                }
+                return new BPlusNode<>(schema, nodeIndex, strPointers, null);
+            case BOOLEAN:
+                // Who is going to index on a boolean?????
+                ArrayList<BPlusPointer<Boolean>> boolPointers = new ArrayList<>();
+                for (int i = 0; i < n; i++) {
+                    boolean value = in.readBoolean();
+                    int mainPointer = in.readInt();
+                    if (mainPointer == -1) { break; }  // End of pointers flag
+                    int secondPointer = in.readInt();
+                    boolPointers.add(new BPlusPointer<>(value, mainPointer, secondPointer));
+                }
+                return new BPlusNode<>(schema, nodeIndex, boolPointers, null);
+        }
+        return null;
+    }
+
+
 
     /**
      * Helper method for casting an object to this node's type
