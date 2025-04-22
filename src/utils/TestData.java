@@ -130,10 +130,22 @@ public class TestData {
         return record;
     }
 
+    public static Record randomPermaRecord(){
+        ArrayList<Object> recordData = new ArrayList<>();
+        Random random = new Random();
+        recordData.add(random.nextInt());
+        recordData.add(randomString(10));
+        recordData.add(random.nextInt());
+        recordData.add(random.nextBoolean());
+        recordData.add(randomString(13));
+        Record record = new Record(recordData);
+        return record;
+    }
+
     public static TableSchema permaTable(int pageSize) {
         ArrayList<Attribute> attrList = new ArrayList<>();
         attrList.add(new Attribute("id", AttributeType.INT, true, false, false, 4));
-        attrList.add(new Attribute("motto", AttributeType.VARCHAR, false, false, false, 4));
+        attrList.add(new Attribute("motto", AttributeType.VARCHAR, false, false, false, 10));
         attrList.add(new Attribute("friends", AttributeType.DOUBLE, false, true, false, 4));
         attrList.add(new Attribute("isgamer", AttributeType.BOOLEAN, false, true, false, 4));
         attrList.add(new Attribute("name", AttributeType.CHAR, false, true, true, 13));

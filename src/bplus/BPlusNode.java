@@ -13,7 +13,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     private final TableSchema schema;
     private final ArrayList<BPlusPointer<T>> pointers;
     private BPlusNode<T> parent;
-    public final int n;
+    public int n;
 
     /**
      * Creates a BPlusNode for a given table
@@ -28,6 +28,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         this.parent = parent;
         Attribute pk = schema.attributes.get(schema.primaryKey);
         n = (schema.pageSize / (pk.length + Integer.BYTES + Integer.BYTES)) - 1;
+        n = 4;  //TODO: TEST VALUE. REMOVE LATER
     }
 
     /**
