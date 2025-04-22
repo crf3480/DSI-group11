@@ -140,7 +140,7 @@ public class StorageManager {
         // If the page is now oversize, split
         if (targetPage.pageDataSize() > catalog.pageSize()) {
             try {
-                pageIndex = expandTable(schema.tableFile());
+                pageIndex = addPage(schema.tableFile());
             } catch (IOException e) {
                 // If there was a failure, undo the record insert and abort
                 System.err.println(e.getMessage());
@@ -194,7 +194,7 @@ public class StorageManager {
             lastPage.records.removeLast();
             int pageIndex;
             try {
-                pageIndex = expandTable(schema.tableFile());
+                pageIndex = addPage(schema.tableFile());
             } catch (IOException e) {
                 System.err.println(e.getMessage());
                 return;
@@ -367,18 +367,17 @@ public class StorageManager {
     }
 
     /**
-     * Increases the size of a table file by a single page. Returns the index of the page
-     * that would occupy the added space
-     * @param schema The TableSchema for the table being expanded
+     * Adds a single page to the given file. Returns the index of the page that would occupy the added space
+     * @param file the file to add a page to
      * @return The index of the added page
      */
-    private int expandTable(File tableFile) throws IOException {
-        int newIndex = (int) tableFile.length() / catalog.pageSize();  // Calculate index before expanding table
-        try (RandomAccessFile out = new RandomAccessFile(tableFile, "rw")) {
-            out.seek(tableFile.length());
+    private int addPage(File file) throws IOException {
+        int newIndex = (int) file.length() / catalog.pageSize();  // Calculate index before expanding table
+        try (RandomAccessFile out = new RandomAccessFile(file, "rw")) {
+            out.seek(file.length());
             out.write(new byte[catalog.pageSize()]);
         } catch (FileNotFoundException fnf) {
-            throw new IOException("Could not locate table file for table `" + tableFile.getAbsolutePath() + "`");
+            throw new IOException("Could not locate file `" + file.getAbsolutePath() + "`");
         }
         return newIndex;
     }
