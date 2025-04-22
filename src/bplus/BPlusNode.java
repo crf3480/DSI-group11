@@ -140,19 +140,10 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             throw new InternalError("Time to split!");
 
             /*
-                I'm not adding multiple variables to the constructor if I don't have to
-                and it's too late to talk to people about it.
-
-                I'm fairly certain we need to add a parent pointer(or just a node?).
-                uncertain how to find the parent without adding it as a pointer.
-                I have an idea for finding the path to a leaf node, but there might be a better way
-                Either way I'm not implementing anything without consulting the group first
-
                 TODO: Leaf node splitting
                  Get parent node(?) Right side needs to be given to parent node
                  insertRecord(rightSide) on the parent node, that way it'll recursively split upwards
                  set this node's pointers array to leftSize.
-
              */
         }
         else if (pointers.size() > n) {  // internal node max size of n
