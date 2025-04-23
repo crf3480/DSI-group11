@@ -118,6 +118,7 @@ public class DatabaseEngine {
         while (page != null) {
             int i = 0;
             while (i < page.recordCount()) {
+                page = storageManager.getPage(schema, pageNumber);
                 Record oldRecord = page.records.get(i);
                 if(eval.evaluateRecord(oldRecord)) {    // if the record passes the where
                     Record updatedRecord = oldRecord.duplicate();   // copy record to test if insertion works
