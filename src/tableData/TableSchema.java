@@ -219,8 +219,9 @@ public class TableSchema {
     public void insertPage(int pageNumber, int atIndex) {
         // Increment all pages of equal or greater pageNumber
         for (int i = 0; i < numberMap.size(); i++) {
-            if (numberMap.get(i) >= pageNumber) {
-                numberMap.set(i, numberMap.get(i) + 1);
+            int currMap = numberMap.get(i);
+            if (currMap >= pageNumber) {
+                numberMap.set(i, currMap + 1);
             }
         }
         // Insert pageNumber

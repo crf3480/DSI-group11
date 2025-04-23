@@ -51,13 +51,24 @@ public class StorageManager {
     }
 
     /**
-     * Returns a specific Page from a table
+     * Returns a specific Page from a table, addressed by its index
      * @param schema The TableSchema of the table the Page belongs to
-     * @param pageNumber The number of the Page being fetched
+     * @param pageIndex The number of the Page being fetched
      * @return The fetched Page; `null` if no page exists with that number
      */
+    public Page getPageByIndex(TableSchema schema, int pageIndex) {
+        return buffer.getPage(schema, pageIndex);
+    }
+
+    /**
+     * Returns a specific Page from a table, addressed by its page number
+     * @param schema The TableSchema of the table the Page belongs to
+     * @param pageNumber The index of the Page being fetched
+     * @return The fetched Page; `null` if no page exists with that index
+     */
     public Page getPage(TableSchema schema, int pageNumber) {
-        return buffer.getPage(schema, pageNumber);
+        int pageIndex = schema.getIndex(pageNumber);
+        return buffer.getPage(schema, pageIndex);
     }
 
     /**
@@ -99,10 +110,10 @@ public class StorageManager {
             }
         }
         // Verify record is unique. While looping, find and remember the insertion point
-        int targetPageNum = -1;
+        int targetPageIndex = -1;
         int targetRecordIndex = -1;
-        int pageIndex = 0;
-        Page currPage = getPage(schema, pageIndex);
+        int pageNum = 0;
+        Page currPage = getPage(schema, pageNum);
         while (currPage != null) {
             for (int i = 0; i < currPage.recordCount(); i++) {
                 Record existingRec = currPage.records.get(i);
@@ -115,21 +126,20 @@ public class StorageManager {
                     return false;
                 }
                 // Check for insertion point
-                if (targetPageNum == -1 && !record.greaterThan(existingRec, schema, attrIndex)) {
-                    targetPageNum = pageIndex;
+                if (targetPageIndex == -1 && !record.greaterThan(existingRec, schema, attrIndex)) {
+                    targetPageIndex = currPage.index;
                     targetRecordIndex = i;
                 }
             }
-            pageIndex += 1;
-            currPage = getPage(schema, pageIndex);
+            pageNum += 1;
+            currPage = getPage(schema, pageNum);
         }
         // If targetPageNum was never updated, record goes at the end of the table
-        if (targetPageNum == -1) {
-            targetPageNum = schema.pageCount() - 1;
-
+        if (targetPageIndex == -1) {
+            targetPageIndex = schema.getIndex(schema.pageCount() - 1);
         }
         // Insert record into target page/index
-        Page targetPage = getPage(schema, targetPageNum);
+        Page targetPage = getPage(schema, targetPageIndex);
         if (targetRecordIndex == -1) {
             targetPage.records.add(record);
         } else {
@@ -153,6 +163,7 @@ public class StorageManager {
             Page child = targetPage.split(childIndex);
             // Insert the new page into the buffer and catalog
             try {
+                System.out.println("Inserting child " + child.pageNumber + " at " + childIndex);
                 buffer.insert(child);
                 schema.insertPage(child.pageNumber, childIndex);
                 child.save();

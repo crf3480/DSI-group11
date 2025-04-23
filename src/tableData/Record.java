@@ -62,7 +62,7 @@ public class Record {
             // If the attribute is unique or a PK and the two records are equal on
             // that attribute, either by == or .equals()
             if ((schema.attributes.get(i).unique || schema.attributes.get(i).primaryKey)
-                    && (rowData.get(i) == other.rowData.get(i) ||
+                    && (rowData.get(i).equals(other.rowData.get(i)) ||
                     (rowData.get(i) != null && rowData.get(i).equals(other.rowData.get(i))))) {
                 return i;
             }

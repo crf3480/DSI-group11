@@ -48,6 +48,7 @@ public class Main {
 
         // Init storage components
         storageManager = new StorageManager(databaseDir, pageSize, bufferSize, indexing);
+        storageManager.save();
         DatabaseEngine databaseEngine = new DatabaseEngine(storageManager);
         System.out.println("Indexing is "+((storageManager.isIndexingEnabled()) ? "" : "not ") + "enabled");
         // Init parsers
@@ -63,6 +64,7 @@ public class Main {
         if (args.length >= 5){
             devArgs.addAll(Arrays.asList(args).subList(3, args.length));
         }
+        System.out.println(devArgs);
         if (devArgs.contains("--nuke")) {
             storageManager.toggleNUKE_MODE();
         }
@@ -73,7 +75,7 @@ public class Main {
                 System.err.println("`-X` arg missing command string");
                 return;
             }
-            exec(devArgs.get(executeStringIndex + 1));
+            exec(devArgs.get(executeStringIndex + 1), devArgs.contains("-v"));
         }
         // File command run
         int execFileIndex = devArgs.indexOf("-i");
@@ -88,7 +90,7 @@ public class Main {
                 while (line != null) {
                     if (!line.startsWith("//") && !line.isEmpty()) {
                         System.out.println("\n"+line);
-                        exec(line);
+                        exec(line, devArgs.contains("-v"));
                     }
                     TimeUnit.MILLISECONDS.sleep(25);    // allows stderr prints time to show up in intelliJ
                     if (line.contains("<quit>")){
@@ -117,6 +119,11 @@ public class Main {
                         keepRunning = exec(statement);
                     } catch (Exception e){
                         System.err.println(e.getMessage());
+                        if (devArgs.contains("-v")) {
+                            for (StackTraceElement trace : e.getStackTrace()) {
+                                System.err.println(trace);
+                            }
+                        }
                     }
                 }
             }
@@ -170,8 +177,9 @@ public class Main {
     /**
      * Convenience method for calling exec directly with a string
      * @param str The command to execute as a single String
+     * @param verbose if `true`, prints full stack trace on error
      */
-    private static void exec(String str) {
+    private static void exec(String str, boolean verbose) {
         StringReader sr = new StringReader(str + ";");
         ArrayList<ArrayList<String>> tokenizedCmds = getQuery(new BufferedReader(sr));
         for (ArrayList<String> cmd : tokenizedCmds) {
@@ -179,6 +187,11 @@ public class Main {
                 exec(cmd);
             } catch (Exception e) {
                 System.err.println(e.getMessage());
+                if (verbose) {
+                    for (StackTraceElement trace : e.getStackTrace()) {
+                        System.err.println(trace);
+                    }
+                }
             }
         }
     }

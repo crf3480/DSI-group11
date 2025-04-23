@@ -113,16 +113,15 @@ public class DatabaseEngine {
         }
         Attribute attribute = schema.attributes.get(attributeIndex);
         Evaluator eval = new Evaluator(whereClause, schema);
-        int pageIndex = 0;
-        Page page = storageManager.getPage(schema, pageIndex);
+        int pageNumber = 0;
+        Page page = storageManager.getPage(schema, pageNumber);
         while (page != null) {
             int i = 0;
-            while (i < page.recordCount()){
+            while (i < page.recordCount()) {
                 Record oldRecord = page.records.get(i);
                 if(eval.evaluateRecord(oldRecord)) {    // if the record passes the where
                     Record updatedRecord = oldRecord.duplicate();   // copy record to test if insertion works
                     updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute));
-
                     if(!oldRecord.equals(updatedRecord)) {  // don't run swap logic if update changes nothing
                         page.records.remove(i);             // need to remove old record temporarily to see if new is valid to insert
                         schema.decrementRecordCount();      // necessary to validate some checks that can't be done yet
@@ -138,8 +137,8 @@ public class DatabaseEngine {
             if (page.recordCount() == 0) {
                 storageManager.dropPage(page);
             }
-            pageIndex += 1;
-            page = storageManager.getPage(schema, pageIndex);
+            pageNumber += 1;
+            page = storageManager.getPage(schema, pageNumber);
         }
     }
 
@@ -188,15 +187,15 @@ public class DatabaseEngine {
         }
         // Iterate over all records, dropping the attribute and inserting it into the new table
         Page currPage = storageManager.getPage(schema, 0);
-        int currIndex = 0;
+        int currPageNumber = 0;
         while (currPage != null) {
             for (Record r : currPage.records) {
                 Record updatedRec = r.duplicate();
                 updatedRec.rowData.remove(dropIndex);
                 storageManager.fastInsert(newSchema, updatedRec);
             }
-            currIndex += 1;
-            currPage = storageManager.getPage(schema, currIndex);
+            currPageNumber += 1;
+            currPage = storageManager.getPage(schema, currPageNumber);
         }
         storageManager.replaceTable(schema, newSchema);
     }
@@ -358,7 +357,7 @@ public class DatabaseEngine {
                 return;
             }
             // Fill the temp table only with where-passing values (empty `where` makes eval.evaluate always return true)
-            int pageIndex = 0;
+            int pageNumber = 0;
             Page page = storageManager.getPage(schema, 0);
             while (page != null) {
                 for (Record r : page.records) {
@@ -371,8 +370,8 @@ public class DatabaseEngine {
                         }
                     }
                 }
-                pageIndex++;
-                page = storageManager.getPage(schema, pageIndex);
+                pageNumber++;
+                page = storageManager.getPage(schema, pageNumber);
             }
             schema = temp;
         }
@@ -388,12 +387,12 @@ public class DatabaseEngine {
         // Print table
         System.out.println(headerToString(schema, 10));
         try {
-            int pageIndex = 0;
-            Page currPage = storageManager.getPage(schema, pageIndex);
+            int pageNumber = 0;
+            Page currPage = storageManager.getPage(schema, pageNumber);
             while (currPage != null) {
                 System.out.println(tableToString(currPage.records, 10));
-                pageIndex += 1;
-                currPage = storageManager.getPage(schema, pageIndex);
+                pageNumber += 1;
+                currPage = storageManager.getPage(schema, pageNumber);
             }
         }
         catch (Exception e) {
@@ -416,7 +415,7 @@ public class DatabaseEngine {
     public void deleteWhere(String tableName, ArrayList<String> whereClause) {
         TableSchema schema = storageManager.getTableSchema(tableName);
         Evaluator eval = new Evaluator(whereClause, schema);
-        int pageIndex = 0;
+        int pageNumber = 0;
         Page page = storageManager.getPage(schema, 0);
         while (page != null) {
             int i = 0;
@@ -432,8 +431,8 @@ public class DatabaseEngine {
             if (page.recordCount() == 0) {
                 storageManager.dropPage(page);
             }
-            pageIndex += 1;
-            page = storageManager.getPage(schema, pageIndex);
+            pageNumber += 1;
+            page = storageManager.getPage(schema, pageNumber);
         }
     }
     
@@ -530,13 +529,12 @@ public class DatabaseEngine {
         }
         if (combinedSchema != null) {
             // Block nested loop join
-            int largerIndex = 0;
+            int largerNumber = 0;
             Page largerPage = storageManager.getPage(larger, 0);
             while (largerPage != null) {
-                int smallerIndex = 0;
+                int smallerNumber = 0;
                 Page smallerPage = storageManager.getPage(smaller, 0);
                 while (smallerPage != null) {
-                    smallerPage = storageManager.getPage(smaller, smallerIndex);
                     for (Record lRec : largerPage.getRecords()) {
                         for (Record rRec : smallerPage.getRecords()) {
                             ArrayList<Object> rowData = new ArrayList<>(lRec.rowData);
@@ -544,11 +542,11 @@ public class DatabaseEngine {
                             storageManager.fastInsert(combinedSchema, new Record(rowData));
                         }
                     }
-                    smallerIndex++;
-                    smallerPage = storageManager.getPage(smaller, smallerIndex);
+                    smallerNumber++;
+                    smallerPage = storageManager.getPage(smaller, smallerNumber);
                 }
-                largerIndex++;
-                largerPage = storageManager.getPage(larger, largerIndex);
+                largerNumber++;
+                largerPage = storageManager.getPage(larger, largerNumber);
             }
         }
         return combinedSchema;
@@ -592,7 +590,7 @@ public class DatabaseEngine {
         }
         // Fill projection table
         Page currPage = storageManager.getPage(schema, 0);
-        int currIndex = 0;
+        int currPageNumber = 0;
         while (currPage != null) {
             for (Record r : currPage.records) {
                 Record projRec = new Record();
@@ -601,8 +599,8 @@ public class DatabaseEngine {
                 }
                 storageManager.fastInsert(projSchema, projRec);
             }
-            currIndex += 1;
-            currPage = storageManager.getPage(schema, currIndex);
+            currPageNumber += 1;
+            currPage = storageManager.getPage(schema, currPageNumber);
         }
         return projSchema;
     }
