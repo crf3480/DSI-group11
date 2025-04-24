@@ -3,6 +3,8 @@ import bplus.*;
 import exceptions.CustomExceptions.*;
 import tableData.*;
 import tableData.Record;
+import where.Evaluator;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;

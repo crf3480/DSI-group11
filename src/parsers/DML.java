@@ -304,16 +304,17 @@ public class DML extends GeneralParser {
             System.err.println("Invalid delete statement: delete from <name> where <condition>;");
             return;
         }
-
         String tablename = inputList.get(2); // Validated in database engine
-
         if (!inputList.get(3).equals("where")) {
             System.err.println("Invalid delete statement: Invalid where clause");
         }
-
         ArrayList<String> whereQueries = new ArrayList<>(inputList.subList(4, inputList.size()));
+        if(engine.checkForIndex()){
+            engine.deleteWithIndexing(tablename, whereQueries);
+        } else {
+            engine.deleteWhere(tablename, whereQueries);
+        }
 
-        engine.deleteWhere(tablename, whereQueries);
     }
 
 

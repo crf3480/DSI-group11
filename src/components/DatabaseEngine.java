@@ -470,6 +470,13 @@ public class DatabaseEngine {
             page = storageManager.getPage(schema, pageNumber);
         }
     }
+
+    public void deleteWithIndexing(String tablename, ArrayList<String> whereQueries){
+        TableSchema schema = storageManager.getTableSchema(tablename);
+        Evaluator eval = new Evaluator(whereQueries, schema);
+
+
+    }
     
     /**
      * Converts a list of strings into their appropriate data objects and inserts the record into a given table.
@@ -824,6 +831,10 @@ public class DatabaseEngine {
         output.append("-".repeat(totalWidth - 2));
         output.append('+');
         return output.toString();
+    }
+
+    public boolean checkForIndex(){
+        return storageManager.isIndexingEnabled();
     }
 
     /**
