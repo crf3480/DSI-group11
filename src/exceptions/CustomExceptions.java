@@ -48,4 +48,11 @@ public class CustomExceptions extends RuntimeException {
     public static class CorruptedDataException extends IOException {
         public CorruptedDataException(String message) { super(message); }
     }
+
+    /**
+     * Thrown when encountering an error with page freezing
+     */
+    public static class PageFreezeException extends RuntimeException {
+        public PageFreezeException(String message) { super(message); }
+    }
 }

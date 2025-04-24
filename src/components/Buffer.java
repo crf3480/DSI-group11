@@ -1,6 +1,7 @@
 package components;
 
 import bplus.BPlusNode;
+import exceptions.CustomExceptions.*;
 import tableData.Bufferable;
 import tableData.Catalog;
 import tableData.Page;
@@ -10,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 
 /**
  * Class representing the page buffer
@@ -48,8 +50,26 @@ public class Buffer {
     public void insert(Bufferable page) throws IOException {
         // See if we need to make room in the buffer
         if (buffer.size() >= bufferSize) {
+            ArrayList<Bufferable> pageStack = new ArrayList<>();
             Bufferable old = buffer.removeLast();
+            // Loop until you either find an unfrozen page or empty the buffer
+            while (!buffer.isEmpty()) {
+                if (old.isFrozen()) {
+                    pageStack.add(old);
+                } else {
+                    break;
+                }
+                old = buffer.removeLast();
+            }
+            if (old.isFrozen()) {
+                // If every page in the buffer is frozen, there's nothing you can do
+                throw new PageFreezeException("Attempted to insert a page into a buffer, but all pages were frozen");
+            }
             old.save();
+            // Push the stack back into the buffer in order
+            while (!pageStack.isEmpty()) {
+                buffer.addLast(pageStack.removeLast());
+            }
         }
         buffer.push(page);
     }
@@ -310,6 +330,17 @@ public class Buffer {
             newBuffer.push(currPage);
         }
         buffer = newBuffer;
+    }
+
+    /**
+     * Unfreezes all pages in the buffer
+     */
+    public void unfreezeAllPages() {
+        for (Bufferable page : buffer) {
+            while (page.isFrozen()) {
+                page.unfreeze();
+            }
+        }
     }
 
     /**

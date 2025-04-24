@@ -1,10 +1,13 @@
 package tableData;
 
+import exceptions.CustomExceptions.*;
+
 import java.io.IOException;
 
 public abstract class Bufferable {
 
     public int index;
+    private int numFreezes = 0;
 
     /**
      * Returns the table name that this Bufferable belongs to
@@ -39,4 +42,33 @@ public abstract class Bufferable {
      * Writes the contents of this Bufferable to disk
      */
     public abstract void save() throws IOException;
+
+    /**
+     * Checks if this Bufferable is "frozen", meaning an in progress command has marked it to
+     * not be purged from the buffer. This status should always be removed at the end of processing
+     * the command
+     * @return `true` if this Bufferable is frozen
+     */
+    public boolean isFrozen() {
+        return numFreezes != 0;
+    }
+
+    /**
+     * "Freezes" this Bufferable, meaning it will not be purged from the buffer. Must be
+     */
+    public void freeze() {
+        numFreezes += 1;
+    }
+
+    /**
+     * Releases a freeze on this Bufferable. Does not necessarily fully unfreeze the Page
+     * if there are other outstanding freezes.
+     * @throws PageFreezeException if page has no outstanding freezes
+     */
+    public void unfreeze() {
+        if (numFreezes == 0) {
+            throw new PageFreezeException("Attempted to unfreeze page which wasn't frozen: `" + this + "`");
+        }
+        numFreezes -= 1;
+    }
 }
