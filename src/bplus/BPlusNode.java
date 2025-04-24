@@ -23,7 +23,21 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<T>> pointers, int parentIndex) {
         this.schema = schema;
         this.index = nodeIndex;
-        this.pointers = pointers;
+        this.pointers = new ArrayList<BPlusPointer<T>>();
+        for (BPlusPointer<?> pointer : pointers) {
+            pointers.add((BPlusPointer<T>) pointer);
+        }
+        this.parent = parentIndex;
+    }
+
+    // i hate generics
+    public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<?>> pointers, int parentIndex, boolean isThisDumb){
+        this.schema = schema;
+        this.index = nodeIndex;
+        this.pointers = new ArrayList<BPlusPointer<T>>();
+        for (BPlusPointer<?> pointer : pointers) {
+            pointers.add(((BPlusPointer<T>) pointer));
+        }
         this.parent = parentIndex;
     }
 
@@ -35,12 +49,24 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         return schema.name;
     }
 
+    public int getParent() {
+        return parent;
+    }
+
     /**
      * Checks if this BPlusNode is a leaf node rather than an internal node
      * @return `true` if this object is a leaf node; `false` if this object is an internal node
      */
     public boolean isLeafNode() {
         return pointers.getFirst().isRecordPointer();
+    }
+
+    /**
+     * Checks if this node is the root node
+     * @return boolean corresponding to if the node is the root or not
+     */
+    public boolean isRootNode() {
+        return parent == -1;
     }
 
     /**
@@ -81,10 +107,8 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      */
     public boolean insertRecord(BPlusPointer<T> bpp) {
         if (!isLeafNode()) {
-            throw new InternalError("`insertRecord` called on internal node. To traverse tree " +
-                    "for insertion, call `get()` until a leaf node is returned.");
+            return false;
         }
-
         // Find the index where the record should be inserted, i.e. the index of the first
         // record with a greater value. If no record is larger, the loop will exit with
         // insertIndex == records.size() and the record will get appended
@@ -99,8 +123,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             insertIndex += 1;
         }
         pointers.add(insertIndex, bpp);
-        //TODO: Split page if overfull
-        //TODO: Update value/parent?
         return true;
     }
 
@@ -112,8 +134,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      */
     public boolean deleteRecord(Object obj) {
         if (!isLeafNode()) {
-            throw new InternalError("`deleteRecord` called on internal node. To traverse tree " +
-                    "for deletion, call `get()` until a leaf node is returned.");
+            return false;
         }
 
         T value = cast(obj);
@@ -130,9 +151,12 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             deleteIndex += 1;
         }
         pointers.remove(deleteIndex);
-        //TODO: Merge leaves if underfull
-        //TODO: Update value/parent?
+        //TODO: Merge leaves if underfull, revalidate tree (IN STORAGEMANAGER)
         return true;
+    }
+
+    public ArrayList<BPlusPointer<T>> getPointers() {
+        return pointers;
     }
 
     /**
@@ -140,13 +164,12 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * @param schema The TableSchema for the table the node belongs to
      * @param nodeIndex The index of the node within the B+ Tree file
      * @param nodeData The array of bytes containing the node's data
-     * @param parentIndex The index of the parent node; `null` if node is root
      */
-    public static BPlusNode<?> parse(TableSchema schema, int nodeIndex, byte[] nodeData, Integer parentIndex) throws IOException {
+    public static BPlusNode<?> parse(TableSchema schema, int nodeIndex, byte[] nodeData, int parentIndex) throws IOException {
         ByteArrayInputStream inStream = new ByteArrayInputStream(nodeData);
         DataInputStream in = new DataInputStream(inStream);
         in.readByte();  // Ignore metadata byte
-        Attribute pk = schema.getPK();
+        Attribute pk = schema.getPrimaryKey();
         int n = (schema.pageSize / (pk.length + Integer.BYTES + Integer.BYTES)) - 1;
 
         switch (pk.type) {
@@ -227,6 +250,14 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         } catch (IOException ioe) {
             throw new IOException("Encountered problem while attempting to write to index file: " + ioe.getMessage());
         }
+    }
+
+    public void addPointer(Object value, int pageIndex){
+        pointers.add(new BPlusPointer<>(value, pageIndex, -1));
+    }
+
+    public void clearPointers() {
+        pointers.clear();
     }
 
     /**

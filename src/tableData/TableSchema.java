@@ -1,5 +1,4 @@
 package tableData;
-import components.StorageManager;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -90,7 +89,7 @@ public class TableSchema {
      * Returns a clone of the table's Primary Key Attribute
      * @return The primary key attribute for this table
      */
-    public Attribute getPK() {
+    public Attribute getPrimaryKey() {
         return new Attribute(attributes.get(primaryKey));
     }
 

@@ -9,12 +9,13 @@ import java.io.IOException;
 
 public class BPlusPointer<T extends Comparable<T>> {
 
-    private T value;
-    private int pageIndex;
-    private int recordIndex;
+    private final T value;
+    private final int pageIndex;
+    private final int recordIndex;
 
-    public BPlusPointer(T value, int pageIndex, int recordIndex) {
-        this.value = value;
+    @SuppressWarnings("unchecked")
+    public BPlusPointer(Object value, int pageIndex, int recordIndex) {
+        this.value = (T)value;
         this.pageIndex = pageIndex;
         this.recordIndex = recordIndex;
     }
@@ -28,7 +29,8 @@ public class BPlusPointer<T extends Comparable<T>> {
     }
 
     /**
-     * Gets the main pointer. For parent nodes, this is
+     * Gets the page pointer. For parent nodes, this is the index of the next BPlusNode.
+     * For leaf nodes, this is the index of the page the value is stored on.
      * @return The value of this pointer
      */
     public int getPageIndex() {
