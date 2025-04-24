@@ -1,6 +1,4 @@
 package tableData;
-
-import bplus.BPlusTree;
 import components.StorageManager;
 
 import java.io.File;
@@ -17,7 +15,6 @@ public class TableSchema {
     private final String fileDir;
     private int recordCount;
     private int pageCount;
-    private BPlusTree tree;
     public final int pageSize;
 
     /**
@@ -58,20 +55,6 @@ public class TableSchema {
             }
         }
     }
-    /**
-     * Builds the B+ Tree of the tree
-     * @param storageManager the storage manager
-     * @return true if the tree was correctly built
-     */
-    public boolean buildBPlusTree(StorageManager storageManager) {
-        this.tree = new BPlusTree(this, storageManager);
-        return tree!=null;
-    }
-
-    public BPlusTree getTree() {
-        return tree;
-    }
-
 
     /**
      * Returns the index of the attribute with a given name
