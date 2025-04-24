@@ -459,7 +459,33 @@ public class DatabaseEngine {
         Page page = storageManager.getPage(schema, 0);
 
         if (storageManager.isIndexingEnabled()){
-           BPlusTree currTree = schema.getTree();
+           try {
+               TableSchema tempSchema = storageManager.createTable(storageManager.getTempTableName(), schema.attributes);
+               BPlusTree currTree = schema.getTree();
+               //Add  code
+               while (page != null) {
+                   int i = 0;
+                   while (i < page.recordCount()) {
+                       // TODO: Refactor with BPT implementation
+                       page = storageManager.getPage(schema, pageNumber);
+                       Record currReccord = page.records.get(i);
+                       if (!eval.evaluateRecord(currReccord)) {
+                           storageManager.insertRecord(tempSchema, currReccord, schema.primaryKey);
+                       }
+
+                       i += 1;
+                   }
+                   // If only record in page delete the page
+                   if (page.recordCount() == 0) {
+                       storageManager.dropPage(page);
+                   }
+                   pageNumber += 1;
+                   page = storageManager.getPage(schema, pageNumber);
+               }
+               storageManager.replaceTable(schema, tempSchema);
+           } catch (Exception e){
+
+            }
            //Create a temp tree, run the eval and build a new table, swap.
 
         } else {
