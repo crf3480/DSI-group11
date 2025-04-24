@@ -11,7 +11,9 @@ Project Description:
 This was a 3 Phase project which implemented a relational database similar to postgres in Java. 
 
 Phase 1: This phase was spent building out the basic functionality of the storage manager and the database engine. The storage manager was designed to read in basic SQL and store the data to disk using the buffer. 
+
 Phase 2: This phase we built out the DML parser and added more advanced functionality to our system like SELECT, UPDATE, and DELETE.
+
 Phase 3: This phase we optimized our database system to use B+ trees for indexing to speed up operations. 
 
 Build Instructions: 
