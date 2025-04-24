@@ -114,6 +114,7 @@ public class DML extends GeneralParser {
                 tupleTokens.add(s);
             }
         }
+
         // Insert each record. If an insert fails, cancel
         for (ArrayList<String> tuple : tuples) {
             if (!engine.insert(inputList.get(2), tuple)) {

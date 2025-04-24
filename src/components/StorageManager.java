@@ -73,8 +73,15 @@ public class StorageManager {
         return buffer.getPage(schema, pageIndex);
     }
 
-    public BPlusNode getNode(TableSchema schema, int pageIndex, BPlusNode parent) {
-        return buffer.getNode(schema, pageIndex, parent);
+    /**
+     * Fetches a specific B+ Node from the buffer
+     * @param schema The TableSchema of the index is on
+     * @param pageIndex The index of the node
+     * @param parentIndex The index of the parent node; `null` if root node
+     * @return The requested node
+     */
+    public BPlusNode<?> getNode(TableSchema schema, int pageIndex, Integer parentIndex) {
+        return buffer.getNode(schema, pageIndex, parentIndex);
     }
 
     /**
@@ -91,27 +98,7 @@ public class StorageManager {
                 return pointer;
             }
             // If pointer was a node pointer, follow it
-            node = buffer.getNode(schema, pointer.getPageIndex(), node);
-        }
-        return null;
-    }
-
-    /**
-     * Fetches the BPlusPointer for where a primary key value should be inserted into a table
-     * @param schema The TableSchema of the table being searched
-     * @param value The primary key value to find the insertion point for
-     * @return The pointer for where a record would be inserted into a table; `null` if a
-     * matching record already exist in the table
-     */
-    private BPlusPointer<?> getInsertIndex(TableSchema schema, Object value) {
-        BPlusNode<?> node = buffer.getNode(schema, schema.treeRoot, null);
-        while (node != null) {
-            BPlusPointer<?> pointer = node.get(value);
-            if (pointer.isRecordPointer()) {
-                return pointer;
-            }
-            // If pointer was a node pointer, follow it
-            node = buffer.getNode(schema, pointer.getPageIndex(), node);
+            node = buffer.getNode(schema, pointer.getPageIndex(), node.index);
         }
         return null;
     }
@@ -160,6 +147,7 @@ public class StorageManager {
                 if (targetPageIndex == -1 && !record.greaterThan(existingRec, schema, attrIndex)) {
                     targetPageIndex = currPage.index;
                     targetRecordIndex = i;
+                    currPage.freeze(); // Prevents target page from being removed from buffer until end of transaction
                 }
             }
             pageNum += 1;
@@ -170,7 +158,11 @@ public class StorageManager {
             targetPageIndex = schema.getIndex(schema.pageCount() - 1);
         }
         // Insert record into target page/index
-        Page targetPage = getPage(schema, targetPageIndex);
+        Page targetPage = getPageByIndex(schema, targetPageIndex);
+        if (targetPage.isFrozen()) {
+            targetPage.unfreeze();
+        }
+
         if (targetRecordIndex == -1) {
             targetPage.records.add(record);
         } else {
@@ -194,7 +186,6 @@ public class StorageManager {
             Page child = targetPage.split(childIndex);
             // Insert the new page into the buffer and catalog
             try {
-                System.out.println("Inserting child " + child.pageNumber + " at " + childIndex);
                 buffer.insert(child);
                 schema.insertPage(child.pageNumber, childIndex);
                 child.save();

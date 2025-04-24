@@ -22,6 +22,8 @@ public class Buffer {
     ArrayDeque<Bufferable> buffer;
     int pageSize;
     Catalog catalog;
+    public long totalInsertTime = 0;
+    public long pageSaving = 0;
 
     /**
      * Creates a new buffer
@@ -68,6 +70,7 @@ public class Buffer {
             old.save();
             // Push the stack back into the buffer in order
             while (!pageStack.isEmpty()) {
+                // Add to the front so you don't encounter this page immediately again on next call
                 buffer.addLast(pageStack.removeLast());
             }
         }
@@ -242,11 +245,11 @@ public class Buffer {
      * from the buffer unless the node isn't present, in which case it will be fetched from storage
      * @param schema The schema of the table to fetch the node from
      * @param nodeIndex The index of the page to fetch
-     * @param parent The parent of this node. `null` for root nodes
+     * @param parentIndex The index of the node's parent; `null` for root nodes
      * @return The requested BPlusNode
      * @throws IndexOutOfBoundsException if nodeIndex is outside the bounds of the B+ Tree file
      */
-    public BPlusNode<?> getNode(TableSchema schema, int nodeIndex, BPlusNode<?> parent) throws IndexOutOfBoundsException {
+    public BPlusNode<?> getNode(TableSchema schema, int nodeIndex, Integer parentIndex) throws IndexOutOfBoundsException {
         // Search the buffer for the page and return it
         for (Bufferable node : buffer) {
             // We're only looking for pages
@@ -263,7 +266,7 @@ public class Buffer {
             }
         }
         // Page wasn't in the buffer, so load it in.
-        return loadNode(schema, nodeIndex, parent);
+        return loadNode(schema, nodeIndex, parentIndex);
     }
 
     /**
@@ -272,11 +275,11 @@ public class Buffer {
      * @param schema The TableSchema of the table the Page belongs to
      * @param nodeIndex The index of the node within the tree's file (i.e. nodeIndex * pageSize =
      *                  the byte offset of the desired node)
-     * @param parent The parent of the node being loaded; `null` if node is root
+     * @param parentIndex The index of the node's parent; `null` if node is root
      * @return A reference to the Node that was inserted
      * @throws IndexOutOfBoundsException if pageIndex exceeds the size of the table file
      */
-    public BPlusNode<?> loadNode(TableSchema schema, int nodeIndex, BPlusNode<?> parent) throws IndexOutOfBoundsException {
+    public BPlusNode<?> loadNode(TableSchema schema, int nodeIndex, Integer parentIndex) throws IndexOutOfBoundsException {
         byte[] nodeData = new byte[pageSize];
         File indexFile = schema.indexFile();
         if (!indexFile.exists()) {
@@ -303,7 +306,7 @@ public class Buffer {
         }
         // Parse the node data and return it
         try {
-            BPlusNode<?> newNode = BPlusNode.parse(schema, nodeIndex, nodeData, parent);
+            BPlusNode<?> newNode = BPlusNode.parse(schema, nodeIndex, nodeData, parentIndex);
             insert(newNode);
             return newNode;
         } catch (IOException ioe) {
