@@ -15,6 +15,13 @@ To run, go **INTO THE SRC FOLDER** and do the following:
 
 ex: `java Main test1 50 5`
 
+To run the database with Indexing to speed up database operations:
+```java Main <database> <page_size> <buffer_size> <IndexingOnOff>```
+
+Indexing is turned off by default but can be set to true:
+ex: `java Main test1 50 5 true` 
+
+
 Project Structure:
 - parsers: DML and DDL take in commands, and format them to send to the Database Engine
 - database engine: The database engine takes in the commands and sends appropriate calls to the Storage Manager. The database engine will also filter through whole tables for specific data in future phases.
