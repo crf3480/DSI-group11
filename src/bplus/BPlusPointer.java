@@ -9,9 +9,9 @@ import java.io.IOException;
 
 public class BPlusPointer<T extends Comparable<T>> {
 
-    protected T value;
-    protected int pageIndex;
-    protected int recordIndex;
+    private T value;
+    private int pageIndex;
+    private int recordIndex;
 
     public BPlusPointer(T value, int pageIndex, int recordIndex) {
         this.value = value;

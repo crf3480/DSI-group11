@@ -71,6 +71,10 @@ public class StorageManager {
         return buffer.getPage(schema, pageIndex);
     }
 
+    public BPlusNode getNode(TableSchema schema, int pageIndex, BPlusNode parent) {
+        return buffer.getNode(schema, pageIndex, parent);
+    }
+
     /**
      * Fetches the BPlusPointer for the record with a given value
      * @param schema The TableSchema of the table being searched
@@ -88,6 +92,11 @@ public class StorageManager {
             node = buffer.getNode(schema, pointer.getPageIndex(), node);
         }
         return null;
+    }
+
+    public void validate(BPlusNode<?> root) {
+
+
     }
 
     /**

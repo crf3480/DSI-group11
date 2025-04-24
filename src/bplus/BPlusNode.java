@@ -1,5 +1,6 @@
 package bplus;
 
+import components.StorageManager;
 import exceptions.CustomExceptions;
 import tableData.Attribute;
 import tableData.Bufferable;
@@ -12,22 +13,25 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     private final TableSchema schema;
     private ArrayList<BPlusPointer<T>> pointers;
     private Integer parentIndex;
+    public int index;
     public int n;
 
     /**
      * Creates a BPlusNode for a given table
-     * @param schema The TableSchema of the table being indexed
-     * @param nodeIndex The index of this node in the BPlus file
-     * @param pointers The pointers stored in this node
+     *
+     * @param schema         The TableSchema of the table being indexed
+     * @param storageManager
+     * @param nodeIndex      The index of this node in the BPlus file
+     * @param pointers       The pointers stored in this node
      */
     public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<T>> pointers, Integer parentIndex) {
         this.schema = schema;
         this.index = nodeIndex;
         this.pointers = pointers;
         this.parentIndex = parentIndex;
-        Attribute pk = schema.attributes.get(schema.primaryKey);
-        n = (schema.pageSize / (pk.length + Integer.BYTES + Integer.BYTES)) - 1;
-        n = 5;  //TODO: TEST VALUE. REMOVE LATER
+
+        n = (schema.pageSize / (schema.getPK().length + (2 * Integer.BYTES))) - 1;
+        n = 5; //TODO: TEST DATA, REMOVE LATER.
     }
 
     /**
@@ -69,7 +73,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             // Last pointer has a null value, meaning you did not find a match
             // Leaf nodes return `null` since there was no match
             // Internal nodes return the pointer to follow
-            if (bpp.value == null) {
+            if (bpp.getValue() == null) {
                 return (isLeafNode()) ? null : bpp;
             }
             int cmp = bpp.getValue().compareTo(value);
@@ -90,21 +94,17 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * @return `true` if the record was inserted. `false` if a record with
      * that key value already exists in this node
      */
-    public boolean insertRecord(BPlusPointer<T> bpp) {
-        // Find the index where the record should be inserted, i.e. the index of the first
-        // record with a greater value. If no record is larger, the loop will exit with
-        // insertIndex == records.size() and the record will get appended
-        int insertIndex = 0;
-        while (insertIndex < pointers.size()) {
-            int cmp = pointers.get(insertIndex).compareTo(bpp);
-            if (cmp > 0) {
-                break; // Found larger record
-            } else if (cmp == 0) {
-                return false;  // Found duplicate
-            }
-            insertIndex += 1;
+    public BPlusPointer getNext(T value) {
+        for(BPlusPointer<T> bpp : pointers) {
+            int cmp = bpp.getValue().compareTo(value);
+
         }
-        pointers.add(insertIndex, bpp);
+        return null;
+    }
+    public boolean insertPointer(BPlusPointer<T> pointer) {
+        if (isLeafNode()){
+            pointers.add(pointer);
+        }
 
         //Split if node is now overfull
         if(parentIndex == null && pointers.size()>n) {   // Root splitting - middle value is new root node's only value
@@ -162,6 +162,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                     if not root, split as usual; send right upwards and and replace current pointers with left side
              */
         }
+
         return true;
     }
 
@@ -299,6 +300,16 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 return new BPlusNode<>(schema, nodeIndex, boolPointers, parent.index);
         }
         return null;
+    }
+
+    public boolean treeIsInvalid(){
+        if (isRootNode() && pointers.size()>=n){
+            return false;
+        }
+        if (isLeafNode() && pointers.size()>=n){
+
+        }
+        return true;
     }
 
     /**
