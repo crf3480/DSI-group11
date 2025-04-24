@@ -7,6 +7,14 @@ Group 11
 - Aayan Sayed
 - Roshan Nunna
 
+Project Description:
+This was a 3 Phase project which implemented a relational database similar to postgres in Java. 
+
+Phase 1: This phase was spent building out the basic functionality of the storage manager and the database engine. The storage manager was designed to read in basic SQL and store the data to disk using the buffer. 
+Phase 2: This phase we built out the DML parser and added more advanced functionality to our system like SELECT, UPDATE, and DELETE.
+Phase 3: This phase we optimized our database system to use B+ trees for indexing to speed up operations. 
+
+Build Instructions: 
 To compile: take the src folder, paste it into your desired directory, and in the ROOT of your directory (i.e. OUTSIDE OF THE SRC FOLDER), do the following cmd:
 ```javac **/**/*.java```
 
@@ -23,8 +31,35 @@ ex: `java Main test1 50 5 true`
 
 
 Project Structure:
-- parsers: DML and DDL take in commands, and format them to send to the Database Engine
-- database engine: The database engine takes in the commands and sends appropriate calls to the Storage Manager. The database engine will also filter through whole tables for specific data in future phases.
-- storage manager: Manages the in-memory buffer and physical file storage.
+- Bplus:
+  - BPlusNode: Creates a BPlus Node for a given table which is a wrapper for a bunch of pointers.
 
-There are also classes for Page, Record, Attribute, Attribute Type, Catalog, and TableSchema.
+  - BplusPointer: Class that represents the pointers inside each note. Made up of 2 values:
+    - page pointer => next page
+    - record pointer => -1 OR pointer to record
+    
+- Components: 
+  - Buffer: Class representing the page buffer using a specified size.
+  - Database Engine: Class for performing SQL actions, as directed by the parsers.
+  - Storage Manager: Manages fetching and saving pages to file.
+
+- Exceptions:
+  - CustomExceptions: Exceptions used throughout the Database system to better convey information.
+    
+- Parsers:
+  - DDL: Parser for commands which modify relational schemas
+  - DML: Parser for commands which modify relational data
+
+- Table Data:
+  - Attribute: Representation of a attribute with flags set for constraints like: PRIMARYKEY, NOTNULL, and UNIQUE.
+  - AttributeType: Enum used to represent the types of each attribute: Double, INT, Varchar(n).
+  - Bufferable: Superclass for any object which can be stored inside the buffer. 
+  - Catalog: Holds metainfo for the system. On startup grabs file if it's there. If not, creates empty catalog file.
+  - Page: Represents the page of the table. 
+  - Record: Represents a row of data in a table. 
+  - TableSchema: Called from the storage manager to create a schema for a given table. 
+ 
+- Where:
+  - Main: On start up initializes the database system then reads in input from the user and sends to the parsers for validation.
+
+
