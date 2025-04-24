@@ -119,9 +119,10 @@ public class DatabaseEngine {
         // Indexing implementation
         if (storageManager.isIndexingEnabled()){
             try{
-                TableSchema tempSchema = storageManager.createTable(schema.name, schema.attributes);
+                TableSchema tempSchema = storageManager.createTable(storageManager.getTempTableName(), schema.attributes);
                 tempSchema.buildBPlusTree(storageManager);
                 BPlusTree bpTree = tempSchema.getTree();
+
                 while (page != null) {
                     int i = 0;
                     while (i < page.recordCount()){
@@ -132,6 +133,7 @@ public class DatabaseEngine {
                         if (eval.evaluateRecord(updatedRecord)) {
                             updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute));
                         }
+
                         storageManager.insertRecord(tempSchema, updatedRecord, schema.primaryKey);
                         i += 1;
                     }
