@@ -1,5 +1,4 @@
 package components;
-import bplus.BPlusTree;
 import tableData.*;
 import tableData.Record;
 
@@ -120,8 +119,6 @@ public class DatabaseEngine {
         if (storageManager.isIndexingEnabled()){
             try{
                 TableSchema tempSchema = storageManager.createTable(storageManager.getTempTableName(), schema.attributes);
-                tempSchema.buildBPlusTree(storageManager);
-                BPlusTree bpTree = tempSchema.getTree();
 
                 while (page != null) {
                     int i = 0;
@@ -461,7 +458,6 @@ public class DatabaseEngine {
         if (storageManager.isIndexingEnabled()){
            try {
                TableSchema tempSchema = storageManager.createTable(storageManager.getTempTableName(), schema.attributes);
-               BPlusTree currTree = schema.getTree();
                //Add  code
                while (page != null) {
                    int i = 0;
