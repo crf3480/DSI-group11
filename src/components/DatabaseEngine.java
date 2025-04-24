@@ -115,11 +115,31 @@ public class DatabaseEngine {
         Evaluator eval = new Evaluator(whereClause, schema);
         int pageNumber = 0;
         Page page = storageManager.getPage(schema, pageNumber);
-
+        // Indexing implementation
         if (storageManager.isIndexingEnabled()){
-            // Indexing implementation
             try{
                 TableSchema tempSchema = storageManager.createTable(schema.name, schema.attributes);
+                while (page != null) {
+                    int i = 0;
+                    while (i < page.recordCount()){
+                        // TODO: Refactor with BPT implementation
+                        page = storageManager.getPage(schema, pageNumber);
+
+                        Record updatedRecord = page.records.get(i);
+                        if (eval.evaluateRecord(updatedRecord)) {
+                            updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute));
+                        }
+                        storageManager.insertRecord(tempSchema, updatedRecord, schema.primaryKey);
+                        i += 1;
+                    }
+                    // If only record in page delete the page
+                    if (page.recordCount() == 0) {
+                        storageManager.dropPage(page);
+                    }
+                    pageNumber += 1;
+                    page = storageManager.getPage(schema, pageNumber);
+                }
+                storageManager.replaceTable(schema, tempSchema);
 
             } catch (IOException e){
                 System.err.println("Error creating temp table: " + schema.name);
