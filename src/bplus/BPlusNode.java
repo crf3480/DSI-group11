@@ -1,6 +1,5 @@
 package bplus;
 
-import components.StorageManager;
 import exceptions.CustomExceptions;
 import tableData.Attribute;
 import tableData.Bufferable;
@@ -10,28 +9,22 @@ import java.io.*;
 import java.util.ArrayList;
 
 public class BPlusNode<T extends Comparable<T>> extends Bufferable {
+
     private final TableSchema schema;
-    private ArrayList<BPlusPointer<T>> pointers;
-    private Integer parentIndex;
-    public int index;
-    public int n;
+    private final ArrayList<BPlusPointer<T>> pointers;
+    private int parent;
 
     /**
      * Creates a BPlusNode for a given table
-     *
-     * @param schema         The TableSchema of the table being indexed
-     * @param storageManager
-     * @param nodeIndex      The index of this node in the BPlus file
-     * @param pointers       The pointers stored in this node
+     * @param schema The TableSchema of the table being indexed
+     * @param nodeIndex The index of this node in the BPlus file
+     * @param pointers The pointers stored in this node
      */
-    public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<T>> pointers, Integer parentIndex) {
+    public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<T>> pointers, int parentIndex) {
         this.schema = schema;
         this.index = nodeIndex;
         this.pointers = pointers;
-        this.parentIndex = parentIndex;
-
-        n = (schema.pageSize / (schema.getPK().length + (2 * Integer.BYTES))) - 1;
-        n = 5; //TODO: TEST DATA, REMOVE LATER.
+        this.parent = parentIndex;
     }
 
     /**
@@ -51,14 +44,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     }
 
     /**
-     * Checks if this node is the root node
-     * @return boolean corresponding to if the node is the root or not
-     */
-    public boolean isRootNode() {
-        return parentIndex == null;
-    }
-
-    /**
      * Gets the BPlusPointer for a given value. If this is an internal node, returns
      * the BPlusPointer for the child node whose branch the value should be in
      * @param obj The value whose pointer is being searched for
@@ -68,7 +53,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     public BPlusPointer<T> get(Object obj) {
         T value = cast(obj);
         // Searches through all pointers until it finds the value. If it finds
-        // a larger value or the loop exits, a matching record does not exist
+        // a larger value or the loop exists, a matching record does not exist
         for (BPlusPointer<T> bpp : pointers) {
             // Last pointer has a null value, meaning you did not find a match
             // Leaf nodes return `null` since there was no match
@@ -94,75 +79,28 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * @return `true` if the record was inserted. `false` if a record with
      * that key value already exists in this node
      */
-    public BPlusPointer getNext(T value) {
-        for(BPlusPointer<T> bpp : pointers) {
-            int cmp = bpp.getValue().compareTo(value);
-
-        }
-        return null;
-    }
-    public boolean insertPointer(BPlusPointer<T> pointer) {
-        if (isLeafNode()){
-            pointers.add(pointer);
+    public boolean insertRecord(BPlusPointer<T> bpp) {
+        if (!isLeafNode()) {
+            throw new InternalError("`insertRecord` called on internal node. To traverse tree " +
+                    "for insertion, call `get()` until a leaf node is returned.");
         }
 
-        //Split if node is now overfull
-        if(parentIndex == null && pointers.size()>n) {   // Root splitting - middle value is new root node's only value
-            System.out.println("Splitting time!");
-            System.out.println("BEFORE: "+pointers);
-            int splitIndex = (pointers.size())/2;
-            ArrayList<BPlusPointer<T>> leftSide = new ArrayList<>();
-            ArrayList<BPlusPointer<T>> middle = new ArrayList<>();
-            ArrayList<BPlusPointer<T>> rightSide = new ArrayList<>();
-            leftSide.addAll(pointers.subList(0, splitIndex));
-            middle.add(pointers.get(splitIndex));
-            rightSide.addAll(pointers.subList(splitIndex+1, pointers.size()));
-            System.out.println(leftSide.toString());
-            System.out.println(middle.toString());
-            System.out.println(rightSide.toString());
-
-            //Make new root
-            pointers.clear();
-            pointers.addAll(middle);
-
-            //BPlusNode<T> left = new BPlusNode<>(schema, , pointers, parent);
-
-
-
-
+        // Find the index where the record should be inserted, i.e. the index of the first
+        // record with a greater value. If no record is larger, the loop will exit with
+        // insertIndex == records.size() and the record will get appended
+        int insertIndex = 0;
+        while (insertIndex < pointers.size()) {
+            int cmp = pointers.get(insertIndex).compareTo(bpp);
+            if (cmp > 0) {
+                break; // Found larger record
+            } else if (cmp == 0) {
+                return false;  // Found duplicate
+            }
+            insertIndex += 1;
         }
-
-        if(isLeafNode() && pointers.size() >= n){   // leaf node max size of n-1
-            int splitIndex = (pointers.size()+1)/2;    //If odd size, the left one gets the extra element
-            ArrayList<BPlusPointer<T>> leftSide = new ArrayList<>();
-            ArrayList<BPlusPointer<T>> rightSide = new ArrayList<>();
-            leftSide.addAll(pointers.subList(0, splitIndex));
-            rightSide.addAll(pointers.subList(splitIndex, pointers.size()));
-
-            throw new InternalError("Time to split!");
-
-            /*
-                TODO: Leaf node splitting
-                 Get parent node(?) Right side needs to be given to parent node
-                 insertRecord(rightSide) on the parent node, that way it'll recursively split upwards
-                 set this node's pointers array to leftSize.
-             */
-        }
-        else if (pointers.size() > n) {  // internal node max size of n
-            int splitIndex = (pointers.size() + 1) / 2;    //If odd size, the left one gets the extra element
-            ArrayList<BPlusPointer<T>> leftSide = new ArrayList<>();
-            ArrayList<BPlusPointer<T>> rightSide = new ArrayList<>();
-            leftSide.addAll(pointers.subList(0, splitIndex));
-            rightSide.addAll(pointers.subList(splitIndex, pointers.size()));
-
-            /*
-                More pseudocode yay
-                TODO: internal node splitting
-                    if root, create new root. value = first on right side, pointers are left and right.sublist(1 to end)
-                    if not root, split as usual; send right upwards and and replace current pointers with left side
-             */
-        }
-
+        pointers.add(insertIndex, bpp);
+        //TODO: Split page if overfull
+        //TODO: Update value/parent?
         return true;
     }
 
@@ -192,55 +130,9 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             deleteIndex += 1;
         }
         pointers.remove(deleteIndex);
-        //TODO: Merge leaves if underfull, update parent
+        //TODO: Merge leaves if underfull
+        //TODO: Update value/parent?
         return true;
-    }
-/*
-    public BPlusNode<T> getNode(int pageNum){
-        for(BPlusPointer<T> bpp : pointers){
-            if(bpp.pageIndex == pageNum){
-                return bpp;
-            }
-        }
-    }
-
- */
-
-    @Override
-    public void save() throws IOException {
-        // Verify table exists
-        File indexFile = schema.indexFile();
-        if (!indexFile.exists()) {
-            throw new IOException("Could not find index file `" + indexFile.getAbsolutePath() + "`");
-        }
-        // Write data
-        Attribute pk = schema.attributes.get(schema.primaryKey);
-        int n = (schema.pageSize / (pk.length + Integer.BYTES)) - 1;
-        try (RandomAccessFile raf = new RandomAccessFile(indexFile, "rw")) {
-            long offset = ((long) index * schema.pageSize);  // Page count + pageIndex offset
-            raf.seek(offset);
-            // Create output byte array
-            ByteArrayOutputStream bs = new ByteArrayOutputStream();
-            DataOutputStream out = new DataOutputStream(bs);
-
-
-
-            for (BPlusPointer<T> pointer : pointers) {
-                out.write(pointer.encode(schema));
-            }
-            // If node is not full, add a "stop" flag
-            if (pointers.size() < n) {
-                out.writeInt(-1);
-            }
-            byte[] pageData = bs.toByteArray();
-            if (pageData.length > schema.pageSize) {
-                System.err.println("Node data array exceeded pageSize while saving");
-            }
-            // Write output
-            raf.write(pageData);
-        } catch (IOException ioe) {
-            throw new IOException("Encountered problem while attempting to write to index file: " + ioe.getMessage());
-        }
     }
 
     /**
@@ -302,14 +194,38 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         return null;
     }
 
-    public boolean treeIsInvalid(){
-        if (isRootNode() && pointers.size()>=n){
-            return false;
+    @Override
+    public void save() throws IOException {
+        // Verify table exists
+        File indexFile = schema.indexFile();
+        if (!indexFile.exists()) {
+            throw new IOException("Could not find index file `" + indexFile.getAbsolutePath() + "`");
         }
-        if (isLeafNode() && pointers.size()>=n){
-
+        // Write data
+        Attribute pk = schema.attributes.get(schema.primaryKey);
+        int n = (schema.pageSize / (pk.length + Integer.BYTES)) - 1;
+        try (RandomAccessFile raf = new RandomAccessFile(indexFile, "rw")) {
+            long offset = ((long) index * schema.pageSize);  // Page count + pageIndex offset
+            raf.seek(offset);
+            // Create output byte array
+            ByteArrayOutputStream bs = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(bs);
+            for (BPlusPointer<T> pointer : pointers) {
+                out.write(pointer.encode(schema));
+            }
+            // If node is not full, add a "stop" flag
+            if (pointers.size() < n) {
+                out.writeInt(-1);
+            }
+            byte[] pageData = bs.toByteArray();
+            if (pageData.length > schema.pageSize) {
+                System.err.println("Node data array exceeded pageSize while saving");
+            }
+            // Write output
+            raf.write(pageData);
+        } catch (IOException ioe) {
+            throw new IOException("Encountered problem while attempting to write to index file: " + ioe.getMessage());
         }
-        return true;
     }
 
     /**
