@@ -124,6 +124,8 @@ public class Main {
                                 System.err.println(trace);
                             }
                         }
+                    } finally {
+                        storageManager.unfreezeAllPages();
                     }
                 }
             }

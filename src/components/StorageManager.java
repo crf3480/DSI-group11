@@ -87,6 +87,26 @@ public class StorageManager {
         BPlusNode<?> node = buffer.getNode(schema, schema.treeRoot, null);
         while (node != null) {
             BPlusPointer<?> pointer = node.get(value);
+            if (node.isLeafNode()) {
+                return pointer;
+            }
+            // If pointer was a node pointer, follow it
+            node = buffer.getNode(schema, pointer.getPageIndex(), node);
+        }
+        return null;
+    }
+
+    /**
+     * Fetches the BPlusPointer for where a primary key value should be inserted into a table
+     * @param schema The TableSchema of the table being searched
+     * @param value The primary key value to find the insertion point for
+     * @return The pointer for where a record would be inserted into a table; `null` if a
+     * matching record already exist in the table
+     */
+    private BPlusPointer<?> getInsertIndex(TableSchema schema, Object value) {
+        BPlusNode<?> node = buffer.getNode(schema, schema.treeRoot, null);
+        while (node != null) {
+            BPlusPointer<?> pointer = node.get(value);
             if (pointer.isRecordPointer()) {
                 return pointer;
             }
@@ -390,6 +410,13 @@ public class StorageManager {
             throw new IOException("Could not locate file `" + file.getAbsolutePath() + "`");
         }
         return newIndex;
+    }
+
+    /**
+     * Unfreezes all pages in the buffer
+     */
+    public void unfreezeAllPages() {
+        buffer.unfreezeAllPages();
     }
 
     /**
