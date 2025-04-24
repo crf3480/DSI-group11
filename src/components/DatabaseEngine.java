@@ -457,28 +457,35 @@ public class DatabaseEngine {
         Evaluator eval = new Evaluator(whereClause, schema);
         int pageNumber = 0;
         Page page = storageManager.getPage(schema, 0);
-        while (page != null) {
-            int i = 0;
-            // Iterate over all records. If a record matches the evaluator, remove it
-            while (i < page.recordCount()) {
-                if (eval.evaluateRecord(page.records.get(i))) {
-                    page.records.remove(i);
-                    schema.decrementRecordCount();
+
+        if (storageManager.isIndexingEnabled()){
+           BPlusTree currTree = schema.getTree();
+           //Create a temp tree, run the eval and build a new table, swap.
+
+        } else {
+            while (page != null) {
+                int i = 0;
+                // Iterate over all records. If a record matches the evaluator, remove it
+                while (i < page.recordCount()) {
+                    if (eval.evaluateRecord(page.records.get(i))) {
+                        page.records.remove(i);
+                        schema.decrementRecordCount();
+                    }
+                    i += 1;
                 }
-                i += 1;
+                // If the page is now empty, remove it
+                if (page.recordCount() == 0) {
+                    storageManager.dropPage(page);
+                }
+                pageNumber += 1;
+                page = storageManager.getPage(schema, pageNumber);
             }
-            // If the page is now empty, remove it
-            if (page.recordCount() == 0) {
-                storageManager.dropPage(page);
-            }
-            pageNumber += 1;
-            page = storageManager.getPage(schema, pageNumber);
         }
+
     }
 
     public void deleteWithIndexing(String tablename, ArrayList<String> whereQueries){
         TableSchema schema = storageManager.getTableSchema(tablename);
-        Evaluator eval = new Evaluator(whereQueries, schema);
 
 
     }
