@@ -104,7 +104,7 @@ public class DatabaseEngine {
      * @param newValue new value to be put in place
      * @param whereClause where clause
      */
-    public void updateWhere(String tableName, String columnName, String newValue, ArrayList<String> whereClause ){
+    public void updateWhere(String tableName, String columnName, String newValue, ArrayList<String> whereClause ) {
         TableSchema schema = storageManager.getTableSchema(tableName);
         int attributeIndex = schema.getAttributeIndex(columnName);
         if (attributeIndex == -1) {
@@ -115,32 +115,46 @@ public class DatabaseEngine {
         Evaluator eval = new Evaluator(whereClause, schema);
         int pageNumber = 0;
         Page page = storageManager.getPage(schema, pageNumber);
-        while (page != null) {
-            int i = 0;
-            while (i < page.recordCount()) {
-                page = storageManager.getPage(schema, pageNumber);
-                Record oldRecord = page.records.get(i);
-                if(eval.evaluateRecord(oldRecord)) {    // if the record passes the where
-                    Record updatedRecord = oldRecord.duplicate();   // copy record to test if insertion works
-                    updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute));
-                    if(!oldRecord.equals(updatedRecord)) {  // don't run swap logic if update changes nothing
-                        page.records.remove(i);             // need to remove old record temporarily to see if new is valid to insert
-                        schema.decrementRecordCount();      // necessary to validate some checks that can't be done yet
-                        if (!storageManager.insertRecord(schema, updatedRecord, schema.primaryKey)) {
-                            storageManager.insertRecord(schema, oldRecord, schema.primaryKey);
-                            return;
+
+        if (storageManager.isIndexingEnabled()){
+            // Indexing implementation
+            try{
+                TableSchema tempSchema = storageManager.createTable(schema.name, schema.attributes);
+
+            } catch (IOException e){
+                System.err.println("Error creating temp table: " + schema.name);
+            }
+
+        } else {
+            while (page != null) {
+                int i = 0;
+                while (i < page.recordCount()) {
+                    page = storageManager.getPage(schema, pageNumber);
+                    Record oldRecord = page.records.get(i);
+                    if (eval.evaluateRecord(oldRecord)) {    // if the record passes the where
+                        Record updatedRecord = oldRecord.duplicate();   // copy record to test if insertion works
+                        updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute));
+                        if (!oldRecord.equals(updatedRecord)) {  // don't run swap logic if update changes nothing
+                            page.records.remove(i);             // need to remove old record temporarily to see if new is valid to insert
+                            schema.decrementRecordCount();      // necessary to validate some checks that can't be done yet
+                            if (!storageManager.insertRecord(schema, updatedRecord, schema.primaryKey)) {
+                                storageManager.insertRecord(schema, oldRecord, schema.primaryKey);
+                                return;
+                            }
                         }
                     }
+                    i += 1;
                 }
-                i += 1;
+                // If only record in page delete the page
+                if (page.recordCount() == 0) {
+                    storageManager.dropPage(page);
+                }
+                pageNumber += 1;
+                page = storageManager.getPage(schema, pageNumber);
             }
-            // If only record in page delete the page
-            if (page.recordCount() == 0) {
-                storageManager.dropPage(page);
-            }
-            pageNumber += 1;
-            page = storageManager.getPage(schema, pageNumber);
         }
+
+
     }
 
     /**
