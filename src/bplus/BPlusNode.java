@@ -80,11 +80,12 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     public BPlusPointer<T> get(Object obj) {
         System.out.println("Trying to get " + obj.toString());
         T value = cast(obj);
-        // Searches through all pointers until it finds the value. If it finds
-        // a larger value or the loop exists, a matching record does not exist
+        //This should only ever happen on an empty lone root node, which will always point to page 0, record 0
         if(pointers.isEmpty()){
             return new BPlusPointer<>(obj, 0, 0);
         }
+        // Searches through all pointers until it finds the value. If it finds
+        // a larger value or the loop exists, a matching record does not exist
         for (BPlusPointer<T> bpp : pointers) {
             // Last pointer has a null value, meaning you did not find a match
             // Leaf nodes return `null` since there was no match
