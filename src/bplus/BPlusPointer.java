@@ -50,7 +50,7 @@ public class BPlusPointer<T extends Comparable<T>> {
      * @return `true` if this is a record pointer; `false` if this object points to a BPlusNode
      */
     public boolean isRecordPointer() {
-        return recordIndex != -1;
+        return recordIndex >= 0;
     }
 
     /**
@@ -103,9 +103,9 @@ public class BPlusPointer<T extends Comparable<T>> {
 
     @Override
     public String toString() {
-        return "[" +value +
-                ", " + pageIndex +
-                ", " + recordIndex +
+        return "BPP[" +value +
+                ", page " + pageIndex +
+                ", record " + recordIndex +
                 ']';
     }
 }

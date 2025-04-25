@@ -5,6 +5,7 @@ import tableData.Attribute;
 import tableData.Bufferable;
 import tableData.TableSchema;
 
+import javax.sound.midi.Soundbank;
 import java.io.*;
 import java.util.ArrayList;
 
@@ -58,7 +59,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * @return `true` if this object is a leaf node; `false` if this object is an internal node
      */
     public boolean isLeafNode() {
-        return pointers.getFirst().isRecordPointer();
+        return pointers.isEmpty() || pointers.getFirst().isRecordPointer();
     }
 
     /**
@@ -77,9 +78,13 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * no pointer matches the given value
      */
     public BPlusPointer<T> get(Object obj) {
+        System.out.println("Trying to get " + obj.toString());
         T value = cast(obj);
         // Searches through all pointers until it finds the value. If it finds
         // a larger value or the loop exists, a matching record does not exist
+        if(pointers.isEmpty()){
+            return new BPlusPointer<>(obj, 0, 0);
+        }
         for (BPlusPointer<T> bpp : pointers) {
             // Last pointer has a null value, meaning you did not find a match
             // Leaf nodes return `null` since there was no match
@@ -106,7 +111,9 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * that key value already exists in this node
      */
     public boolean insertRecord(BPlusPointer<T> bpp) {
+        System.out.println("Trying to insert " + bpp+" into "+pointers);
         if (!isLeafNode()) {
+            System.out.println("node is not leaf. failed.");
             return false;
         }
         // Find the index where the record should be inserted, i.e. the index of the first
@@ -279,9 +286,11 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
+        sb.append("NODE{ ");
         for (BPlusPointer<T> pointer : pointers) {
             sb.append(pointer.toString()+" ");
         }
+        sb.append("}");
 
         return sb.toString();
     }

@@ -6,6 +6,7 @@ import tableData.Record;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -73,8 +74,9 @@ public class StorageManager {
     }
 
     public BPlusNode getNode(TableSchema schema, int pageIndex, int parentIndex) {
-        System.out.println("call 1");
-        return buffer.getNode(schema, pageIndex, parentIndex);
+        BPlusNode out = buffer.getNode(schema, pageIndex, parentIndex);
+        System.out.println("Retrieved "+out+" from buffer");
+        return out;
     }
 
     /**
@@ -84,7 +86,6 @@ public class StorageManager {
      * @return The pointer for the value; `null` if value does not exist in the table
      */
     private BPlusPointer<?> getIndex(TableSchema schema, Object value) {
-        System.out.println("call 2");
         BPlusNode<?> node = buffer.getNode(schema, schema.treeRoot, -1);
         while (node != null) {
             BPlusPointer<?> pointer = node.get(value);
@@ -92,8 +93,7 @@ public class StorageManager {
                 return pointer;
             }
             // If pointer was a node pointer, follow it
-            System.out.println("call 3");
-            node = buffer.getNode(schema, pointer.getPageIndex(), node.index);
+            node = getNode(schema, pointer.getPageIndex(), node.index);
         }
         return null;
     }
@@ -106,16 +106,14 @@ public class StorageManager {
      * matching record already exist in the table
      */
     private BPlusPointer<?> getInsertIndex(TableSchema schema, Object value) {
-        System.out.println("call 4");
         BPlusNode<?> node = buffer.getNode(schema, schema.treeRoot, -1);
         while (node != null) {
             BPlusPointer<?> pointer = node.get(value);
-            if (pointer.isRecordPointer()) {
+            if (getNode(schema, pointer.getPageIndex(), pointer.getRecordIndex()).get(value).isRecordPointer()) {
                 return pointer;
             }
             // If pointer was a node pointer, follow it
-            System.out.println("call 5");
-            node = buffer.getNode(schema, pointer.getPageIndex(), -1);
+            node = buffer.getNode(schema, pointer.getPageIndex(), node.index);
         }
         return null;
     }
@@ -127,7 +125,17 @@ public class StorageManager {
      * @param attrIndex The index of the attribute the table will be sorted by
      * @return `true` if the record was successfully inserted; `false` otherwise
      */
-    public boolean insertRecord(TableSchema schema, Record record, int attrIndex) {
+    public boolean insertRecord(TableSchema schema, Record record, int attrIndex){
+        try{
+            insertRecordTry(schema, record, attrIndex);
+        } catch (InternalError e) {
+            System.err.println(e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+    public boolean insertRecordTry(TableSchema schema, Record record, int attrIndex) {
         // If table has no pages, make a new page and insert it into the buffer
         if (schema.rootIndex == -1) {
             Page firstPage = new Page(0, 0, schema);
@@ -141,15 +149,13 @@ public class StorageManager {
             try {
                 if (isIndexingEnabled()) {
                     schema.treeRoot=0;
-                    BPlusNode<?> root = new BPlusNode<>(schema, 0, new ArrayList<>(), -1);
-
                     File file = new File(catalog.getFilePath().getParentFile(), schema.name + ".bpt");
-                    try (Writer writer = new BufferedWriter(new OutputStreamWriter(
-                            new FileOutputStream(file.getAbsolutePath()), "utf-8"))) {
-                        writer.write(0);
-                    }
+                    file.createNewFile();
+                    BPlusNode<?> root = new BPlusNode<>(schema, 0, new ArrayList<>(), -1);
+                    root.save();
+                    buffer.insert(root);
                 }
-            }catch (IOException ioe) {
+            } catch (IOException ioe) {
                 System.err.println("Encountered exception while adding new node to b+ tree: " + ioe.getMessage());
             }
 
@@ -186,17 +192,63 @@ public class StorageManager {
             }
         }
         else{   //Indexing enabled. Do B+ tree stuff
-            BPlusPointer bpp = getIndex(schema, record.get(schema.primaryKey));
+            System.out.println("START INDEX INSERTION");
+            BPlusNode<?> root = getNode(schema, schema.treeRoot, -1);
+            System.out.println("root: "+root+(root.isLeafNode()? " is leaf" : " is not leaf"));
+            root.freeze();  // Root is frozen so we don't waste page reads in the event it's dropped from the buffer
+
+            // Generate the BPlusPointer for where the record needs to be inserted
+            Object value = record.get(schema.primaryKey);
+
+            BPlusPointer<?> bpp = root.get(value);
+            System.out.println("bpp: " + bpp);
+
+            //Get the pointer to where the new record belongs
+            while(!bpp.isRecordPointer()){
+                System.out.println("in while");
+                bpp = getNode(schema, bpp.getPageIndex(), bpp.getRecordIndex()).get(value);
+                System.out.println(bpp+" "+bpp.isRecordPointer());
+            }
+            System.out.println("Final BPP: "+bpp);
             targetPageIndex = bpp.getPageIndex();
             targetRecordIndex = bpp.getRecordIndex();
 
-            //Insert into B+ tree
-            BPlusNode<?> root = getNode(schema, schema.treeRoot, -1);
-            root.freeze();  // Root is frozen so we don't waste page reads in the event it's dropped from the buffer
-
             BPlusNode<?> currNode = root;
-            while (!currNode.insertRecord(bpp)){
-                currNode = getNode(schema, currNode.get(record.get(schema.primaryKey)).getPageIndex(), currNode.index);
+            System.out.println("root: "+root);
+            /*
+                If I don't create a new BPlusPointer here it doesn't compile!   |
+                Java is just inventing new errors at this point                 |
+                                                                                |
+                And I quote:                                                    |
+                                Required type:  BPlusPointer<capture of ?>      |
+                                Provided:       BPlusPointer<capture of ?>      |
+                                                                                |
+                Like ???????? fuck you                                          V
+             */
+
+            boolean inserted = false;
+            while (true){
+                inserted = currNode.insertRecord(new BPlusPointer<>(bpp.getValue(), bpp.getPageIndex(), bpp.getRecordIndex()));
+                if (inserted) {
+                    try {
+                        currNode.save();
+                    }catch (IOException ioe) {
+                        System.err.println("uh oh");
+                        return false;
+                    }
+                    System.out.println("Insertion successful: "+currNode);
+                    break;
+                }
+                currNode = getNode(schema,
+                        currNode.get(record.get(schema.primaryKey)).getPageIndex(),
+                        currNode.index);
+                System.out.println(currNode);
+                try{
+                    TimeUnit.MILLISECONDS.sleep(750);
+                    System.out.println();
+                }catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
 
             /*
@@ -207,7 +259,13 @@ public class StorageManager {
              */
             int n = (schema.pageSize / (schema.getPrimaryKey().length + (2 * Integer.BYTES))) - 1;
             if(!isValid(schema, root, n)){
+                System.out.println("TREE INVALID, FIXING...");
                 validate(schema, root, n);
+            }
+            try{
+                root.save();
+            } catch (IOException ioe) {
+                System.err.println("Encountered exception while saving new node to b+ tree: " + ioe.getMessage());
             }
 
             root.unfreeze(); // Release the freeze because achieving deadlock in a singlethreaded program is not very funny
@@ -252,7 +310,7 @@ public class StorageManager {
     }
 
     /**
-     * Validate a given B+ Tree, performing necessary
+     * Validate a given B+ Tree, performing splits on overfull nodes.
      * @param root the root of the tree
      */
     private void validate(TableSchema schema, BPlusNode<?> root, int n) {
@@ -280,7 +338,7 @@ public class StorageManager {
                 ⠀⠀⠀⠀⠀⢸⢎⡰⣁⠚⠤⣉⠧⢘⠰⠃⠚⠄⠫⠜⠣⢛⠹⠓⣌⠲⣡⢋⡴⡹⣖⢯⡟⣿⢿⡿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀
                 ⠀⠀⠀⠀⠀⣞⣎⢖⣡⢋⡴⡀⠆⡄⢂⠌⡐⡈⠄⣂⠡⢂⠥⣩⠤⣗⣒⣛⣖⣻⡼⣧⢿⣹⡾⣽⡷⣿⣯⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⠀⠀⠀⠀⠀⠀⠀
                 ⠀⠀⠀⠀⠀⣿⡼⣚⢦⣏⢴⣉⠞⣌⠲⡌⠴⣁⠎⡴⣉⢎⣼⡵⡿⠉⠈⠙⡟⠉⠙⢯⣻⣷⣻⡽⣟⣷⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀
-                ⠀⠀⠀⠀⠀⢻⡷⣯⢷⢮⣳⢮⡝⢦⠳⣜⢣⣜⢮⣱⠮⡯⠃⠀⠇⠀⠀⠀⠂⠀⠀⠈⣷⣯⢿⣿⣽⣿⢿⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠀⠀⠀⠀⠀⠀⠀
+                ⠀⠀⠀⠀⠀⢻⡷⣯⢷⢮⣳⢮⡝⢦⠳⣜⢣⣜⢮⣱⠮⡯⠃⠀⠇⠀⠀⠀⠂⠀⠀  ⠈⣷⣯⢿⣿⣽⣿⢿⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⡿⠀⠀⠀⠀⠀⠀⠀
                 ⠀⠀⠀⠀⠀⢸⣿⣽⣯⣟⣮⢷⣫⣏⠿⣜⢧⣯⡿⣜⣾⣷⣶⣶⣶⣿⣿⣿⣿⣿⣿⣿⣿⣿⣟⣿⣯⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀
                 ⠀⠀⠀⠀⠀⠀⢿⣿⣾⣟⣾⣯⢷⣯⢿⡽⣾⣾⣷⣽⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⢼⣿⣻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀
                 ⠀⠀⠀⠀⠀⠀⠘⣿⣿⣿⣿⣾⣿⢾⣯⣟⣧⣿⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠞⣿⣿⣿⣿⣿⣿⣿⣿⣿⣻⣿⣿⠃⠀⠀⠀⠀⠀⠀⠀⠀
@@ -290,11 +348,11 @@ public class StorageManager {
                 ⠀⠀⡎⠁⠀⠁⠒⢰⣶⠒⠂⠙⠛⢻⣿⣿⣿⣯⡟⢻⠛⠛⣿⣿⣿⣿⣿⣿⣿⠛⠛⡟⠛⠛⠉⣿⣿⣿⠘⣧⣽⡜⣾⠉⣬⣭⠓⣤⠀⠀⠀⠀⠀⠀⠀⠀⠀
                 ⠀⠀⢇⠀⠀⠀⠀⠀⢈⣀⠀⠀⠀⠀⠈⠙⢿⣿⣿⣜⡀⡀⡄⠀⠀⢀⠀⠀⢠⠀⠀⣁⠀⢀⣶⡇⠿⣸⣱⣾⡶⠛⠉⠁⠀⠀⠈⠉⠓⠂⠒⠀⠈⠀⠢⠀⠀
                 ⠀⠀⠈⠂⢄⣀⡀⠀⢾⣿⣟⡦⢤⣀⣀⢀⢤⣹⣿⣿⣿⣷⣷⣶⣶⣿⣶⣴⣿⣶⡶⠟⠛⢋⣡⣴⣿⠿⣻⢣⡀⠀⠀⡀⡠⢤⣴⣶⡄⠀⠀⠀⠀⠀⡜⠀⠀
-                ⠀⠀⠀⣄⣻⣿⠝⠪⠧⣤⠀⢈⠿⠒⠬⣎⣢⠭⢷⠫⠟⡷⢿⣭⣯⣵⣉⣌⣡⣤⣴⣶⢿⠿⠻⠝⠢⢹⠯⣅⡫⣍⠧⢽⠗⠓⠛⢋⢵⢤⣤⣤⣴⡞⠁⠀⠀
-                ⠀⠀⠘⢣⣿⡧⡀⠀⠀⠀⡹⠋⢀⣤⢤⣿⡀⠀⠈⠆⠀⠀⠀⠀⠀⠀⠉⠈⠁⠀⠀⠀⠀⠀⠀⠀⠠⡁⠀⠀⣿⡇⣀⠀⠱⡠⠚⠋⠀⠈⢳⣿⣭⠀⠀⠀⠀
-                ⠀⣤⢶⡟⣋⠇⠈⠐⠒⢲⠁⠀⠀⠈⠙⣿⠁⠉⠉⢺⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠉⠁⢸⣿⠟⠋⠁⠀⠑⣀⠀⣀⠠⠞⢅⠙⣷⢠⣀⠀
-                ⣾⢟⣾⡀⠳⠀⠀⠀⠀⠀⠓⠢⠤⠤⠴⠃⠣⢀⠠⠞⠀⠀⠀⠀⠁⠠⢀⠀⠀⢠⡀⠄⠀⠀⠂⡀⠣⠄⣀⠝⠘⠄⣀⣀⣀⠴⠋⠀⢀⡠⠎⠤⠃⣹⡼⢚⡆
-                ⠈⠛⠃⠇⠴⠂⠔⠀⠒⠒⠈⠐⠒⠢⠎⠓⠒⠒⠛⠓⠀⠂⠃⠈⠈⠉⠀⠀⠀⠀⠀⠀⠁⠙⠐⠀⠒⠛⠚⠓⠒⠚⠀⠤⠜⠈⠘⠒⠶⠶⠖⠖⠶⠿⠛⠟⠀
+                ⠀⠀⠀   ⠝⠪⠧⣤⠀⢈⠿⠒⠬⣎⣢⠭⢷⠫⠟⡷⢿⣭⣯⣵⣉⣌⣡⣤⣴⣶⢿⠿⠻⠝⠢⢹⠯⣅⡫⣍⠧⢽⠗⠓⠛⢋⢵⢤⣤⣤⣴⡞⠁⠀⠀
+                ⠀⠀   ⡧⡀⠀⠀⠀⡹⠋⢀⣤⢤⣿⡀⠀⠈⠆⠀⠀⠀⠀⠀⠀⠉⠈⠁⠀⠀⠀⠀⠀⠀⠀⠠⡁⠀⠀⣿⡇⣀⠀⠱⡠⠚⠋⠀⠈⠀⠀
+                ⠀     ⠈⠐⠒⢲⠁⠀⠀⠈⠙⣿⠁⠉⠉⢺⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀ ⠉⠁⢸⣿⠟⠋⠁⠀⠑⣀⠀⣀⠠⠞
+                     ⠀⠀⠀⠀⠀⠓⠢⠤⠤⠴⠃⠣⢀⠠⠞⠀⠀                 ⠣⠄⣀⠝⠘⠄⣀⣀⣀⠴⠋⠀
+
 
                 i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics
 i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics
@@ -310,6 +368,14 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
             try{
                 File file = new File(schema.name + "bpt");
 
+                /*
+                    If we're splitting the root node, create a new root (this implementation keeps the root the same,
+                    instead option to create two new child nodes, since reassigning the root node is much more of a
+                    hassle than necessary).
+
+                    The new root has a single value in it (the middle one)
+                    and the remaining values are distributed evenly between them (left getting the +1 if it's odd)
+                 */
                 if(root.isRootNode()){
                     leftSide.addAll(pointers.subList(0, splitIndex));
                     middle.add(pointers.get(splitIndex));
@@ -319,6 +385,11 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     int leftIndex = addPage(file);
                     int rightIndex = addPage(file);
                     root.addPointer(middle.getFirst().getValue(), leftIndex);
+
+                    /*
+                        Inner nodes have a null value pointer at the end to represent the "greater than all" case.
+                        That way we don't need to save all the pointers and values separately.
+                     */
                     root.addPointer(null, rightIndex);
                     root.save();
 

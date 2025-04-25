@@ -43,6 +43,9 @@ public class Main {
             System.out.println("Created new database directory at " + databaseDir.getAbsolutePath());
         }
         else{
+            for (File file : databaseDir.listFiles()) {
+                file.delete();
+            }
             System.out.println("Opening database at " + databaseDir.getAbsolutePath());
         }
 
