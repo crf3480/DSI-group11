@@ -432,9 +432,11 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
             return false;
         }
         boolean valid = true;
-        for(BPlusPointer bpp: root.getPointers()){
-            if(!isValid(schema, getNode(schema, bpp.getPageIndex(), root.index), n)){
-                return false;
+        if(!root.isLeafNode()) {
+            for(BPlusPointer bpp: root.getPointers()){
+                if(!isValid(schema, getNode(schema, bpp.getPageIndex(), root.index), n)){
+                    return false;
+                }
             }
         }
         return true;
