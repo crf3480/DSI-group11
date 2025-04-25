@@ -79,6 +79,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      */
     public BPlusPointer<T> get(Object obj) {
         System.out.println("Trying to get " + obj.toString());
+        System.out.println("looking through "+pointers);
         T value = cast(obj);
         //This should only ever happen on an empty lone root node, which will always point to page 0, record 0
         if(pointers.isEmpty()){
@@ -87,20 +88,20 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         // Searches through all pointers until it finds the value. If it finds
         // a larger value or the loop exists, a matching record does not exist
         for (BPlusPointer<T> bpp : pointers) {
-            // Last pointer has a null value, meaning you did not find a match
+            // Last pointer of internal nodes has a null value, meaning you did not find a match
             // Leaf nodes return `null` since there was no match
             // Internal nodes return the pointer to follow
             if (bpp.getValue() == null) {
                 return (isLeafNode()) ? null : bpp;
             }
             int cmp = bpp.getValue().compareTo(value);
-            if (bpp.isRecordPointer() && cmp > 0) {
+            if (bpp.isRecordPointer() && cmp < 0) {
                 return null; // Found larger record without finding match in leaf node
             } else if (cmp >= 0) {
                 return bpp;  // Found matching branch
             }
         }
-        // It shouldn't be possible to exit the for-loop
+        // It shouldn't be possible to exit the for-loop in an internal node
         throw new InternalError("Escaped pointer iterator in get() while looking for `" +
                 obj + "` in table `" + schema.name + "` with node `" + index + "`");
     }
