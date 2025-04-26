@@ -422,7 +422,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
             return;
         }
         for (BPlusPointer<?> bpp : root.getPointers()) {
-            if(root.isRootNode() || bpp.getValue()!=null){
+            if(!(root.isLeafNode() && bpp.getValue()==null)){
                 displayTree(schema, buffer.getNode(schema, bpp.getPageIndex()), prefix+"\t");
             }
         }
