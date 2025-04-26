@@ -33,7 +33,16 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         n = (availablePageSpace / bppSize);
     }
 
-    // i hate generics
+    /**
+     * This constructor purely exists to avoid a compiler error due to generic fuckery
+     * when creating new BPlusNodes with generic-typed pointers arrays. It does the same
+     * thing as the normal constructor but has an extra parameter so the code compiles.
+     * @param schema The TableSchema of the table being indexed
+     * @param nodeIndex The index of this node in the BPlus file
+     * @param pointers The pointers stored in this node
+     * @param parentIndex The index of the node's parent. -1 if this is the root node
+     * @param isThisDumb this does literally nothing but it avoids a compiler error
+     */
     public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<?>> pointers, int parentIndex, boolean isThisDumb){
         this.schema = schema;
         this.index = nodeIndex;
@@ -116,7 +125,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     }
 
     /**
-     * Inserts a pointer into the BPlus node. All subsequent pointers from the same page will
+     * Inserts a pointer into the BPlus node. All following pointers from the same page will
      * have their record index incremented
      * @param obj The value being inserted
      * @return The B+ pointer where this record was inserted
@@ -302,7 +311,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     /**
      * Adds a pointer to this internal node which is the result of one of its children splitting
      * @param rightObj The value of the first pointer in the right node of the split
-     * @param rightIndex The index of the right node of the split
+     * @param rightIndex The index of the right node in the split
      */
     public void splitPointer(Object rightObj, int rightIndex) {
         T rightValue = cast(rightObj);
