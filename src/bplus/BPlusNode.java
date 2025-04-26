@@ -12,7 +12,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
 
     private final TableSchema schema;
     private final ArrayList<BPlusPointer<T>> pointers;
-    public final int parent;
+    public int parent;
     public final int n;
 
     /**

@@ -364,8 +364,22 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     int rightIndex = addPage(file);
 
                     leftSide.addAll(pointers.subList(0, splitIndex));
+                    for (BPlusPointer<?> bpp : leftSide) {
+                        if (bpp.getValue() == null || bpp.getRecordIndex() != -1) {
+                            break;
+                        }
+                        BPlusNode<?> childNode = buffer.getNode(schema, bpp.getPageIndex());
+                        childNode.parent = leftIndex;
+                    }
                     leftSide.add(new BPlusPointer<>(null, rightIndex));
                     rightSide.addAll(pointers.subList(splitIndex, pointers.size()));
+                    for (BPlusPointer<?> bpp : rightSide) {
+                        if (bpp.getValue() == null || bpp.getRecordIndex() != -1) {
+                            break;
+                        }
+                        BPlusNode<?> childNode = buffer.getNode(schema, bpp.getPageIndex());
+                        childNode.parent = rightIndex;
+                    }
 
                     buffer.insert(new BPlusNode<>(schema, leftIndex, leftSide, root.index, true));
                     buffer.insert(new BPlusNode<>(schema, rightIndex, rightSide, root.index, true));
@@ -378,9 +392,9 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                 }
                 else {
                     if (root.isLeafNode()) {
-                        System.out.println("Splitting leaf node " + root);
+                        System.out.println("Splitting leaf node " + root + " with parent " + root.parent);
                     } else {
-                        System.out.println("Splitting internal node " + root);
+                        System.out.println("Splitting internal node " + root + " with parent + " + root.parent);
                     }
 
                     int rightIndex = addPage(file);
@@ -406,6 +420,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
 
                     // Spawn right child
                     BPlusNode<?> rightNode = new BPlusNode<>(schema, rightIndex, rightSide, root.parent, true);
+                    System.out.println("New right node: " + rightNode);
                     buffer.insert(rightNode);
                 }
             } catch (IOException ioe){
