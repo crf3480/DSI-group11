@@ -29,7 +29,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         this.parent = parentIndex;
         Attribute pk = schema.getPrimaryKey();
         int availablePageSpace = (schema.pageSize - Integer.BYTES); // Parent pointer takes up 4 bytes
-        int bppSize = (pk.length + Integer.BYTES + Integer.BYTES);  // value + page pointer + record pointer
+        int bppSize = (pk.byteLength() + Integer.BYTES + Integer.BYTES);  // value + page pointer + record pointer
         n = (availablePageSpace / bppSize);
     }
 
@@ -375,10 +375,9 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         // Iterate through the records until you find a value at (or after) the split point
         for (int i = 0; i < pointers.size() - 1; i++) {
             BPlusPointer<T> bpp = pointers.get(i);
-            int cmp = bpp.getValue().compareTo(splitValue);
-            if (cmp > 0) {
-                return -1; // Last record
-            } else if (bpp.getValue().compareTo(splitValue) == 0) {
+            if (bpp.getPageIndex() != parentIndex) {
+                return -1; // Last record of prev node was the last record in the split page
+            } else if (bpp.getValue().compareTo(splitValue) >= 0) {
                 // Once you've found the split point, loop over the remaining records and replace
                 // their pointers with ones to the new page, resetting their recordPointers to
                 // start from startingRecIndex

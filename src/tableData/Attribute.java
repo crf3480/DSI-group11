@@ -109,5 +109,15 @@ public class Attribute {
         return !primaryKey && !notNull;
     }
 
+    /**
+     * Returns the number of bytes this attribute will take up when stored as a string
+     * @return `length` if the attribute is a non-string type; `length + 1` for string types
+     */
+    public int byteLength() {
+        if (this.type == AttributeType.VARCHAR || this.type == AttributeType.CHAR) {
+            return length + 1;
+        }
+        return length;
+    }
 }
 

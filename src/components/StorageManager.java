@@ -248,7 +248,6 @@ public class StorageManager {
             Page child = targetPage.split(childIndex);
             // Insert the new page into the buffer and catalog
             try {
-                System.out.println("Inserting child " + child.pageNumber + " at " + childIndex);
                 buffer.insert(child);
                 schema.insertPage(child.pageNumber, childIndex);
                 child.save();
@@ -256,7 +255,30 @@ public class StorageManager {
                 System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
             }
             buffer.refreshPageNumbers(schema); // Resync pageNumber for pages in buffer
+
+            if (isIndexingEnabled()) {
+                Object firstKey = child.records.getFirst().get(schema.primaryKey);
+                BPlusNode<?> currNode = buffer.getNode(schema, schema.treeRoot);
+                BPlusPointer<?> currPtr = currNode.get(firstKey);
+                while (!currNode.isLeafNode()) {
+                    currNode = buffer.getNode(schema, currPtr.getPageIndex());
+                    currPtr = currNode.get(firstKey);
+                }
+                int recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, 0);
+                System.out.println("Child " + childIndex + ": " + child.records);
+                System.out.println("curr node: " + currNode.getPointers());
+                while (recStartIndex != -1) {
+                    int nextPtr = currNode.getPointers().getLast().getPageIndex();
+                    if (nextPtr == -1) {
+                        break; // Reached end of records
+                    }
+                    currNode = buffer.getNode(schema, nextPtr);
+                    recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, recStartIndex + 1);
+                    System.out.println("curr node: " + currNode.getPointers());
+                }
+            }
         }
+
         return true;
     }
 
