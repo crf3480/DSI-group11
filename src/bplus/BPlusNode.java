@@ -12,7 +12,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
 
     private final TableSchema schema;
     private final ArrayList<BPlusPointer<T>> pointers;
-    private int parent;
+    private final int parent;
 
     /**
      * Creates a BPlusNode for a given table
@@ -28,15 +28,20 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     }
 
     // i hate generics
+    @SuppressWarnings("unchecked")
     public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<?>> pointers, int parentIndex, boolean isThisDumb){
         this.schema = schema;
         this.index = nodeIndex;
-        this.pointers = new ArrayList<BPlusPointer<T>>();
+        this.pointers = new ArrayList<>();
         System.out.println(pointers.size());
         for (BPlusPointer<?> pointer : pointers) {
             this.pointers.add((BPlusPointer<T>) pointer);
         }
         this.parent = parentIndex;
+
+        if (!isThisDumb) {
+            System.err.println("Yes it is");
+        }
     }
 
     /**
@@ -134,7 +139,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 // Insert after last non-null pointer
                 BPlusPointer<T> prevPointer = pointers.get(i - 1);
                 newBPP = new BPlusPointer<>(value, prevPointer.getPageIndex(), prevPointer.getRecordIndex() + 1);
-                pointers.set(i, newBPP);
+                pointers.add(i, newBPP);
             } else if (newBPP != null) {
                 pointers.set(i, new BPlusPointer<>(bpp.getValue(), bpp.getPageIndex(), bpp.getRecordIndex() + 1));
             } else {
@@ -179,7 +184,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             deleteIndex += 1;
         }
         pointers.remove(deleteIndex);
-        //TODO: Merge leaves if underfull, revalidate tree (IN STORAGEMANAGER)
         return true;
     }
 
@@ -265,8 +269,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             throw new IOException("Could not find index file `" + indexFile.getAbsolutePath() + "`");
         }
         // Write data
-        Attribute pk = schema.attributes.get(schema.primaryKey);
-        int n = (schema.pageSize / (pk.length + Integer.BYTES)) - 1;
         try (RandomAccessFile raf = new RandomAccessFile(indexFile, "rw")) {
             long offset = ((long) index * schema.pageSize);  // Page count + pageIndex offset
             raf.seek(offset);
