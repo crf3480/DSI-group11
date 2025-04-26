@@ -72,12 +72,6 @@ public class StorageManager {
         return buffer.getPage(schema, pageIndex);
     }
 
-    //TODO: This function doesn't need to exist
-    public BPlusNode getNode(TableSchema schema, int pageIndex, int parentIndex) {
-        BPlusNode out = buffer.getNode(schema, pageIndex, parentIndex);
-        return out;
-    }
-
     /**
      * Fetches the BPlusPointer for the record with a given value
      * @param schema The TableSchema of the table being searched
@@ -92,7 +86,7 @@ public class StorageManager {
                 return pointer;
             }
             // If pointer was a node pointer, follow it
-            node = getNode(schema, pointer.getPageIndex(), node.index);
+            node = buffer.getNode(schema, pointer.getPageIndex(), node.index);
         }
         return null;
     }
@@ -108,7 +102,7 @@ public class StorageManager {
         BPlusNode<?> node = buffer.getNode(schema, schema.treeRoot, -1);
         while (node != null) {
             BPlusPointer<?> pointer = node.get(value);
-            if (getNode(schema, pointer.getPageIndex(), pointer.getRecordIndex()).get(value).isRecordPointer()) {
+            if (buffer.getNode(schema, pointer.getPageIndex(), pointer.getRecordIndex()).get(value).isRecordPointer()) {
                 return pointer;
             }
             // If pointer was a node pointer, follow it
@@ -218,7 +212,7 @@ public class StorageManager {
                     - page pointer is an index that refers to the page (or node) number in the table (or b+ tree)
                     - record pointer is an index that refers to the index of the record in the page of the table (or -1 in an internal node)
              */
-            displayTree(schema, getNode(schema, schema.rootIndex, -1), "");
+            displayTree(schema, buffer.getNode(schema, schema.rootIndex, -1), "");
             int n = (schema.pageSize / (schema.getPrimaryKey().length + (2 * Integer.BYTES))) - 1;
             n = 6; //TODO: TEST VALUE, DELETE LATER
             if(!isValid(schema, root, n)){
@@ -362,7 +356,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                 }
                 else {
                     System.out.println("Splitting internal node "+root);
-                    int rightIndex = addPage(file)+1;
+                    int rightIndex = addPage(file);
                     leftSide.addAll(pointers.subList(0, splitIndex));
                     leftSide.add(new BPlusPointer<>(null, rightIndex, -1));
                     rightSide.addAll(pointers.subList(splitIndex, pointers.size()));
@@ -374,7 +368,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                         root.addPointer(bpp.getPageIndex(), bpp.getRecordIndex());
                     }
 
-                    BPlusNode<?> parent = getNode(schema, root.getParent(), root.index);
+                    BPlusNode<?> parent = buffer.getNode(schema, root.getParent(), root.index);
                     parent.addPointer(rightSide.getFirst().getValue(), rightIndex);
                     parent.save();
 
@@ -401,7 +395,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
         boolean valid = true;
         if(!root.isLeafNode()) {
             for(BPlusPointer bpp: root.getPointers()){
-                if(!isValid(schema, getNode(schema, bpp.getPageIndex(), root.index), n)){
+                if(!isValid(schema, buffer.getNode(schema, bpp.getPageIndex(), root.index), n)){
                     return false;
                 }
             }
@@ -415,7 +409,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
             return;
         }
         for (BPlusPointer bpp : root.getPointers()) {
-            displayTree(schema, getNode(schema, bpp.getPageIndex(), root.index), prefix+" ");
+            displayTree(schema, buffer.getNode(schema, bpp.getPageIndex(), root.index), prefix+" ");
         }
     }
 
