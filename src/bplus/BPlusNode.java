@@ -106,11 +106,8 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             if (bpp.getValue() == null) {
                 return (isLeafNode()) ? null : bpp;
             }
-            int cmp = bpp.getValue().compareTo(value);
-            if (bpp.isRecordPointer() && cmp > 0) {
-                return null; // Found larger record without finding match in leaf node
-            } else if (cmp >= 0) {
-                return bpp;  // Found matching branch
+            if (bpp.getValue().compareTo(value) > 0) {
+                return bpp.isRecordPointer() ? null : bpp;  // Found matching branch
             }
         }
         // It shouldn't be possible to exit the for-loop in an internal node
@@ -129,6 +126,9 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             throw new IllegalArgumentException("node is not leaf. failed.");
         }
         T value = cast(obj);
+        if (value.equals("JYTN6R")) {
+            System.out.println("here");
+        }
         if (pointers.isEmpty()) {
             BPlusPointer<T> firstRecord = new BPlusPointer<>(value, 0, 0);
             pointers.add(firstRecord);
@@ -146,6 +146,9 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 newBPP = new BPlusPointer<>(value, prevPointer.getPageIndex(), prevPointer.getRecordIndex() + 1);
                 pointers.add(i, newBPP);
             } else if (newBPP != null) {
+                if (bpp.getPageIndex() != newBPP.getPageIndex()) {
+                    break; // Reached the next page of records
+                }
                 if (bpp.getValue() != null) {
                     pointers.set(i, new BPlusPointer<>(bpp.getValue(), bpp.getPageIndex(), bpp.getRecordIndex() + 1));
                 }
@@ -372,7 +375,10 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         // Iterate through the records until you find a value at (or after) the split point
         for (int i = 0; i < pointers.size() - 1; i++) {
             BPlusPointer<T> bpp = pointers.get(i);
-            if (bpp.getValue().compareTo(splitValue) >= 0) {
+            int cmp = bpp.getValue().compareTo(splitValue);
+            if (cmp > 0) {
+                return -1; // Last record
+            } else if (bpp.getValue().compareTo(splitValue) == 0) {
                 // Once you've found the split point, loop over the remaining records and replace
                 // their pointers with ones to the new page, resetting their recordPointers to
                 // start from startingRecIndex

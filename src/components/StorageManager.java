@@ -226,6 +226,7 @@ public class StorageManager {
 
         } else {
             targetPage.records.add(targetRecordIndex, record);
+            System.out.println("Target records: " + targetPage.records);
         }
         schema.incrementRecordCount();
 
@@ -242,6 +243,7 @@ public class StorageManager {
                     return false;
                 }
             }
+            System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PAGE SPLIT");
             Page child = targetPage.split(childIndex);
             // Insert the new page into the buffer and catalog
             try {
@@ -270,6 +272,7 @@ public class StorageManager {
                 }
                 // Iterate until you run out of pointers or encounter the next page
                 int startingRecIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, 0);
+                System.out.println("Updated currNode: " + currNode);
                 while (startingRecIndex != -1) {
                     // Continue the update with the next leaf node
                     int nextPtr = currNode.getPointers().getLast().getPageIndex();
@@ -278,7 +281,9 @@ public class StorageManager {
                     }
                     currNode = buffer.getNode(schema, nextPtr);
                     startingRecIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, startingRecIndex + 1);
+                    System.out.println("Updated currNode: " + currNode);
                 }
+                System.out.println("Sanity check: " + child.index + " : " + child.records);
             }
         }
         return true;
@@ -407,6 +412,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                 System.err.println(ioe.getMessage());
             }
         }
+        System.out.println("===================");
         displayTree(schema, root, "");
     }
 

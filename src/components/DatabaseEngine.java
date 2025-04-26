@@ -427,6 +427,7 @@ public class DatabaseEngine {
             int pageNumber = 0;
             Page currPage = storageManager.getPage(schema, pageNumber);
             while (currPage != null) {
+                System.out.println(" ");
                 System.out.println(tableToString(currPage.records, 10));
                 pageNumber += 1;
                 currPage = storageManager.getPage(schema, pageNumber);
