@@ -141,7 +141,9 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 newBPP = new BPlusPointer<>(value, prevPointer.getPageIndex(), prevPointer.getRecordIndex() + 1);
                 pointers.add(i, newBPP);
             } else if (newBPP != null) {
-                pointers.set(i, new BPlusPointer<>(bpp.getValue(), bpp.getPageIndex(), bpp.getRecordIndex() + 1));
+                if (bpp.getValue() != null) {
+                    pointers.set(i, new BPlusPointer<>(bpp.getValue(), bpp.getPageIndex(), bpp.getRecordIndex() + 1));
+                }
             } else {
                 int cmp = bpp.getValue().compareTo(value);
                 if (cmp > 0) {
