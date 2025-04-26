@@ -223,10 +223,6 @@ public class StorageManager {
             displayTree(schema, getNode(schema, schema.rootIndex, -1), "");
             int n = (schema.pageSize / (schema.getPrimaryKey().length + (2 * Integer.BYTES))) - 1;
             n = 6; //TODO: TEST VALUE, DELETE LATER
-            try {
-                TimeUnit.MILLISECONDS.sleep(25);
-            }catch (InterruptedException e) {
-            }
             if(!isValid(schema, root, n)){
                 System.out.println("TREE INVALID, FIXING...");
                 validate(schema, root, n);
