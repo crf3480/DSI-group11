@@ -86,7 +86,7 @@ public class Main {
             try (BufferedReader br = new BufferedReader(new FileReader(execFile))) {
                 String line = br.readLine();
                 while (line != null) {
-                    if (!line.startsWith("//") && !line.isEmpty()) {
+                    if (!(line.isEmpty() || line.startsWith("//") || line.startsWith("#"))) {
                         System.out.println("\n"+line);
                         exec(line, devArgs.contains("-v"));
                     }

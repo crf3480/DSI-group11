@@ -155,9 +155,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 }
             }
         }
-        if(pointers.getLast().getValue() != null) {
-            pointers.add(new BPlusPointer<>(null, -1, -1));
-        }
         return newBPP;
     }
 
