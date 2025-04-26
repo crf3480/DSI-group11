@@ -43,6 +43,14 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     }
 
     /**
+     * Returns the number of pointers in the node
+     * @return the number of pointers in the node
+     */
+    public int size() {
+        return pointers.size();
+    }
+
+    /**
      * Returns the name of the table this BPlusNode indexes into
      * @return The table name
      */

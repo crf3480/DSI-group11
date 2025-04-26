@@ -72,6 +72,7 @@ public class StorageManager {
         return buffer.getPage(schema, pageIndex);
     }
 
+    //TODO: This function doesn't need to exist
     public BPlusNode getNode(TableSchema schema, int pageIndex, int parentIndex) {
         BPlusNode out = buffer.getNode(schema, pageIndex, parentIndex);
         return out;
@@ -160,7 +161,6 @@ public class StorageManager {
             } catch (IOException ioe) {
                 System.err.println("Encountered exception while adding new node to b+ tree: " + ioe.getMessage());
             }
-
         }
         int targetPageIndex = -1;
         int targetRecordIndex = -1;
@@ -195,7 +195,7 @@ public class StorageManager {
         }
         else{   //Indexing enabled. Do B+ tree stuff
             System.out.println("\nInserting "+value+" into B+ tree");
-            BPlusNode<?> root = getNode(schema, schema.treeRoot, -1);
+            BPlusNode<?> root = buffer.getNode(schema, schema.treeRoot, -1);
 
             // Traverse tree until you find leaf node where the record will be inserted
             BPlusPointer<?> bpp = root.get(value);
@@ -204,7 +204,7 @@ public class StorageManager {
                 if (targetNode.isLeafNode()) {
                     throw new IllegalArgumentException("Duplicate record: " + record);
                 }
-                targetNode = getNode(schema, bpp.getPageIndex(), targetNode.index);
+                targetNode = buffer.getNode(schema, bpp.getPageIndex(), targetNode.index);
                 bpp = targetNode.get(value);
             }
 
@@ -274,14 +274,13 @@ public class StorageManager {
     private void validate(TableSchema schema, BPlusNode<?> root, int n) {
         // We validate the tree bottom up to avoid needing to call this more than once, so we recurse down first
         if(!root.isLeafNode()) {
-            for (BPlusPointer bpp : root.getPointers()) {
-                validate(schema, getNode(schema, bpp.getPageIndex(), root.index), n);
+            for (BPlusPointer<?> bpp : root.getPointers()) {
+                validate(schema, buffer.getNode(schema, bpp.getPageIndex(), root.index), n);
             }
         }
-        ArrayList<? extends BPlusPointer<?>> pointers = root.getPointers();
-        root = getNode(schema, root.index, root.getParent());
-        if( (!root.isLeafNode() && root.getPointers().size() > n) ||
-                (root.isLeafNode() && root.getPointers().size() >=n)) {
+        root = buffer.getNode(schema, root.index, root.getParent());
+        if( (!root.isLeafNode() && root.size() > n) ||
+                (root.isLeafNode() && root.size() >=n)) {
             /*
                 Node splitting
                 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠤⠐⠒⢀⠋⡉⢍⢫⡝⣫⢟⡶⣲⢦⣠⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -318,7 +317,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
 i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics
              */
 
-            int splitIndex = (pointers.size())/2;
+            int splitIndex = (root.size())/2;
             ArrayList<BPlusPointer<?>> leftSide = new ArrayList<>();
             ArrayList<BPlusPointer<?>> middle = new ArrayList<>();
             ArrayList<BPlusPointer<?>> rightSide = new ArrayList<>();
@@ -334,6 +333,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     The new root has a single value in it (the middle one)
                     and the remaining values are distributed evenly between them (left getting the +1 if it's odd)
                  */
+                ArrayList<? extends BPlusPointer<?>> pointers = root.getPointers();
                 if(root.isRootNode()){
                     System.out.println("Splitting root node");
                     leftSide.addAll(pointers.subList(0, splitIndex));
@@ -391,7 +391,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
      * @return True if all contained nodes are valid, else false
      */
     private boolean isValid(TableSchema schema, BPlusNode<?> root, int n) {
-        if(root.getPointers().size() > n){
+        if(root.size() > n){
             return false;
         }
         boolean valid = true;
