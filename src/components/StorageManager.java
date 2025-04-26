@@ -272,13 +272,13 @@ public class StorageManager {
     private void validate(TableSchema schema, BPlusNode<?> root, int n) {
         // We validate the tree bottom up to avoid needing to call this more than once, so we recurse down first
         if(!root.isLeafNode()) {
-            for (BPlusPointer<?> bpp : root.getPointers()) {
+            for (int i = 0; i < root.getPointers().size(); i++) {
+                BPlusPointer<?> bpp = root.getPointers().get(i);
                 validate(schema, buffer.getNode(schema, bpp.getPageIndex(), root.index), n);
             }
         }
         root = buffer.getNode(schema, root.index, root.getParent());
-        if( (!root.isLeafNode() && root.size() > n) ||
-                (root.isLeafNode() && root.size() >=n)) {
+        if(root.size() > n) {
             /*
                 Node splitting
                 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠤⠐⠒⢀⠋⡉⢍⢫⡝⣫⢟⡶⣲⢦⣠⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -333,7 +333,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                  */
                 ArrayList<? extends BPlusPointer<?>> pointers = root.getPointers();
                 if(root.isRootNode()){
-                    //System.out.println("Splitting root node");
+                    System.out.println("Splitting root node "+root);
                     leftSide.addAll(pointers.subList(0, splitIndex));
                     middle.add(pointers.get(splitIndex));
                     rightSide.addAll(pointers.subList(splitIndex, pointers.size()));

@@ -290,7 +290,13 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     }
 
     public void addPointer(Object value, int pageIndex){
-        pointers.add(new BPlusPointer<>(value, pageIndex, -1));
+        int insertIndex = pointers.size();
+        for (BPlusPointer<T> pointer : pointers) {
+            if(pointer.getValue().equals(null)){
+                insertIndex = pointers.size()-2;
+            }
+        }
+        pointers.add(insertIndex, new BPlusPointer<>(value, pageIndex, -1));
     }
 
     public void clearPointers() {
