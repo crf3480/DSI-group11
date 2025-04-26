@@ -218,7 +218,6 @@ public class StorageManager {
                     - page pointer is an index that refers to the page (or node) number in the table (or b+ tree)
                     - record pointer is an index that refers to the index of the record in the page of the table (or -1 in an internal node)
              */
-            System.out.println("Displaying tree");
             displayTree(schema, getNode(schema, schema.rootIndex, -1), "");
             int n = (schema.pageSize / (schema.getPrimaryKey().length + (2 * Integer.BYTES))) - 1;
             n = 6; //TODO: TEST VALUE, DELETE LATER
@@ -334,17 +333,17 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                  */
                 ArrayList<? extends BPlusPointer<?>> pointers = root.getPointers();
                 if(root.isRootNode()){
-                    System.out.println("Splitting root node");
+                    //System.out.println("Splitting root node");
                     leftSide.addAll(pointers.subList(0, splitIndex));
                     middle.add(pointers.get(splitIndex));
-                    rightSide.addAll(pointers.subList(splitIndex+1, pointers.size()));
+                    rightSide.addAll(pointers.subList(splitIndex, pointers.size()));
 
                     root.clearPointers();
                     int leftIndex = addPage(file);
                     int rightIndex = addPage(file);
                     leftSide.add(new BPlusPointer<>(null, rightIndex, -1));
-                    System.out.println("Left index: " + leftIndex);
-                    System.out.println("Right index: " + rightIndex);
+                    //System.out.println("Left index: " + leftIndex);
+                    //System.out.println("Right index: " + rightIndex);
                     root.addPointer(middle.getFirst().getValue(), leftIndex);
                     System.out.println(root.getPointers());
 
@@ -362,8 +361,11 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     rightNode.save();
                 }
                 else {
+                    System.out.println("Splitting internal node "+root);
                     leftSide.addAll(pointers.subList(0, splitIndex+1));
                     rightSide.addAll(pointers.subList(splitIndex+1, pointers.size()));
+                    System.out.println("left side:  "+leftSide.toString());
+                    System.out.println("right side: "+rightSide.toString());
 
                     root.clearPointers();
                     for (BPlusPointer bpp : leftSide) {
