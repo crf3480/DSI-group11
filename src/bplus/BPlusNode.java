@@ -24,6 +24,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         this.schema = schema;
         this.index = nodeIndex;
         this.pointers = new ArrayList<BPlusPointer<T>>();
+        System.out.println(pointers);
         for (BPlusPointer<?> pointer : pointers) {
             pointers.add((BPlusPointer<T>) pointer);
         }
@@ -151,7 +152,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 }
             }
         }
-        if(!(pointers.getLast().getValue() == null)) {
+        if(pointers.getLast().getValue() != null) {
             pointers.add(new BPlusPointer<>(null, -1, -1));
         }
         return newBPP;
