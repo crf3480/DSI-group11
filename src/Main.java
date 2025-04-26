@@ -66,6 +66,15 @@ public class Main {
         if (devArgs.contains("--nuke")) {
             storageManager.toggleNUKE_MODE();
         }
+        // Custom n force
+        int customNIndex = devArgs.indexOf("-n");
+        if(customNIndex != -1){
+            if (customNIndex == devArgs.size() - 1) {
+                System.err.println("`-n` arg missing n value");
+                return;
+            }
+            storageManager.forceNValue(Integer.valueOf(devArgs.get(customNIndex+1)));
+        }
         // CLI command run
         int executeStringIndex = devArgs.indexOf("-X");
         if (executeStringIndex != -1) {
