@@ -280,7 +280,7 @@ public class Buffer {
      * @throws IndexOutOfBoundsException if pageIndex exceeds the size of the table file
      */
     public BPlusNode<?> loadNode(TableSchema schema, int nodeIndex, Integer parentIndex) throws IndexOutOfBoundsException {
-        System.out.println(schema.name+" "+nodeIndex+" "+parentIndex);
+        System.out.println("Loading node: " + schema.name+" "+nodeIndex+" "+parentIndex);
         byte[] nodeData = new byte[pageSize];
         File indexFile = schema.indexFile();
         if (!indexFile.exists()) {
@@ -289,13 +289,14 @@ public class Buffer {
         }
         // Make sure index is within the bounds of the file
         if ((nodeIndex + 1) > indexFile.length() / pageSize) {  // This breaks if pageSize is less than the table offset
+            System.out.println("Index file length: " + indexFile.length());
             return null;
         } else if (nodeIndex < 0) {
             throw new IndexOutOfBoundsException("Invalid node index `" + nodeIndex + "`");
         }
         // Read in the data
         try (RandomAccessFile raf = new RandomAccessFile(indexFile, "r")) {
-            long offset = Integer.BYTES + ((long) nodeIndex * pageSize);  // Page count + nodeIndex offset
+            long offset = (long) nodeIndex * pageSize;  // Page count + nodeIndex offset
             raf.seek(offset);
             if (raf.read(nodeData) != pageSize) {
                 System.err.println("WARNING: Read fewer bytes than expected while loading node from `" +

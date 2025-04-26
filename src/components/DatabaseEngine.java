@@ -936,25 +936,26 @@ public class DatabaseEngine {
     //endregion
 
     public void test(ArrayList<String> args) {
-        args.removeFirst();
-        TableSchema ts = storageManager.getTableSchema("baz");
-        ArrayList<String> attrs = new ArrayList<>();
-        attrs.add("name");
-        ts = projection(ts, attrs);
-        if (ts == null) {
-            System.err.println("Found null after projection");
-            return;
-        }
-        int index = 0;
-        Page p = storageManager.getPage(ts, 0);
-        while (p != null) {
-            for (Record r : p.records) {
-                System.out.println(r);
-            }
-            index += 1;
-            p = storageManager.getPage(ts, index);
-        }
-        dropTable(ts.name);
+        storageManager.test();
+//        args.removeFirst();
+//        TableSchema ts = storageManager.getTableSchema("baz");
+//        ArrayList<String> attrs = new ArrayList<>();
+//        attrs.add("name");
+//        ts = projection(ts, attrs);
+//        if (ts == null) {
+//            System.err.println("Found null after projection");
+//            return;
+//        }
+//        int index = 0;
+//        Page p = storageManager.getPage(ts, 0);
+//        while (p != null) {
+//            for (Record r : p.records) {
+//                System.out.println(r);
+//            }
+//            index += 1;
+//            p = storageManager.getPage(ts, index);
+//        }
+//        dropTable(ts.name);
     }
 
 }

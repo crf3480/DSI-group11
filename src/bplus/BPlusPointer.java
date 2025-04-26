@@ -97,22 +97,17 @@ public class BPlusPointer<T extends Comparable<T>> {
         out.writeInt(recordIndex);
         // Write value
         Attribute pk = schema.attributes.get(schema.primaryKey);
-        if (pageIndex != -1) {
-            switch (pk.type) {
-                case INT -> out.writeInt((Integer)value);
-                case DOUBLE -> out.writeDouble((Double)value);
-                case BOOLEAN -> out.writeBoolean((Boolean) value);
-                case VARCHAR, CHAR -> out.writeUTF((String)value);
-            }
+        switch (pk.type) {
+            case INT -> out.writeInt((Integer)value);
+            case DOUBLE -> out.writeDouble((Double)value);
+            case BOOLEAN -> out.writeBoolean((Boolean) value);
+            case VARCHAR, CHAR -> out.writeUTF((String)value);
         }
         return outStream.toByteArray();
     }
 
     @Override
     public String toString() {
-        return "BPP[" +value +
-                ", page " + pageIndex +
-                ", record " + recordIndex +
-                ']';
+        return "(" + value + " | " + pageIndex + ", " + recordIndex + ")";
     }
 }

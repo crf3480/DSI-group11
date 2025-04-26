@@ -175,6 +175,14 @@ public class Catalog {
         } catch (Exception e) {
             throw new IOException("Encountered an error while creating table file:" + e.getMessage());
         }
+        // If indexing is enabled, create a new index file
+        if (indexing) {
+            File indexFile = newSchema.indexFile();
+            if (!indexFile.createNewFile()) {
+                throw new IllegalArgumentException("Index file already exists for table '" + name +
+                        "' at '" + tableFile.getAbsolutePath() + "'");
+            }
+        }
         // Once everything has been successfully handled, add TableSchema to catalog
         tableSchemas.put(name, newSchema);
         return newSchema;

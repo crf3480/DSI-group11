@@ -23,11 +23,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     public BPlusNode(TableSchema schema, int nodeIndex, ArrayList<BPlusPointer<T>> pointers, int parentIndex) {
         this.schema = schema;
         this.index = nodeIndex;
-        this.pointers = new ArrayList<BPlusPointer<T>>();
-        System.out.println(pointers);
-        for (BPlusPointer<?> pointer : pointers) {
-            pointers.add((BPlusPointer<T>) pointer);
-        }
+        this.pointers = pointers;
         this.parent = parentIndex;
     }
 
@@ -200,34 +196,33 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     public static BPlusNode<?> parse(TableSchema schema, int nodeIndex, byte[] nodeData, int parentIndex) throws IOException {
         ByteArrayInputStream inStream = new ByteArrayInputStream(nodeData);
         DataInputStream in = new DataInputStream(inStream);
-        in.readByte();  // Ignore metadata byte
         Attribute pk = schema.getPrimaryKey();
         int n = (schema.pageSize / (pk.length + Integer.BYTES + Integer.BYTES)) - 1;
-
+        System.out.println("Reading node index " + nodeIndex);
         switch (pk.type) {
             case INT:
                 ArrayList<BPlusPointer<Integer>> intPointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
-                    int value = in.readInt();
                     int pageIndex = in.readInt();
                     int secondPointer = in.readInt();
                     if (pageIndex == -1) {  // null pointer
                         intPointers.add(new BPlusPointer<>(null, secondPointer, -1));
                         break;
                     }
+                    int value = in.readInt();
                     intPointers.add(new BPlusPointer<>(value, pageIndex, secondPointer));
                 }
                 return new BPlusNode<>(schema, nodeIndex, intPointers, parentIndex);
             case DOUBLE:
                 ArrayList<BPlusPointer<Double>> doublePointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
-                    double value = in.readDouble();
                     int pageIndex = in.readInt();
                     int secondPointer = in.readInt();
                     if (pageIndex == -1) {  // null pointer
                         doublePointers.add(new BPlusPointer<>(null, secondPointer, -1));
                         break;
                     }
+                    double value = in.readDouble();
                     doublePointers.add(new BPlusPointer<>(value, pageIndex, secondPointer));
                 }
                 return new BPlusNode<>(schema, nodeIndex, doublePointers, parentIndex);
@@ -248,13 +243,13 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 // Who is going to index on a boolean?????
                 ArrayList<BPlusPointer<Boolean>> boolPointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
-                    boolean value = in.readBoolean();
                     int pageIndex = in.readInt();
                     int secondPointer = in.readInt();
                     if (pageIndex == -1) {  // null pointer
                         boolPointers.add(new BPlusPointer<>(null, secondPointer, -1));
                         break;
                     }
+                    boolean value = in.readBoolean();
                     boolPointers.add(new BPlusPointer<>(value, pageIndex, secondPointer));
                 }
                 return new BPlusNode<>(schema, nodeIndex, boolPointers, parentIndex);
@@ -278,12 +273,9 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             // Create output byte array
             ByteArrayOutputStream bs = new ByteArrayOutputStream();
             DataOutputStream out = new DataOutputStream(bs);
+            System.out.println("Writing " + this);
             for (BPlusPointer<T> pointer : pointers) {
                 out.write(pointer.encode(schema));
-            }
-            // If node is not full, add a "stop" flag
-            if (pointers.size() < n) {
-                out.writeInt(-1);
             }
             byte[] pageData = bs.toByteArray();
             if (pageData.length > schema.pageSize) {
@@ -322,13 +314,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("NODE "+index+" {");
-        for (BPlusPointer<T> pointer : pointers) {
-            sb.append(pointer.getValue()+" "+pointer.getPageIndex()+((!pointer.equals(pointers.getLast()))? ", ":""));
-        }
-        sb.append("}");
-
-        return sb.toString();
+        return "(NODE " + index + " " + pointers + ")";
     }
 }

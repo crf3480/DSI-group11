@@ -708,4 +708,28 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
     public boolean inNUKE_MODE() {
         return NUKE_MODE;
     }
+
+    public void test() {
+        TableSchema fooSchema = catalog.getTableSchema("foo");
+        ArrayList<BPlusPointer<Integer>> pointerList = new ArrayList<>();
+        pointerList.add(new BPlusPointer<>(1, 0, 0));
+        pointerList.add(new BPlusPointer<>(null, -1, -1));
+        BPlusNode<Integer> root = new BPlusNode<>(fooSchema, 0, pointerList, -1);
+        try {
+            addPage(fooSchema.indexFile());
+            System.out.println("Inserting root...");
+            buffer.insert(root);
+            System.out.println("Saving root...");
+            buffer.save();
+            System.out.println("Loading root...");
+            BPlusNode<?> loadedRoot = buffer.getNode(fooSchema, 0, -1);
+            System.out.println("root: " + root);
+            System.out.println("loaded root: " + loadedRoot);
+        } catch (IOException ioe) {
+            System.err.println(ioe.getMessage());
+            for (StackTraceElement element : ioe.getStackTrace()) {
+                System.err.println(element);
+            }
+        }
+    }
 }
