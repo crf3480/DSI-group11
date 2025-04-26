@@ -195,7 +195,10 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             if (bpp.getPageIndex() != pageIndex) {
                 return false;
             }
-            pointers.set(i, new BPlusPointer<>(bpp.getValue(), bpp.getPageIndex(), bpp.getRecordIndex() + 1));
+            if (bpp.getRecordIndex() > startingRecord) {
+                pointers.set(i, new BPlusPointer<>(bpp.getValue(), bpp.getPageIndex(), bpp.getRecordIndex() + 1));
+            }
+
         }
         return false;
     }
@@ -384,7 +387,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             int cmp = bpp.getValue().compareTo(splitValue);
             if (cmp > 0 && bpp.getPageIndex() != parentIndex) {
                 return -1; // Last record of prev node was the last record in the split page
-            } else if (bpp.getValue().compareTo(splitValue) >= 0) {
+            } else if (cmp >= 0) {
                 // Once you've found the split point, loop over the remaining records and replace
                 // their pointers with ones to the new page, resetting their recordPointers to
                 // start from startingRecIndex
