@@ -339,7 +339,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     int rightIndex = addPage(file);
 
                     leftSide.addAll(pointers.subList(0, splitIndex));
-                    if (leftSide.getFirst().isRecordPointer()) {    // Internal nodes don't point to the same level
+                    if (!leftSide.getFirst().isRecordPointer()) {    // Internal nodes don't point to the same level
                         BPlusPointer<?> last = leftSide.removeLast();
                         leftSide.add(new BPlusPointer<>(null, last.getPageIndex()));
                     } else {
