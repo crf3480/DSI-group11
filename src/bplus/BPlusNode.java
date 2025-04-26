@@ -38,7 +38,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         this.schema = schema;
         this.index = nodeIndex;
         this.pointers = new ArrayList<>();
-        System.out.println(pointers.size());
         for (BPlusPointer<?> pointer : pointers) {
             this.pointers.add(castPointer(pointer));
         }
