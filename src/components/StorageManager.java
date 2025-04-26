@@ -194,7 +194,7 @@ public class StorageManager {
             }
         }
         else{   //Indexing enabled. Do B+ tree stuff
-            System.out.println("START INDEX INSERTION");
+            System.out.println("\nSTART INDEX INSERTION");
             BPlusNode<?> root = getNode(schema, schema.treeRoot, -1);
             System.out.println("root: "+root+(root.isLeafNode()? " is leaf" : " is not leaf"));
 
