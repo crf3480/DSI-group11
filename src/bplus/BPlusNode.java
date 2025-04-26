@@ -195,7 +195,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             if (bpp.getPageIndex() != pageIndex) {
                 return false;
             }
-            if (bpp.getRecordIndex() > startingRecord) {
+            if (bpp.getRecordIndex() >= startingRecord) {
                 pointers.set(i, new BPlusPointer<>(bpp.getValue(), bpp.getPageIndex(), bpp.getRecordIndex() + 1));
             }
 

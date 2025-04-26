@@ -210,7 +210,7 @@ public class StorageManager {
                 while (needsUpdate && nextPtr != -1) {
                     BPlusNode<?> currNode = buffer.getNode(schema, nextPtr);
                     needsUpdate = currNode.incrementPointers(insertPointer.getPageIndex(), insertPointer.getRecordIndex());
-                    nextPtr = targetNode.nullPointer();
+                    nextPtr = currNode.nullPointer();
                 }
             }
             targetPageIndex = insertPointer.getPageIndex();
