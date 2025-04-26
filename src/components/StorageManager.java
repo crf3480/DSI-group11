@@ -74,7 +74,6 @@ public class StorageManager {
 
     public BPlusNode getNode(TableSchema schema, int pageIndex, int parentIndex) {
         BPlusNode out = buffer.getNode(schema, pageIndex, parentIndex);
-        System.out.println("Retrieved "+out+" from buffer");
         return out;
     }
 
@@ -156,7 +155,7 @@ public class StorageManager {
                     BPlusNode<?> root = new BPlusNode<>(schema, 0, new ArrayList<>(), -1);
                     root.save();
                     buffer.insert(root);
-                    System.out.println("Created "+file.getPath()+" with n of "+String.valueOf((schema.pageSize / (schema.getPrimaryKey().length + (2 * Integer.BYTES))) - 1));
+                    System.out.println("Created "+schema.indexFile().getPath()+" with n of "+String.valueOf((schema.pageSize / (schema.getPrimaryKey().length + (2 * Integer.BYTES))) - 1));
                 }
             } catch (IOException ioe) {
                 System.err.println("Encountered exception while adding new node to b+ tree: " + ioe.getMessage());
@@ -195,14 +194,11 @@ public class StorageManager {
             }
         }
         else{   //Indexing enabled. Do B+ tree stuff
-            System.out.println("\nSTART INDEX INSERTION");
+            System.out.println("\nInserting "+value+" into B+ tree");
             BPlusNode<?> root = getNode(schema, schema.treeRoot, -1);
-            System.out.println("root: "+root+(root.isLeafNode()? " is leaf" : " is not leaf"));
 
             // Traverse tree until you find leaf node where the record will be inserted
-            System.out.println("root ptrs: " + root.getPointers());
             BPlusPointer<?> bpp = root.get(value);
-            System.out.println("root ptrs after: " + root.getPointers());
             BPlusNode<?> targetNode = root;
             while (bpp != null) {
                 if (targetNode.isLeafNode()) {
@@ -223,7 +219,14 @@ public class StorageManager {
                     - page pointer is an index that refers to the page (or node) number in the table (or b+ tree)
                     - record pointer is an index that refers to the index of the record in the page of the table (or -1 in an internal node)
              */
+            System.out.println("Displaying tree");
+            displayTree(schema, getNode(schema, schema.rootIndex, -1), "");
             int n = (schema.pageSize / (schema.getPrimaryKey().length + (2 * Integer.BYTES))) - 1;
+            n = 6; //TODO: TEST VALUE, DELETE LATER
+            try {
+                TimeUnit.MILLISECONDS.sleep(25);
+            }catch (InterruptedException e) {
+            }
             if(!isValid(schema, root, n)){
                 System.out.println("TREE INVALID, FIXING...");
                 validate(schema, root, n);
@@ -325,7 +328,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
             ArrayList<BPlusPointer<?>> rightSide = new ArrayList<>();
 
             try{
-                File file = new File(schema.name + "bpt");
+                File file = schema.indexFile();
 
                 /*
                     If we're splitting the root node, create a new root (this implementation keeps the root the same,
@@ -336,14 +339,18 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     and the remaining values are distributed evenly between them (left getting the +1 if it's odd)
                  */
                 if(root.isRootNode()){
+                    System.out.println("Splitting root node");
                     leftSide.addAll(pointers.subList(0, splitIndex));
                     middle.add(pointers.get(splitIndex));
                     rightSide.addAll(pointers.subList(splitIndex+1, pointers.size()));
 
                     root.clearPointers();
-                    int leftIndex = addPage(file);
-                    int rightIndex = addPage(file);
+                    int leftIndex = addPage(file)+1;    //TODO: addpage might be fucking this up
+                    int rightIndex = addPage(file)+1;
+                    System.out.println("Left index: " + leftIndex);
+                    System.out.println("Right index: " + rightIndex);
                     root.addPointer(middle.getFirst().getValue(), leftIndex);
+                    System.out.println(root.getPointers());
 
                     /*
                         Inner nodes have a null value pointer at the end to represent the "greater than all" case.
@@ -366,7 +373,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     for (BPlusPointer bpp : leftSide) {
                         root.addPointer(bpp.getPageIndex(), bpp.getRecordIndex());
                     }
-                    int rightIndex = addPage(file);
+                    int rightIndex = addPage(file)+1; //TODO: addpage might be fucking this up
                     BPlusNode<?> parent = getNode(schema, root.getParent(), root.index);
                     parent.addPointer(rightSide.getFirst().getValue(), rightIndex);
                     parent.save();
@@ -378,6 +385,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                 System.err.println(ioe.getMessage());
             }
         }
+        displayTree(schema, root, "");
     }
 
     /**
@@ -399,6 +407,16 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
             }
         }
         return true;
+    }
+
+    private void displayTree(TableSchema schema, BPlusNode<?> root, String prefix) {
+        System.out.println(prefix + root);
+        if(root.isLeafNode()) {
+            return;
+        }
+        for (BPlusPointer bpp : root.getPointers()) {
+            displayTree(schema, getNode(schema, bpp.getPageIndex(), root.index), prefix+" ");
+        }
     }
 
     /**

@@ -35,8 +35,9 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         this.schema = schema;
         this.index = nodeIndex;
         this.pointers = new ArrayList<BPlusPointer<T>>();
+        System.out.println(pointers.size());
         for (BPlusPointer<?> pointer : pointers) {
-            pointers.add(((BPlusPointer<T>) pointer));
+            this.pointers.add((BPlusPointer<T>) pointer);
         }
         this.parent = parentIndex;
     }
@@ -77,8 +78,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * no pointer matches the given value
      */
     public BPlusPointer<T> get(Object obj) {
-        System.out.println("Trying to get " + obj.toString());
-        System.out.println("looking through "+pointers);
         T value = cast(obj);
         if (pointers.isEmpty()) {
             return null;
@@ -143,6 +142,9 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                     throw new IllegalArgumentException("Duplicate key: " + value);
                 }
             }
+        }
+        if(!(pointers.getLast().getValue() == null)) {
+            pointers.add(new BPlusPointer<>(null, -1, -1));
         }
         return newBPP;
     }
@@ -312,9 +314,9 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("NODE{ ");
+        sb.append("NODE "+index+" {");
         for (BPlusPointer<T> pointer : pointers) {
-            sb.append(pointer.toString()+" ");
+            sb.append(pointer.getValue()+" "+pointer.getPageIndex()+((!pointer.equals(pointers.getLast()))? ", ":""));
         }
         sb.append("}");
 

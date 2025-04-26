@@ -43,15 +43,11 @@ public class Main {
             System.out.println("Created new database directory at " + databaseDir.getAbsolutePath());
         }
         else{
-            for (File file : databaseDir.listFiles()) {
-                file.delete();
-            }
             System.out.println("Opening database at " + databaseDir.getAbsolutePath());
         }
 
         // Init storage components
         storageManager = new StorageManager(databaseDir, pageSize, bufferSize, indexing);
-        storageManager.save();
         DatabaseEngine databaseEngine = new DatabaseEngine(storageManager);
         System.out.println("Indexing is "+((storageManager.isIndexingEnabled()) ? "" : "not ") + "enabled");
         // Init parsers
@@ -67,7 +63,6 @@ public class Main {
         if (args.length >= 5){
             devArgs.addAll(Arrays.asList(args).subList(3, args.length));
         }
-        System.out.println(devArgs);
         if (devArgs.contains("--nuke")) {
             storageManager.toggleNUKE_MODE();
         }
