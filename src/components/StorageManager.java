@@ -340,8 +340,9 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     rightSide.addAll(pointers.subList(splitIndex+1, pointers.size()));
 
                     root.clearPointers();
-                    int leftIndex = addPage(file);    //TODO: addpage might be fucking this up
+                    int leftIndex = addPage(file);
                     int rightIndex = addPage(file);
+                    leftSide.add(new BPlusPointer<>(null, rightIndex, -1));
                     System.out.println("Left index: " + leftIndex);
                     System.out.println("Right index: " + rightIndex);
                     root.addPointer(middle.getFirst().getValue(), leftIndex);
