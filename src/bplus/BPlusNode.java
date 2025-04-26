@@ -349,11 +349,49 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * Replace's this node's pointer list with a new list
      * @param newPointers The list of new pointers
      */
-    public void updatePointers(ArrayList<BPlusPointer<?>> newPointers) {
+    public void replacePointers(ArrayList<BPlusPointer<?>> newPointers) {
         pointers.clear();
         for (BPlusPointer<?> bpp : newPointers) {
             pointers.add(castPointer(bpp));
         }
+    }
+
+    /**
+     * Updates all the BPlusPointers for records which were transferred to a new page
+     * following a page split
+     * @param splitObj The key value of the first record on the new page
+     * @param parentIndex The index of the parent page that was split
+     * @param splitIndex The index of the new page
+     * @param startingRecIndex The index of the first record to check
+     * @return The record index for the last pointer updated. The update needs to continue on
+     * the next node starting at that value + 1; -1 if the end of the parent page was reached
+     * and the update is complete
+     */
+    public int pageSplit(Object splitObj, int parentIndex, int splitIndex, int startingRecIndex) {
+        T splitValue = cast(splitObj);
+        int recIndex = startingRecIndex;
+        // Iterate through the records until you find a value at (or after) the split point
+        for (int i = 0; i < pointers.size() - 1; i++) {
+            BPlusPointer<T> bpp = pointers.get(i);
+            if (bpp.getValue().compareTo(splitValue) >= 0) {
+                // Once you've found the split point, loop over the remaining records and replace
+                // their pointers with ones to the new page, resetting their recordPointers to
+                // start from startingRecIndex
+                while (bpp.getValue() != null) {
+                    if (bpp.getPageIndex() != parentIndex) {
+                        return -1;  // Reached the end of the page
+                    }
+                    pointers.set(i, new BPlusPointer<>(bpp.getValue(), splitIndex, recIndex));
+                    recIndex += 1;
+                    i += 1;
+                    bpp = pointers.get(i);
+                }
+                return recIndex;  // Reached the end of the pointer list without finding the end of the page
+            }
+        }
+        // If you didn't find the split point, pageSplit() was somehow called on the wrong node
+        throw new IllegalArgumentException("Failed to locate valid record while performing pageSplit(). " +
+                "Obj: " + splitObj + ", pI: " + parentIndex + ", sI: " + splitIndex + ", node: " + this);
     }
 
     /**

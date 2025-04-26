@@ -213,11 +213,9 @@ public class StorageManager {
                     - record pointer is an index that refers to the index of the record in the page of the table (or -1 in an internal node)
              */
             displayTree(schema, buffer.getNode(schema, schema.rootIndex), "");
-            int n = (schema.pageSize / (schema.getPrimaryKey().length + (2 * Integer.BYTES))) - 1;
-            n = 6; //TODO: TEST VALUE, DELETE LATER
-            if(isInvalid(schema, root, n)){
+            if(isInvalid(schema, root)){
                 System.out.println("TREE INVALID, FIXING...");
-                validate(schema, root, n);
+                validate(schema, root);
             }
         }
         // Insert record into target page/index
@@ -244,7 +242,6 @@ public class StorageManager {
                     return false;
                 }
             }
-            System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    PAGE SPLIT");
             Page child = targetPage.split(childIndex);
             // Insert the new page into the buffer and catalog
             try {
@@ -253,9 +250,36 @@ public class StorageManager {
                 schema.insertPage(child.pageNumber, childIndex);
                 child.save();
             } catch (IOException ioe) {
+                // Rewind insert
+                targetPage.records.addAll(child.records);
+                targetPage.records.remove(record);
                 System.err.println("Failed to write split page to file. Error: " + ioe.getMessage());
+                return false;
             }
             buffer.refreshPageNumbers(schema); // Resync pageNumber for pages in buffer
+
+            if (isIndexingEnabled()) {
+                // Update BPlusPointers for all records moved over to the child
+                Record firstChild = child.records.getFirst();
+                Object firstKey = firstChild.get(schema.primaryKey);
+                BPlusNode<?> currNode = buffer.getNode(schema, schema.treeRoot);
+                BPlusPointer<?> startingPointer = currNode.get(firstKey);
+                while (!currNode.isLeafNode()) {
+                    currNode = buffer.getNode(schema, startingPointer.getPageIndex());
+                    startingPointer = currNode.get(firstKey);
+                }
+                // Iterate until you run out of pointers or encounter the next page
+                int startingRecIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, 0);
+                while (startingRecIndex != -1) {
+                    // Continue the update with the next leaf node
+                    int nextPtr = currNode.getPointers().getLast().getPageIndex();
+                    if (nextPtr == -1) { // Reached end of table
+                        break;
+                    }
+                    currNode = buffer.getNode(schema, nextPtr);
+                    startingRecIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, startingRecIndex + 1);
+                }
+            }
         }
         return true;
     }
@@ -264,16 +288,16 @@ public class StorageManager {
      * Validate a given B+ Tree, performing splits on overfull nodes.
      * @param root the root of the tree
      */
-    private void validate(TableSchema schema, BPlusNode<?> root, int n) {
+    private void validate(TableSchema schema, BPlusNode<?> root) {
         // We validate the tree bottom up to avoid needing to call this more than once, so we recurse down first
         if(!root.isLeafNode()) {
             for (int i = 0; i < root.getPointers().size(); i++) {
                 BPlusPointer<?> bpp = root.getPointers().get(i);
-                validate(schema, buffer.getNode(schema, bpp.getPageIndex()), n);
+                validate(schema, buffer.getNode(schema, bpp.getPageIndex()));
             }
         }
         root = buffer.getNode(schema, root.index);
-        if(root.size() > n) {
+        if(root.size() > root.n) {
             /*
                 Node splitting
                 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠤⠐⠒⢀⠋⡉⢍⢫⡝⣫⢟⡶⣲⢦⣠⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -345,7 +369,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     ArrayList<BPlusPointer<?>> newPointers = new ArrayList<>();
                     newPointers.add(new BPlusPointer<>(rightSide.getFirst().getValue(), leftIndex));
                     newPointers.add(new BPlusPointer<>(null, rightIndex));
-                    root.updatePointers(newPointers);
+                    root.replacePointers(newPointers);
                 }
                 else {
                     if (root.isLeafNode()) {
@@ -369,7 +393,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     System.out.println("right side: " + rightSide);
 
                     // `root` becomes the left child
-                    root.updatePointers(leftSide);
+                    root.replacePointers(leftSide);
 
                     // Update parent
                     BPlusNode<?> parent = buffer.getNode(schema, root.parent);
@@ -392,13 +416,13 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
      * @param root  The root of the subtree
      * @return True if all contained nodes are valid, else false
      */
-    private boolean isInvalid(TableSchema schema, BPlusNode<?> root, int n) {
-        if(root.size() > n){
+    private boolean isInvalid(TableSchema schema, BPlusNode<?> root) {
+        if(root.size() > root.n){
             return true;
         }
         if(!root.isLeafNode()) {
             for(BPlusPointer<?> bpp: root.getPointers()){
-                if(isInvalid(schema, buffer.getNode(schema, bpp.getPageIndex()), n)){
+                if(isInvalid(schema, buffer.getNode(schema, bpp.getPageIndex()))){
                     return true;
                 }
             }
