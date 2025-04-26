@@ -13,11 +13,28 @@ public class BPlusPointer<T extends Comparable<T>> {
     private final int pageIndex;
     private final int recordIndex;
 
+    /**
+     * Creates a BPlus record pointer
+     * @param value The value associated with the pointer
+     * @param pageIndex The index of the page this BPP is pointing to
+     */
     @SuppressWarnings("unchecked")
     public BPlusPointer(Object value, int pageIndex, int recordIndex) {
         this.value = (T)value;
         this.pageIndex = pageIndex;
         this.recordIndex = recordIndex;
+    }
+
+    /**
+     * Creates an internal BPlus pointer
+     * @param value The value associated with the pointer
+     * @param pageIndex The index of the page this BPP is pointing to
+     */
+    @SuppressWarnings("unchecked")
+    public BPlusPointer(Object value, int pageIndex) {
+        this.value = (T)value;
+        this.pageIndex = pageIndex;
+        this.recordIndex = -1;
     }
 
     /**

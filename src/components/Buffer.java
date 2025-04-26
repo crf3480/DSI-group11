@@ -245,11 +245,10 @@ public class Buffer {
      * from the buffer unless the node isn't present, in which case it will be fetched from storage
      * @param schema The schema of the table to fetch the node from
      * @param nodeIndex The index of the page to fetch
-     * @param parentIndex The index of the node's parent; `null` for root nodes
      * @return The requested BPlusNode
      * @throws IndexOutOfBoundsException if nodeIndex is outside the bounds of the B+ Tree file
      */
-    public BPlusNode<?> getNode(TableSchema schema, int nodeIndex, Integer parentIndex) throws IndexOutOfBoundsException {
+    public BPlusNode<?> getNode(TableSchema schema, int nodeIndex) throws IndexOutOfBoundsException {
         // Search the buffer for the page and return it
         for (Bufferable node : buffer) {
             // We're only looking for pages
@@ -266,7 +265,7 @@ public class Buffer {
             }
         }
         // Page wasn't in the buffer, so load it in.
-        return loadNode(schema, nodeIndex, parentIndex);
+        return loadNode(schema, nodeIndex);
     }
 
     /**
@@ -275,12 +274,11 @@ public class Buffer {
      * @param schema The TableSchema of the table the Page belongs to
      * @param nodeIndex The index of the node within the tree's file (i.e. nodeIndex * pageSize =
      *                  the byte offset of the desired node)
-     * @param parentIndex The index of the node's parent; `null` if node is root
      * @return A reference to the Node that was inserted
      * @throws IndexOutOfBoundsException if pageIndex exceeds the size of the table file
      */
-    public BPlusNode<?> loadNode(TableSchema schema, int nodeIndex, Integer parentIndex) throws IndexOutOfBoundsException {
-        System.out.println("Loading node: " + schema.name+" "+nodeIndex+" "+parentIndex);
+    public BPlusNode<?> loadNode(TableSchema schema, int nodeIndex) throws IndexOutOfBoundsException {
+        System.out.println("Loading node: " + schema.name+" "+nodeIndex);
         byte[] nodeData = new byte[pageSize];
         File indexFile = schema.indexFile();
         if (!indexFile.exists()) {
@@ -308,7 +306,7 @@ public class Buffer {
         }
         // Parse the node data and return it
         try {
-            BPlusNode<?> newNode = BPlusNode.parse(schema, nodeIndex, nodeData, parentIndex);
+            BPlusNode<?> newNode = BPlusNode.parse(schema, nodeIndex, nodeData);
             insert(newNode);
             return newNode;
         } catch (IOException ioe) {
