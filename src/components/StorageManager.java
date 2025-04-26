@@ -314,8 +314,8 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
 i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics
 i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics
              */
-
             int splitIndex = (root.size())/2;
+            System.out.println(root.size()+" splits at index "+splitIndex);
             ArrayList<BPlusPointer<?>> leftSide = new ArrayList<>();
             ArrayList<BPlusPointer<?>> middle = new ArrayList<>();
             ArrayList<BPlusPointer<?>> rightSide = new ArrayList<>();
@@ -362,8 +362,10 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                 }
                 else {
                     System.out.println("Splitting internal node "+root);
-                    leftSide.addAll(pointers.subList(0, splitIndex+1));
-                    rightSide.addAll(pointers.subList(splitIndex+1, pointers.size()));
+                    int rightIndex = addPage(file)+1;
+                    leftSide.addAll(pointers.subList(0, splitIndex));
+                    leftSide.add(new BPlusPointer<>(null, rightIndex, -1));
+                    rightSide.addAll(pointers.subList(splitIndex, pointers.size()));
                     System.out.println("left side:  "+leftSide.toString());
                     System.out.println("right side: "+rightSide.toString());
 
@@ -371,7 +373,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     for (BPlusPointer bpp : leftSide) {
                         root.addPointer(bpp.getPageIndex(), bpp.getRecordIndex());
                     }
-                    int rightIndex = addPage(file)+1; //TODO: addpage might be fucking this up
+
                     BPlusNode<?> parent = getNode(schema, root.getParent(), root.index);
                     parent.addPointer(rightSide.getFirst().getValue(), rightIndex);
                     parent.save();
