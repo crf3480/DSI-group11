@@ -204,6 +204,15 @@ public class StorageManager {
 
             // Insert the record into the node
             BPlusPointer<?> insertPointer = targetNode.insertRecord(value);
+            if (targetNode.getPointers().get(targetNode.size() - 2).getPageIndex() == insertPointer.getPageIndex()) {
+                boolean needsUpdate = true;
+                int nextPtr = targetNode.nullPointer();
+                while (needsUpdate && nextPtr != -1) {
+                    BPlusNode<?> currNode = buffer.getNode(schema, nextPtr);
+                    needsUpdate = currNode.incrementPointers(insertPointer.getPageIndex(), insertPointer.getRecordIndex());
+                    nextPtr = targetNode.nullPointer();
+                }
+            }
             targetPageIndex = insertPointer.getPageIndex();
             targetRecordIndex = insertPointer.getRecordIndex();
 

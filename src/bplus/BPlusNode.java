@@ -125,6 +125,14 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     }
 
     /**
+     * Returns the pageIndex of this node's null pointer
+     * @return The null pointer's page index
+     */
+    public int nullPointer() {
+        return pointers.getLast().getPageIndex();
+    }
+
+    /**
      * Inserts a pointer into the BPlus node. All following pointers from the same page will
      * have their record index incremented
      * @param obj The value being inserted
@@ -135,9 +143,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             throw new IllegalArgumentException("node is not leaf. failed.");
         }
         T value = cast(obj);
-        if (value.equals("JYTN6R")) {
-            System.out.println("here");
-        }
         if (pointers.isEmpty()) {
             BPlusPointer<T> firstRecord = new BPlusPointer<>(value, 0, 0);
             pointers.add(firstRecord);
@@ -176,31 +181,23 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     }
 
     /**
-     * Removes a record from the tree
-     * @param obj The value of the RecordPointer to remove
-     * @return `true` if the record was removed from the node; `false` if a record
-     * with that value does not exist
+     * Increments the record counter for all records in
+     * @param pageIndex The page index whose records are being updated
+     * @param startingRecord The record after which pointers should be
+     * @return `true` if the next leaf node needs to be examined as well
      */
-    public boolean deleteRecord(Object obj) {
-        if (!isLeafNode()) {
-            return false;
-        }
-
-        T value = cast(obj);
-        int deleteIndex = 0;
-        // Find the index of the record to delete. If the record was not found,
-        // deleteIndex == records.size()
-        while (deleteIndex < pointers.size()) {
-            int cmp = pointers.get(deleteIndex).getValue().compareTo(value);
-            if (cmp == 0) {
-                break; // Found record
-            } else if (cmp > 0) {
-                return false;  // Found larger record; target record does not exist
+    public boolean incrementPointers(int pageIndex, int startingRecord) {
+        for (int i = 0; i < pointers.size(); i++) {
+            BPlusPointer<T> bpp = pointers.get(i);
+            if (bpp.getValue() == null) {
+                return bpp.getPageIndex() != -1;
             }
-            deleteIndex += 1;
+            if (bpp.getPageIndex() != pageIndex) {
+                return false;
+            }
+            pointers.set(i, new BPlusPointer<>(bpp.getValue(), bpp.getPageIndex(), bpp.getRecordIndex() + 1));
         }
-        pointers.remove(deleteIndex);
-        return true;
+        return false;
     }
 
     public ArrayList<BPlusPointer<T>> getPointers() {
@@ -384,7 +381,8 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         // Iterate through the records until you find a value at (or after) the split point
         for (int i = 0; i < pointers.size() - 1; i++) {
             BPlusPointer<T> bpp = pointers.get(i);
-            if (bpp.getPageIndex() != parentIndex) {
+            int cmp = bpp.getValue().compareTo(splitValue);
+            if (cmp > 0 && bpp.getPageIndex() != parentIndex) {
                 return -1; // Last record of prev node was the last record in the split page
             } else if (bpp.getValue().compareTo(splitValue) >= 0) {
                 // Once you've found the split point, loop over the remaining records and replace
