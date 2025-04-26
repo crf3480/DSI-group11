@@ -150,11 +150,10 @@ public class StorageManager {
             }
             try {
                 if (isIndexingEnabled()) {
-                    schema.treeRoot=0;
-                    File file = schema.indexFile();
-                    file.createNewFile();
-                    BPlusNode<?> root = new BPlusNode<>(schema, 0, new ArrayList<>(), -1);
+                    schema.treeRoot=addPage(schema.indexFile());
+                    BPlusNode<?> root = new BPlusNode<>(schema, schema.rootIndex, new ArrayList<>(), -1);
                     root.save();
+                    System.out.println("Created root "+root);
                     buffer.insert(root);
                     System.out.println("Created "+schema.indexFile().getPath()+" with n of "+String.valueOf((schema.pageSize / (schema.getPrimaryKey().length + (2 * Integer.BYTES))) - 1));
                 }
@@ -341,8 +340,8 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     rightSide.addAll(pointers.subList(splitIndex+1, pointers.size()));
 
                     root.clearPointers();
-                    int leftIndex = addPage(file)+1;    //TODO: addpage might be fucking this up
-                    int rightIndex = addPage(file)+1;
+                    int leftIndex = addPage(file);    //TODO: addpage might be fucking this up
+                    int rightIndex = addPage(file);
                     System.out.println("Left index: " + leftIndex);
                     System.out.println("Right index: " + rightIndex);
                     root.addPointer(middle.getFirst().getValue(), leftIndex);
