@@ -156,6 +156,7 @@ public class StorageManager {
                     BPlusNode<?> root = new BPlusNode<>(schema, 0, new ArrayList<>(), -1);
                     root.save();
                     buffer.insert(root);
+                    System.out.println("Created "+file.getPath()+" with n of "+String.valueOf((schema.pageSize / (schema.getPrimaryKey().length + (2 * Integer.BYTES))) - 1));
                 }
             } catch (IOException ioe) {
                 System.err.println("Encountered exception while adding new node to b+ tree: " + ioe.getMessage());
@@ -671,6 +672,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                 System.err.println("Failed to delete file " + file.getAbsolutePath());
             }
         }
+        catalog.getFilePath().getParentFile().delete();
     }
 
     /**
