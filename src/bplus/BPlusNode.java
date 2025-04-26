@@ -58,7 +58,7 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * @return `true` if this object is a leaf node; `false` if this object is an internal node
      */
     public boolean isLeafNode() {
-        return pointers.getFirst().isRecordPointer();
+        return pointers.isEmpty() || pointers.getFirst().isRecordPointer();
     }
 
     /**
@@ -77,11 +77,16 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
      * no pointer matches the given value
      */
     public BPlusPointer<T> get(Object obj) {
+        System.out.println("Trying to get " + obj.toString());
+        System.out.println("looking through "+pointers);
         T value = cast(obj);
+        if (pointers.isEmpty()) {
+            return null;
+        }
         // Searches through all pointers until it finds the value. If it finds
         // a larger value or the loop exists, a matching record does not exist
         for (BPlusPointer<T> bpp : pointers) {
-            // Last pointer has a null value, meaning you did not find a match
+            // Last pointer of internal nodes has a null value, meaning you did not find a match
             // Leaf nodes return `null` since there was no match
             // Internal nodes return the pointer to follow
             if (bpp.getValue() == null) {
@@ -94,36 +99,52 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 return bpp;  // Found matching branch
             }
         }
-        // It shouldn't be possible to exit the for-loop
+        // It shouldn't be possible to exit the for-loop in an internal node
         throw new InternalError("Escaped pointer iterator in get() while looking for `" +
                 obj + "` in table `" + schema.name + "` with node `" + index + "`");
     }
 
     /**
-     * Inserts a pointer into the node. If now oversize, splits node
-     * @param bpp The BPlusPointer being inserted
-     * @return `true` if the record was inserted. `false` if a record with
-     * that key value already exists in this node
+     * Inserts a pointer into the BPlus node. All subsequent pointers from the same page will
+     * have their record index incremented
+     * @param obj The value being inserted
+     * @return The B+ pointer where this record was inserted
      */
-    public boolean insertRecord(BPlusPointer<T> bpp) {
+    public BPlusPointer<T> insertRecord(Object obj) {
         if (!isLeafNode()) {
-            return false;
+            throw new IllegalArgumentException("node is not leaf. failed.");
+        }
+        T value = cast(obj);
+        if (pointers.isEmpty()) {
+            BPlusPointer<T> firstRecord = new BPlusPointer<>(value, 0, 0);
+            pointers.add(firstRecord);
+            pointers.add(new BPlusPointer<>(null, -1, -1));
+            return firstRecord;
         }
         // Find the index where the record should be inserted, i.e. the index of the first
-        // record with a greater value. If no record is larger, the loop will exit with
-        // insertIndex == records.size() and the record will get appended
-        int insertIndex = 0;
-        while (insertIndex < pointers.size()) {
-            int cmp = pointers.get(insertIndex).compareTo(bpp);
-            if (cmp > 0) {
-                break; // Found larger record
-            } else if (cmp == 0) {
-                return false;  // Found duplicate
+        // record with a greater value. If no record is larger, insert at the end
+        BPlusPointer<T> newBPP = null;
+        for (int i = 0; i < pointers.size(); i++) {
+            BPlusPointer<T> bpp = pointers.get(i);
+            if (bpp.getValue() == null && newBPP == null) {
+                // Insert after last non-null pointer
+                BPlusPointer<T> prevPointer = pointers.get(i - 1);
+                newBPP = new BPlusPointer<>(value, prevPointer.getPageIndex(), prevPointer.getRecordIndex() + 1);
+                pointers.set(i, newBPP);
+            } else if (newBPP != null) {
+                pointers.set(i, new BPlusPointer<>(bpp.getValue(), bpp.getPageIndex(), bpp.getRecordIndex() + 1));
+            } else {
+                int cmp = bpp.getValue().compareTo(value);
+                if (cmp > 0) {
+                    // New BPP goes takes the spot of the first pointer with a larger value
+                    newBPP = new BPlusPointer<>(value, bpp.getPageIndex(), bpp.getRecordIndex());
+                    pointers.add(i, newBPP);
+                } else if (cmp == 0) {
+                    throw new IllegalArgumentException("Duplicate key: " + value);
+                }
             }
-            insertIndex += 1;
         }
-        pointers.add(insertIndex, bpp);
-        return true;
+        return newBPP;
     }
 
     /**
@@ -178,8 +199,11 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 for (int i = 0; i < n; i++) {
                     int value = in.readInt();
                     int pageIndex = in.readInt();
-                    if (pageIndex == -1) { break; }  // End of pointers flag
                     int secondPointer = in.readInt();
+                    if (pageIndex == -1) {  // null pointer
+                        intPointers.add(new BPlusPointer<>(null, secondPointer, -1));
+                        break;
+                    }
                     intPointers.add(new BPlusPointer<>(value, pageIndex, secondPointer));
                 }
                 return new BPlusNode<>(schema, nodeIndex, intPointers, parentIndex);
@@ -188,8 +212,11 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 for (int i = 0; i < n; i++) {
                     double value = in.readDouble();
                     int pageIndex = in.readInt();
-                    if (pageIndex == -1) { break; }  // End of pointers flag
                     int secondPointer = in.readInt();
+                    if (pageIndex == -1) {  // null pointer
+                        doublePointers.add(new BPlusPointer<>(null, secondPointer, -1));
+                        break;
+                    }
                     doublePointers.add(new BPlusPointer<>(value, pageIndex, secondPointer));
                 }
                 return new BPlusNode<>(schema, nodeIndex, doublePointers, parentIndex);
@@ -197,8 +224,11 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 ArrayList<BPlusPointer<String>> strPointers = new ArrayList<>();
                 for (int i = 0; i < n; i++) {
                     int pageIndex = in.readInt();
-                    if (pageIndex == -1) { break; }  // End of pointers flag
                     int secondPointer = in.readInt();
+                    if (pageIndex == -1) {  // null pointer
+                        strPointers.add(new BPlusPointer<>(null, secondPointer, -1));
+                        break;
+                    }
                     String value = in.readUTF();
                     strPointers.add(new BPlusPointer<>(value, pageIndex, secondPointer));
                 }
@@ -209,8 +239,11 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
                 for (int i = 0; i < n; i++) {
                     boolean value = in.readBoolean();
                     int pageIndex = in.readInt();
-                    if (pageIndex == -1) { break; }  // End of pointers flag
                     int secondPointer = in.readInt();
+                    if (pageIndex == -1) {  // null pointer
+                        boolPointers.add(new BPlusPointer<>(null, secondPointer, -1));
+                        break;
+                    }
                     boolPointers.add(new BPlusPointer<>(value, pageIndex, secondPointer));
                 }
                 return new BPlusNode<>(schema, nodeIndex, boolPointers, parentIndex);
@@ -279,9 +312,11 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
+        sb.append("NODE{ ");
         for (BPlusPointer<T> pointer : pointers) {
             sb.append(pointer.toString()+" ");
         }
+        sb.append("}");
 
         return sb.toString();
     }

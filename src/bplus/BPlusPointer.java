@@ -50,7 +50,7 @@ public class BPlusPointer<T extends Comparable<T>> {
      * @return `true` if this is a record pointer; `false` if this object points to a BPlusNode
      */
     public boolean isRecordPointer() {
-        return recordIndex != -1;
+        return recordIndex >= 0;
     }
 
     /**
@@ -87,25 +87,32 @@ public class BPlusPointer<T extends Comparable<T>> {
     public byte[] encode(TableSchema schema) throws IOException {
         ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(outStream);
+        if (value == null) {
+            out.writeInt(-1);
+            out.writeInt(pageIndex); // Do it backwards because I'm very smart and make really good encoding decisions
+            return outStream.toByteArray();
+        }
         // Write pointers
         out.writeInt(pageIndex);
         out.writeInt(recordIndex);
         // Write value
         Attribute pk = schema.attributes.get(schema.primaryKey);
-        switch (pk.type) {
-            case INT -> out.writeInt((Integer)value);
-            case DOUBLE -> out.writeDouble((Double)value);
-            case BOOLEAN -> out.writeBoolean((Boolean) value);
-            case VARCHAR, CHAR -> out.writeUTF((String)value);
+        if (pageIndex != -1) {
+            switch (pk.type) {
+                case INT -> out.writeInt((Integer)value);
+                case DOUBLE -> out.writeDouble((Double)value);
+                case BOOLEAN -> out.writeBoolean((Boolean) value);
+                case VARCHAR, CHAR -> out.writeUTF((String)value);
+            }
         }
         return outStream.toByteArray();
     }
 
     @Override
     public String toString() {
-        return "[" +value +
-                ", " + pageIndex +
-                ", " + recordIndex +
+        return "BPP[" +value +
+                ", page " + pageIndex +
+                ", record " + recordIndex +
                 ']';
     }
 }
