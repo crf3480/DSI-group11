@@ -589,6 +589,9 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
         buffer.removeTable(tableName);
         File dataFile = new File(this.catalog.getFilePath().getParent() + File.separator + tableName + ".bin");
         try {
+            if(isIndexingEnabled()){
+                catalog.getTableSchema(tableName).indexFile().delete();
+            }
             if (!dataFile.delete()) { return false; }
         } catch (Exception e) {
             throw new IOException("Encountered an error while deleting table file:" + e.getMessage());
@@ -764,6 +767,9 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
             System.out.println(file.getName());
             if(Character.isDigit(file.getName().charAt(0)) && !file.getName().endsWith(".bpt")){
                 dropTable(file.getName().substring(0, file.getName().indexOf('.')));
+            }
+            else if(Character.isDigit(file.getName().charAt(0)) && file.getName().endsWith(".bpt")){
+                file.delete();
             }
         }
     }

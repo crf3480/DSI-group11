@@ -461,7 +461,7 @@ public class DatabaseEngine {
         if (storageManager.isIndexingEnabled()){
            try {
                TableSchema tempSchema = storageManager.createTable(storageManager.getTempTableName(), schema.attributes);
-               //Add  code
+               //Add code
                while (page != null) {
                    int i = 0;
                    while (i < page.recordCount()) {
