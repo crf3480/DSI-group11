@@ -239,6 +239,7 @@ public class StorageManager {
             targetPage.records.add(targetRecordIndex, record);
         }
         schema.incrementRecordCount();
+        System.out.println("Page " + targetPageIndex + " records: " + targetPage.records);
 
         // If the page is now oversize, split
         if (targetPage.pageDataSize() > catalog.pageSize()) {
@@ -253,7 +254,7 @@ public class StorageManager {
                     return false;
                 }
             }
-            System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    PAGE SPLIT");
+            System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    PAGE SPLIT (" + targetPageIndex + ")");
             Page child = targetPage.split(childIndex);
             // Insert the new page into the buffer and catalog
             try {
@@ -273,7 +274,11 @@ public class StorageManager {
                     currNode = buffer.getNode(schema, currPtr.getPageIndex());
                     currPtr = currNode.get(firstKey);
                 }
+                if (targetPageIndex == 13) {
+                    System.out.println("hey");
+                }
                 int recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, 0);
+                System.out.println("Parent " + targetPageIndex + ": " + targetPage.records);
                 System.out.println("Child " + childIndex + ": " + child.records);
                 System.out.println("curr node: " + currNode.getPointers());
                 while (recStartIndex != -1) {
@@ -282,7 +287,7 @@ public class StorageManager {
                         break; // Reached end of records
                     }
                     currNode = buffer.getNode(schema, nextPtr);
-                    recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, recStartIndex + 1);
+                    recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, recStartIndex);
                     System.out.println("curr node: " + currNode.getPointers());
                 }
             }
