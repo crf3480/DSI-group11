@@ -194,6 +194,10 @@ public class DatabaseEngine {
         storageManager.displaySchema();
     }
 
+    public void displayTree(String tableName) {
+        storageManager.displayTree(tableName);
+    }
+
     /**
      * Drops an attribute from a given table
      * @param tableName The name of the table the attribute is dropped from
@@ -868,7 +872,7 @@ public class DatabaseEngine {
         return output.toString();
     }
 
-    public boolean checkForIndex(){
+    public boolean isIndexingEnabled() {
         return storageManager.isIndexingEnabled();
     }
 

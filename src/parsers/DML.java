@@ -31,17 +31,25 @@ public class DML extends GeneralParser {
             return;
         }
         switch (inputList.get(1)) {
-            case "info":
+            case "info" -> {
                 if (inputList.size() != 3) {
                     System.err.println("Invalid number of arguments: display info <table>;");
                     return;
                 }
                 engine.displayTable(inputList.get(2));
-                break;
-            case "schema":
+            }
+            case "schema" -> {
                 engine.displaySchema();
-                break;
-            default:
+            }
+            case "tree" ->{
+                if(engine.isIndexingEnabled()){
+                    engine.displayTree(inputList.get(2));
+                }
+                else{
+                    System.err.println("Indexing is disabled. No B+ trees exist.");
+                }
+            }
+            default ->
                 System.err.println("Invalid arguments: display (info|schema) <table>;");
         }
     }

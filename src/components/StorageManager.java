@@ -222,11 +222,9 @@ public class StorageManager {
                     - page pointer is an index that refers to the page (or node) number in the table (or b+ tree)
                     - record pointer is an index that refers to the index of the record in the page of the table (or -1 in an internal node)
              */
-            displayTree(schema, buffer.getNode(schema, schema.rootIndex), "");
             if(isInvalid(schema, root)){
                 System.out.println("TREE INVALID, FIXING...");
                 validate(schema, root, ((this.n != -1) ? this.n : root.n));
-                displayTree(schema, root, "");
             }
         }
         // Insert record into target page/index
@@ -458,6 +456,11 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
             }
         }
         return false;
+    }
+
+    public void displayTree(String tableName){
+        TableSchema schema = catalog.getTableSchema(tableName);
+        displayTree(schema, buffer.getNode(schema, schema.rootIndex), "");
     }
 
     private void displayTree(TableSchema schema, BPlusNode<?> root, String prefix) {
