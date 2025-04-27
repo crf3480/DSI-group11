@@ -466,9 +466,9 @@ public class DatabaseEngine {
                    int i = 0;
                    while (i < page.recordCount()) {
                        page = storageManager.getPage(schema, pageNumber);
-                       Record currReccord = page.records.get(i);
-                       if (!eval.evaluateRecord(currReccord)) {
-                           storageManager.insertRecord(tempSchema, currReccord, schema.primaryKey);
+                       Record currRecord = page.records.get(i);
+                       if (!eval.evaluateRecord(currRecord)) {
+                           storageManager.insertRecord(tempSchema, currRecord, schema.primaryKey);
                        }
 
                        i += 1;
