@@ -148,9 +148,9 @@ public class StorageManager {
                     schema.treeRoot=addPage(schema.indexFile());
                     BPlusNode<?> root = new BPlusNode<>(schema, schema.rootIndex, new ArrayList<>(), -1);
                     root.save();
-                    System.out.println("Created root " + root);
+                    // System.out.println("Created root " + root);
                     buffer.insert(root);
-                    System.out.println("Created " + schema.indexFile().getPath() + " with n of " + ((this.n != -1) ? this.n : root.n));
+                    // System.out.println("Created " + schema.indexFile().getPath() + " with n of " + ((this.n != -1) ? this.n : root.n));
                 }
             } catch (IOException ioe) {
                 System.err.println("Encountered exception while adding new node to b+ tree: " + ioe.getMessage());
@@ -188,7 +188,7 @@ public class StorageManager {
             }
         }
         else{   //Indexing enabled. Do B+ tree stuff
-            System.out.println("\n\n\nInserting " + value + " into B+ tree");
+            // System.out.println("\n\n\nInserting " + value + " into B+ tree");
             BPlusNode<?> root = buffer.getNode(schema, schema.treeRoot);
 
             // Traverse tree until you find leaf node where the record will be inserted
@@ -223,7 +223,7 @@ public class StorageManager {
                     - record pointer is an index that refers to the index of the record in the page of the table (or -1 in an internal node)
              */
             if(isInvalid(schema, root)){
-                System.out.println("TREE INVALID, FIXING...");
+                // System.out.println("TREE INVALID, FIXING...");
                 validate(schema, root, ((this.n != -1) ? this.n : root.n));
             }
         }
@@ -237,7 +237,7 @@ public class StorageManager {
             targetPage.records.add(targetRecordIndex, record);
         }
         schema.incrementRecordCount();
-        System.out.println("Page " + targetPageIndex + " records: " + targetPage.records);
+        // System.out.println("Page " + targetPageIndex + " records: " + targetPage.records);
 
         // If the page is now oversize, split
         if (targetPage.pageDataSize() > catalog.pageSize()) {
@@ -252,7 +252,7 @@ public class StorageManager {
                     return false;
                 }
             }
-            System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    PAGE SPLIT (" + targetPageIndex + ")");
+            // System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    PAGE SPLIT (" + targetPageIndex + ")");
             Page child = targetPage.split(childIndex);
             // Insert the new page into the buffer and catalog
             try {
@@ -272,13 +272,10 @@ public class StorageManager {
                     currNode = buffer.getNode(schema, currPtr.getPageIndex());
                     currPtr = currNode.get(firstKey);
                 }
-                if (targetPageIndex == 13) {
-                    System.out.println("hey");
-                }
                 int recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, 0);
-                System.out.println("Parent " + targetPageIndex + ": " + targetPage.records);
-                System.out.println("Child " + childIndex + ": " + child.records);
-                System.out.println("curr node: " + currNode.getPointers());
+                // System.out.println("Parent " + targetPageIndex + ": " + targetPage.records);
+                // System.out.println("Child " + childIndex + ": " + child.records);
+                // System.out.println("curr node: " + currNode.getPointers());
                 while (recStartIndex != -1) {
                     int nextPtr = currNode.getPointers().getLast().getPageIndex();
                     if (nextPtr == -1) {
@@ -286,7 +283,7 @@ public class StorageManager {
                     }
                     currNode = buffer.getNode(schema, nextPtr);
                     recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, recStartIndex);
-                    System.out.println("curr node: " + currNode.getPointers());
+                    // System.out.println("curr node: " + currNode.getPointers());
                 }
             }
         }
@@ -368,7 +365,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                 ArrayList<? extends BPlusPointer<?>> pointers = root.getPointers();
                 if(root.isRootNode()){
                     // Create child nodes and add them to the buffer
-                    System.out.println("Splitting root node " + root);
+                    // System.out.println("Splitting root node " + root);
                     int leftIndex = addPage(file);
                     int rightIndex = addPage(file);
 
@@ -400,11 +397,11 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     root.replacePointers(newPointers);
                 }
                 else {
-                    if (root.isLeafNode()) {
-                        System.out.println("Splitting leaf node " + root + " with parent " + root.parent);
-                    } else {
-                        System.out.println("Splitting internal node " + root + " with parent + " + root.parent);
-                    }
+//                    if (root.isLeafNode()) {
+//                        System.out.println("Splitting leaf node " + root + " with parent " + root.parent);
+//                    } else {
+//                        System.out.println("Splitting internal node " + root + " with parent + " + root.parent);
+//                    }
 
                     int rightIndex = addPage(file);
                     // Divide the pointers amongst the two nodes
@@ -416,8 +413,8 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                         leftSide.add(new BPlusPointer<>(null, last.getPageIndex()));
                     }
                     rightSide.addAll(pointers.subList(splitIndex, pointers.size()));
-                    System.out.println("left side ("+root.index+"): "+leftSide.toString());
-                    System.out.println("right side ("+rightIndex+"): "+rightSide.toString());
+                    // System.out.println("left side ("+root.index+"): "+leftSide.toString());
+                    // System.out.println("right side ("+rightIndex+"): "+rightSide.toString());
 
                     // `root` becomes the left child
                     root.replacePointers(leftSide);
@@ -428,7 +425,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
 
                     // Spawn right child
                     BPlusNode<?> rightNode = new BPlusNode<>(schema, rightIndex, rightSide, root.parent, true);
-                    System.out.println("New right node: " + rightNode);
+                    // System.out.println("New right node: " + rightNode);
                     buffer.insert(rightNode);
                     rightNode.save();
                 }
