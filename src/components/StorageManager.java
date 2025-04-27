@@ -122,7 +122,7 @@ public class StorageManager {
     public boolean insertRecord(TableSchema schema, Record record, int attrIndex) {
         try{
             insertRecordTry(schema, record, attrIndex);
-        } catch (InternalError | IOException e) {
+        } catch (InternalError | IOException | IllegalArgumentException e) {
             System.err.println(e.getMessage());
             return false;
         }
@@ -524,6 +524,9 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
      * @param record The record to insert
      */
     public void fastInsert(TableSchema schema, Record record) {
+//        if (isIndexingEnabled()) {
+//            throw new InternalError("fastInsert() is not available when indexing is turned on.");
+//        }
         // If table has no pages, make a new page and insert it into the buffer
         if (schema.rootIndex == -1) {
             Page firstPage = new Page(0, 0, schema);
@@ -629,11 +632,13 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
         buffer.removeTable(targetSchema.name);
         // Update the schema in the catalog
         File oldSourceFile = sourceSchema.tableFile(); // This changes when you update the schema name
+        File oldTreeFile = sourceSchema.indexFile();
         catalog.removeTableSchema(sourceSchema.name);
         sourceSchema.name = targetSchema.name;
         catalog.setTableSchema(targetSchema.name, sourceSchema);
-        // Verify both files exist before doing anything destructive
+        // Verify all files exist before doing anything destructive
         File targetFile = targetSchema.tableFile();
+        File targetTree = targetSchema.indexFile();
         if (!targetFile.exists()) {
             System.err.println("Could not locate table file `" + targetFile.getAbsolutePath() + "`");
             return;
@@ -641,6 +646,16 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
         if (!oldSourceFile.exists()) {
             System.err.println("Could not locate table file `" + oldSourceFile.getAbsolutePath() + "`");
             return;
+        }
+        if (isIndexingEnabled()) {
+            if (!targetTree.exists()) {
+                System.err.println("Could not locate index file `" + targetTree.getAbsolutePath() + "`");
+                return;
+            }
+            if (!oldTreeFile.exists()) {
+                System.err.println("Could not locate index file `" + oldTreeFile.getAbsolutePath() + "`");
+                return;
+            }
         }
         // Delete target file and rename source file
         if (!targetFile.delete()) {
@@ -650,6 +665,17 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
         if (!oldSourceFile.renameTo(targetFile)) {
             System.err.println("Failed to rename table file `" + oldSourceFile.getAbsolutePath() +
                     "` to `" + targetFile.getAbsolutePath() + "'");
+            return;
+        }
+        if (isIndexingEnabled()) {
+            if (!targetTree.delete()) {
+                System.err.println("Failed to delete index file `" + targetTree.getAbsolutePath() + "`");
+                return;
+            }
+            if (!oldTreeFile.renameTo(targetTree)) {
+                System.err.println("Failed to rename tree file `" + oldTreeFile.getAbsolutePath() +
+                        "` to `" + targetTree.getAbsolutePath() + "'");
+            }
         }
     }
 

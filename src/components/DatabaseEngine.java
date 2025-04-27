@@ -119,23 +119,28 @@ public class DatabaseEngine {
         if (storageManager.isIndexingEnabled()){
             try{
                 TableSchema tempSchema = storageManager.createTable(storageManager.getTempTableName(), schema.attributes);
-
+                boolean failed = false;
                 while (page != null) {
                     int i = 0;
                     while (i < page.recordCount()){
                         page = storageManager.getPage(schema, pageNumber);
 
-                        Record updatedRecord = page.records.get(i);
-                        if (eval.evaluateRecord(updatedRecord)) {
+                        Record oldRecord = page.records.get(i);
+                        Record updatedRecord = oldRecord;
+
+                        if (eval.evaluateRecord(updatedRecord) && !failed) {
+                            updatedRecord = oldRecord.duplicate();
                             updatedRecord.update(attributeIndex, castToAttrType(newValue, attribute));
                         }
-
-                        storageManager.insertRecord(tempSchema, updatedRecord, schema.primaryKey);
+                        // Attempt to insert the updated record. If this fails, insert the old record instead
+                        // and begin inserting the
+                        if (!storageManager.insertRecord(tempSchema, updatedRecord, schema.primaryKey)) {
+                            failed = true;
+                            if (!updatedRecord.equals(oldRecord)) {
+                                storageManager.insertRecord(tempSchema, oldRecord, schema.primaryKey);
+                            }
+                        }
                         i += 1;
-                    }
-                    // If only record in page delete the page
-                    if (page.recordCount() == 0) {
-                        storageManager.dropPage(page);
                     }
                     pageNumber += 1;
                     page = storageManager.getPage(schema, pageNumber);
