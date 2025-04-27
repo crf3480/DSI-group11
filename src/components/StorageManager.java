@@ -273,7 +273,18 @@ public class StorageManager {
                     currNode = buffer.getNode(schema, currPtr.getPageIndex());
                     currPtr = currNode.get(firstKey);
                 }
-                int recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, 0);
+                int recStartIndex = -1;
+                try {
+                    recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, 0);
+                } catch (IllegalArgumentException iae) {
+                    System.err.println(iae.getMessage());
+                    for (StackTraceElement elm : iae.getStackTrace()) {
+                        System.err.println(elm);
+                    }
+                    displayTree(schema.name);
+                    System.exit(-1);
+                }
+
                 // System.out.println("Parent " + targetPageIndex + ": " + targetPage.records);
                 // System.out.println("Child " + childIndex + ": " + child.records);
                 // System.out.println("curr node: " + currNode.getPointers());
@@ -285,7 +296,16 @@ public class StorageManager {
                     currNode = buffer.getNode(schema, nextPtr);
                     // System.out.println("~~~~~~~~~~~~~~~~~");
                     // displayTree(schema.name);
-                    recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, recStartIndex);
+                    try {
+                        recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, recStartIndex);
+                    } catch (IllegalArgumentException iae) {
+                        System.err.println(iae.getMessage());
+                        for (StackTraceElement elm : iae.getStackTrace()) {
+                            System.err.println(elm);
+                        }
+                        displayTree(schema.name);
+                        System.exit(-1);
+                    }
                     // System.out.println("curr node: " + currNode.getPointers());
                 }
             }
@@ -313,6 +333,12 @@ public class StorageManager {
 //            System.err.println(ioe.getMessage());
 //        }
         if(node.size() > n) {
+//            if (!node.isLeafNode()) {
+//                System.out.println("\n\n=================================\nBefore split: " + node.index);
+//                displayTree(schema.name);
+//            }
+
+
             /*
                 Node splitting
                 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠤⠐⠒⢀⠋⡉⢍⢫⡝⣫⢟⡶⣲⢦⣠⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -394,8 +420,14 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     buffer.insert(new BPlusNode<>(schema, rightIndex, rightSide, node.index, true));
 
                     // Update root so it points to its two new children
+                    BPlusPointer<?> rightPtr = rightSide.getFirst();
+                    Object rightValue = rightPtr.getValue();
+                    while (!rightPtr.isRecordPointer()) {
+                        rightPtr = buffer.getNode(schema, rightPtr.getPageIndex()).getPointers().getFirst();
+                        rightValue = rightPtr.getValue();
+                    }
                     ArrayList<BPlusPointer<?>> newPointers = new ArrayList<>();
-                    newPointers.add(new BPlusPointer<>(rightSide.getFirst().getValue(), leftIndex));
+                    newPointers.add(new BPlusPointer<>(rightValue, leftIndex));
                     newPointers.add(new BPlusPointer<>(null, rightIndex));
                     node.replacePointers(newPointers);
                 }
@@ -423,7 +455,13 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                     // Update parent
                     BPlusNode<?> parent = buffer.getNode(schema, node.parent);
                     parent.freeze();
-                    parent.splitPointer(rightSide.getFirst().getValue(), rightIndex);
+                    BPlusPointer<?> rightPtr = rightSide.getFirst();
+                    Object rightValue = rightPtr.getValue();
+                    while (!rightPtr.isRecordPointer()) {
+                        rightPtr = buffer.getNode(schema, rightPtr.getPageIndex()).getPointers().getFirst();
+                        rightValue = rightPtr.getValue();
+                    }
+                    parent.splitPointer(rightValue, rightIndex);
 
                     // Spawn right child
                     BPlusNode<?> rightNode = new BPlusNode<>(schema, rightIndex, rightSide, node.parent, true);
@@ -436,6 +474,10 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
             } catch (IOException ioe){
                 System.err.println(ioe.getMessage());
             }
+//            if (!node.isLeafNode()) {
+//                System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nAfter Split: " + node.index);
+//                displayTree(schema.name);
+//            }
         }
     }
 
