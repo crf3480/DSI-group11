@@ -218,7 +218,6 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
         DataInputStream in = new DataInputStream(inStream);
         int parentIndex = in.readInt();
         Attribute pk = schema.getPrimaryKey();
-        System.out.println("Reading node index " + nodeIndex);
         int pageIndex = 0;
         int recordIndex = 0;
         switch (pk.type) {
