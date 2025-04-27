@@ -147,9 +147,7 @@ public class StorageManager {
                     schema.treeRoot=addPage(schema.indexFile());
                     BPlusNode<?> root = new BPlusNode<>(schema, schema.rootIndex, new ArrayList<>(), -1);
                     root.save();
-                    // System.out.println("Created root " + root);
                     buffer.insert(root);
-                    // System.out.println("Created " + schema.indexFile().getPath() + " with n of " + ((this.n != -1) ? this.n : root.n));
                 }
             } catch (IOException ioe) {
                 System.err.println("Encountered exception while adding new node to b+ tree: " + ioe.getMessage());
@@ -187,7 +185,6 @@ public class StorageManager {
             }
         }
         else{   //Indexing enabled. Do B+ tree stuff
-            // System.out.println("\n\n\nInserting " + value + " into B+ tree");
             BPlusNode<?> root = buffer.getNode(schema, schema.treeRoot);
 
             // Traverse tree until you find leaf node where the record will be inserted
@@ -223,8 +220,6 @@ public class StorageManager {
              */
             targetNode.freeze();
             if(isInvalid(schema, targetNode)){
-                // displayTree(schema.name);
-                // System.out.println("TREE INVALID, FIXING...");
                 validate(schema, targetNode, ((this.n != -1) ? this.n : targetNode.n));
             }
             targetNode.unfreeze();
@@ -238,7 +233,6 @@ public class StorageManager {
             targetPage.records.add(targetRecordIndex, record);
         }
         schema.incrementRecordCount();
-        // System.out.println("Page " + targetPageIndex + " records: " + targetPage.records);
 
         // If the page is now oversize, split
         if (targetPage.pageDataSize() > catalog.pageSize()) {
@@ -253,7 +247,6 @@ public class StorageManager {
                     return false;
                 }
             }
-            // System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    PAGE SPLIT (" + targetPageIndex + ")");
             Page child = targetPage.split(childIndex);
             // Insert the new page into the buffer and catalog
             try {
@@ -285,17 +278,12 @@ public class StorageManager {
                     System.exit(-1);
                 }
 
-                // System.out.println("Parent " + targetPageIndex + ": " + targetPage.records);
-                // System.out.println("Child " + childIndex + ": " + child.records);
-                // System.out.println("curr node: " + currNode.getPointers());
                 while (recStartIndex != -1) {
                     int nextPtr = currNode.getPointers().getLast().getPageIndex();
                     if (nextPtr == -1) {
                         break; // Reached end of records
                     }
                     currNode = buffer.getNode(schema, nextPtr);
-                    // System.out.println("~~~~~~~~~~~~~~~~~");
-                    // displayTree(schema.name);
                     try {
                         recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, recStartIndex);
                     } catch (IllegalArgumentException iae) {
@@ -306,7 +294,6 @@ public class StorageManager {
                         displayTree(schema.name);
                         System.exit(-1);
                     }
-                    // System.out.println("curr node: " + currNode.getPointers());
                 }
             }
         }
@@ -320,23 +307,7 @@ public class StorageManager {
      */
     private void validate(TableSchema schema, BPlusNode<?> node, int n) {
         // We validate the tree bottom up to avoid needing to call this more than once, so we recurse down first
-//        if(!node.isLeafNode()) {
-//            for (int i = 0; i < node.getPointers().size(); i++) {
-//                BPlusPointer<?> bpp = node.getPointers().get(i);
-//                validate(schema, buffer.getNode(schema, bpp.getPageIndex()), n);
-//            }
-//        }
-        // node = buffer.getNode(schema, node.index);
-//        try{
-//            root.save();
-//        }catch (IOException ioe) {
-//            System.err.println(ioe.getMessage());
-//        }
         if(node.size() > n) {
-//            if (!node.isLeafNode()) {
-//                System.out.println("\n\n=================================\nBefore split: " + node.index);
-//                displayTree(schema.name);
-//            }
 
 
             /*
@@ -381,20 +352,10 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
             try{
                 File file = schema.indexFile();
 
-                /*
-                    If we're splitting the root node, create a new root (this implementation keeps the root the same,
-                    instead option to create two new child nodes, since reassigning the root node is much more of a
-                    hassle than necessary).
-
-                    The new root has a single value in it (the middle one)
-                    and the remaining values are distributed evenly between them (left getting the +1 if it's odd)
-                 */
-
                 // Split root's BPP amongst two child nodes and has root point to them instead
                 ArrayList<? extends BPlusPointer<?>> pointers = node.getPointers();
                 if(node.isRootNode()){
                     // Create child nodes and add them to the buffer
-                    // System.out.println("Splitting root node " + root);
                     int leftIndex = addPage(file);
                     int rightIndex = addPage(file);
 
@@ -474,10 +435,6 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
             } catch (IOException ioe){
                 System.err.println(ioe.getMessage());
             }
-//            if (!node.isLeafNode()) {
-//                System.out.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nAfter Split: " + node.index);
-//                displayTree(schema.name);
-//            }
         }
     }
 
@@ -524,9 +481,6 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
      * @param record The record to insert
      */
     public void fastInsert(TableSchema schema, Record record) {
-//        if (isIndexingEnabled()) {
-//            throw new InternalError("fastInsert() is not available when indexing is turned on.");
-//        }
         // If table has no pages, make a new page and insert it into the buffer
         if (schema.rootIndex == -1) {
             Page firstPage = new Page(0, 0, schema);

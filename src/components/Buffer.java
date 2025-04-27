@@ -117,53 +117,6 @@ public class Buffer {
         }
         // Page wasn't in the buffer, so load it in.
         return loadPage(schema, pageIndex);
-
-
-//        // First, if requested page was page 0, just load it from rootIndex and return
-//        if (pageNum == 0) {
-//            return loadPage(schema, schema.rootIndex, 0);
-//        }
-//        // Otherwise, find page offset by hunting from the closest page.
-//        // If no page from this table was in the buffer or the beginning is closer, start from the beginning
-//        if (currClosest == null || Math.abs(currClosest.index - pageNum) > pageNum) {
-//            currClosest = loadPage(schema, schema.rootIndex, 0);
-//            if (currClosest == null) {
-//                // If the first page cannot be loaded, table must have zero pages
-//                return null;
-//            }
-//        }
-//        HashSet<Integer> visitedIndices = new HashSet<>();
-//        visitedIndices.add(currClosest.pageIndex);
-//        int currPageNumber = currClosest.index;
-//        int nextIndex;
-//        // Hop from page to page until you get to the target
-//        while (true) {
-//            // Update nextIndex and currPageNumber depending on the direction
-//            if (currPageNumber < pageNum) {
-//                nextIndex = currClosest.nextPage;
-//                currPageNumber += 1;
-//            } else {
-//                nextIndex = currClosest.prevPage;
-//                currPageNumber -= 1;
-//            }
-//            // Error checking
-//            if (visitedIndices.contains(nextIndex)) {
-//                System.err.println("Found reference loop with page indices " + visitedIndices +
-//                        " in table `" + schema.name + "`, ending at " + nextIndex);
-//            }
-//            visitedIndices.add(nextIndex);
-//            // Load next page, unless you've run out of pages to loop through
-//            try {
-//                currClosest = loadPage(schema, nextIndex, currPageNumber);
-//            } catch (IndexOutOfBoundsException ioob) {
-//                return null;
-//            }
-//            if (currClosest == null) {
-//                return null;
-//            } else if (currPageNumber == pageNum) {
-//                return currClosest;
-//            }
-//        }
     }
 
     /**
