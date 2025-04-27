@@ -132,7 +132,6 @@ public class StorageManager {
     public boolean insertRecordTry(TableSchema schema, Record record, int attrIndex) throws IOException {
         // Generate the BPlusPointer for where the record needs to be inserted
         Object value = record.get(attrIndex);
-
         // If table has no pages, make a new page and insert it into the buffer
         if (schema.rootIndex == -1) {
             Page firstPage = new Page(0, 0, schema);
@@ -222,14 +221,16 @@ public class StorageManager {
                     - page pointer is an index that refers to the page (or node) number in the table (or b+ tree)
                     - record pointer is an index that refers to the index of the record in the page of the table (or -1 in an internal node)
              */
-            if(isInvalid(schema, root)){
+            targetNode.freeze();
+            if(isInvalid(schema, targetNode)){
+                // displayTree(schema.name);
                 // System.out.println("TREE INVALID, FIXING...");
-                validate(schema, root, ((this.n != -1) ? this.n : root.n));
+                validate(schema, targetNode, ((this.n != -1) ? this.n : targetNode.n));
             }
+            targetNode.unfreeze();
         }
         // Insert record into target page/index
         Page targetPage = getPageByIndex(schema, targetPageIndex);
-
         if (targetRecordIndex == -1) {
             targetPage.records.add(record);
 
@@ -282,6 +283,8 @@ public class StorageManager {
                         break; // Reached end of records
                     }
                     currNode = buffer.getNode(schema, nextPtr);
+                    // System.out.println("~~~~~~~~~~~~~~~~~");
+                    // displayTree(schema.name);
                     recStartIndex = currNode.pageSplit(firstKey, targetPageIndex, childIndex, recStartIndex);
                     // System.out.println("curr node: " + currNode.getPointers());
                 }
@@ -293,23 +296,23 @@ public class StorageManager {
 
     /**
      * Validate a given B+ Tree, performing splits on overfull nodes.
-     * @param root the root of the tree
+     * @param node the root of the tree
      */
-    private void validate(TableSchema schema, BPlusNode<?> root, int n) {
+    private void validate(TableSchema schema, BPlusNode<?> node, int n) {
         // We validate the tree bottom up to avoid needing to call this more than once, so we recurse down first
-        if(!root.isLeafNode()) {
-            for (int i = 0; i < root.getPointers().size(); i++) {
-                BPlusPointer<?> bpp = root.getPointers().get(i);
-                validate(schema, buffer.getNode(schema, bpp.getPageIndex()), n);
-            }
-        }
-        root = buffer.getNode(schema, root.index);
-        try{
-            root.save();
-        }catch (IOException ioe) {
-            System.err.println(ioe.getMessage());
-        }
-        if(root.size() > n) {
+//        if(!node.isLeafNode()) {
+//            for (int i = 0; i < node.getPointers().size(); i++) {
+//                BPlusPointer<?> bpp = node.getPointers().get(i);
+//                validate(schema, buffer.getNode(schema, bpp.getPageIndex()), n);
+//            }
+//        }
+        // node = buffer.getNode(schema, node.index);
+//        try{
+//            root.save();
+//        }catch (IOException ioe) {
+//            System.err.println(ioe.getMessage());
+//        }
+        if(node.size() > n) {
             /*
                 Node splitting
                 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⠤⠐⠒⢀⠋⡉⢍⢫⡝⣫⢟⡶⣲⢦⣠⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
@@ -345,7 +348,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
 i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics
 i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics i hate generics
              */
-            int splitIndex = (root.size())/2;
+            int splitIndex = (node.size())/2;
             ArrayList<BPlusPointer<?>> leftSide = new ArrayList<>();
             ArrayList<BPlusPointer<?>> rightSide = new ArrayList<>();
 
@@ -362,8 +365,8 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                  */
 
                 // Split root's BPP amongst two child nodes and has root point to them instead
-                ArrayList<? extends BPlusPointer<?>> pointers = root.getPointers();
-                if(root.isRootNode()){
+                ArrayList<? extends BPlusPointer<?>> pointers = node.getPointers();
+                if(node.isRootNode()){
                     // Create child nodes and add them to the buffer
                     // System.out.println("Splitting root node " + root);
                     int leftIndex = addPage(file);
@@ -387,47 +390,48 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
                         leftSide.add(new BPlusPointer<>(null, rightIndex));
                     }
 
-                    buffer.insert(new BPlusNode<>(schema, leftIndex, leftSide, root.index, true));
-                    buffer.insert(new BPlusNode<>(schema, rightIndex, rightSide, root.index, true));
+                    buffer.insert(new BPlusNode<>(schema, leftIndex, leftSide, node.index, true));
+                    buffer.insert(new BPlusNode<>(schema, rightIndex, rightSide, node.index, true));
 
                     // Update root so it points to its two new children
                     ArrayList<BPlusPointer<?>> newPointers = new ArrayList<>();
                     newPointers.add(new BPlusPointer<>(rightSide.getFirst().getValue(), leftIndex));
                     newPointers.add(new BPlusPointer<>(null, rightIndex));
-                    root.replacePointers(newPointers);
+                    node.replacePointers(newPointers);
                 }
                 else {
-//                    if (root.isLeafNode()) {
-//                        System.out.println("Splitting leaf node " + root + " with parent " + root.parent);
-//                    } else {
-//                        System.out.println("Splitting internal node " + root + " with parent + " + root.parent);
-//                    }
-
                     int rightIndex = addPage(file);
                     // Divide the pointers amongst the two nodes
                     leftSide.addAll(pointers.subList(0, splitIndex));
-                    if (root.isLeafNode()) {
+                    if (node.isLeafNode()) {
                         leftSide.add(new BPlusPointer<>(null, rightIndex));  // Give the new node its null ptr
                     } else {
                         BPlusPointer<?> last = leftSide.removeLast();
                         leftSide.add(new BPlusPointer<>(null, last.getPageIndex()));
                     }
                     rightSide.addAll(pointers.subList(splitIndex, pointers.size()));
-                    // System.out.println("left side ("+root.index+"): "+leftSide.toString());
-                    // System.out.println("right side ("+rightIndex+"): "+rightSide.toString());
+                    if (!rightSide.getFirst().isRecordPointer()) {
+                        for (BPlusPointer<?> bpp : rightSide) {
+                            BPlusNode<?> childNode = buffer.getNode(schema, bpp.getPageIndex());
+                            childNode.parent = rightIndex;
+                        }
+                    }
 
                     // `root` becomes the left child
-                    root.replacePointers(leftSide);
+                    node.replacePointers(leftSide);
 
                     // Update parent
-                    BPlusNode<?> parent = buffer.getNode(schema, root.parent);
+                    BPlusNode<?> parent = buffer.getNode(schema, node.parent);
+                    parent.freeze();
                     parent.splitPointer(rightSide.getFirst().getValue(), rightIndex);
 
                     // Spawn right child
-                    BPlusNode<?> rightNode = new BPlusNode<>(schema, rightIndex, rightSide, root.parent, true);
-                    // System.out.println("New right node: " + rightNode);
+                    BPlusNode<?> rightNode = new BPlusNode<>(schema, rightIndex, rightSide, node.parent, true);
                     buffer.insert(rightNode);
-                    rightNode.save();
+
+                    // BPlusNode<?> parentNode = buffer.getNode(schema, node.parent);
+                    validate(schema, parent, n);
+                    parent.unfreeze();
                 }
             } catch (IOException ioe){
                 System.err.println(ioe.getMessage());

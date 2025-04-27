@@ -299,6 +299,8 @@ public class BPlusNode<T extends Comparable<T>> extends Bufferable {
             byte[] pageData = bs.toByteArray();
             if (pageData.length > schema.pageSize) {
                 System.err.println("Node data array exceeded pageSize while saving");
+                System.out.println("Failed to save: " + this);
+                Thread.dumpStack();
             }
             // Write output
             raf.write(pageData);

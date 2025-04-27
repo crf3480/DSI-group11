@@ -96,7 +96,7 @@ public class Main {
                 String line = br.readLine();
                 while (line != null) {
                     if (!(line.isEmpty() || line.startsWith("//") || line.startsWith("#"))) {
-                        System.out.println("\n"+line);
+                        // System.out.println("\n"+line);
                         exec(line, devArgs.contains("-v"));
                     }
                     TimeUnit.MILLISECONDS.sleep(25);    // allows stderr prints time to show up in intelliJ
