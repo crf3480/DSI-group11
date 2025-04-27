@@ -762,7 +762,7 @@ i hate generics i hate generics i hate generics i hate generics i hate generics 
         }
         for (File file : fileList) {
             System.out.println(file.getName());
-            if(Character.isDigit(file.getName().charAt(0))){
+            if(Character.isDigit(file.getName().charAt(0)) && !file.getName().endsWith(".bpt")){
                 dropTable(file.getName().substring(0, file.getName().indexOf('.')));
             }
         }
