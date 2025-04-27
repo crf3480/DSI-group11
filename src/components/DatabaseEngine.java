@@ -123,7 +123,6 @@ public class DatabaseEngine {
                 while (page != null) {
                     int i = 0;
                     while (i < page.recordCount()){
-                        // TODO: Refactor with BPT implementation
                         page = storageManager.getPage(schema, pageNumber);
 
                         Record updatedRecord = page.records.get(i);
@@ -466,7 +465,6 @@ public class DatabaseEngine {
                while (page != null) {
                    int i = 0;
                    while (i < page.recordCount()) {
-                       // TODO: Refactor with BPT implementation
                        page = storageManager.getPage(schema, pageNumber);
                        Record currReccord = page.records.get(i);
                        if (!eval.evaluateRecord(currReccord)) {
