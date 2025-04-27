@@ -278,7 +278,6 @@ public class Buffer {
      * @throws IndexOutOfBoundsException if pageIndex exceeds the size of the table file
      */
     public BPlusNode<?> loadNode(TableSchema schema, int nodeIndex) throws IndexOutOfBoundsException {
-        System.out.println("Loading node: " + schema.name+" "+nodeIndex);
         byte[] nodeData = new byte[pageSize];
         File indexFile = schema.indexFile();
         if (!indexFile.exists()) {
